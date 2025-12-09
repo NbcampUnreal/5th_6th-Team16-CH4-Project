@@ -1,6 +1,6 @@
-# lorem
+# Tarcopy
 
 - Visual Studio 2022 or Jetbrains Rider
 - C++20 이상
-- Unreal 5.5.4
+- Unreal 5.7.1
 

@@ -3,66 +3,83 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Templates/SubclassOf.h"
+//#include "Templates/SubclassOf.h"
 #include "GameFramework/PlayerController.h"
 #include "TarcopyPlayerController.generated.h"
 
-/** Forward declaration to improve compiling times */
 class UNiagaraSystem;
 class UInputMappingContext;
 class UInputAction;
+class UPathFollowingComponent;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
-UCLASS()
+/**
+ *  Player controller for a top-down perspective game.
+ *  Implements point and click based controls
+ */
+UCLASS(abstract)
 class ATarcopyPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
-public:
-	ATarcopyPlayerController();
+protected:
+
+	/** Component used for moving along a NavMesh path. */
+	UPROPERTY(VisibleDefaultsOnly, Category = AI)
+	TObjectPtr<UPathFollowingComponent> PathFollowingComponent;
 
 	/** Time Threshold to know if it was a short press */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
+	UPROPERTY(EditAnywhere, Category="Input")
 	float ShortPressThreshold;
 
 	/** FX Class that we will spawn when clicking */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
-	UNiagaraSystem* FXCursor;
+	UPROPERTY(EditAnywhere, Category="Input")
+	TObjectPtr<UNiagaraSystem> FXCursor;
 
 	/** MappingContext */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
-	UInputMappingContext* DefaultMappingContext;
+	UPROPERTY(EditAnywhere, Category="Input")
+	TObjectPtr<UInputMappingContext> DefaultMappingContext;
 	
 	/** Jump Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
-	UInputAction* SetDestinationClickAction;
+	UPROPERTY(EditAnywhere, Category="Input")
+	TObjectPtr<UInputAction> SetDestinationClickAction;
 
 	/** Jump Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
-	UInputAction* SetDestinationTouchAction;
+	UPROPERTY(EditAnywhere, Category="Input")
+	TObjectPtr<UInputAction> SetDestinationTouchAction;
 
-protected:
 	/** True if the controlled character should navigate to the mouse cursor. */
 	uint32 bMoveToMouseCursor : 1;
 
+	/** Set to true if we're using touch input */
+	uint32 bIsTouch : 1;
+
+	/** Saved location of the character movement destination */
+	FVector CachedDestination;
+
+	/** Time that the click input has been pressed */
+	float FollowTime = 0.0f;
+
+public:
+
+	/** Constructor */
+	ATarcopyPlayerController();
+
+protected:
+
+	/** Initialize input bindings */
 	virtual void SetupInputComponent() override;
 	
-	// To add mapping context
-	virtual void BeginPlay();
-
-	/** Input handlers for SetDestination action. */
+	/** Input handlers */
 	void OnInputStarted();
 	void OnSetDestinationTriggered();
 	void OnSetDestinationReleased();
 	void OnTouchTriggered();
 	void OnTouchReleased();
 
-private:
-	FVector CachedDestination;
-
-	bool bIsTouch; // Is it a touch device
-	float FollowTime; // For how long it has been pressed
+	/** Helper function to get the move destination */
+	void UpdateCachedDestination();
 };
 
 
