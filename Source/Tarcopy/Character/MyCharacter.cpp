@@ -54,16 +54,14 @@ void AMyCharacter::MoveAction(const FInputActionValue& Value)
 
 	const FVector2D InMovementVector = Value.Get<FVector2D>();
 
-	const FRotator ControlRotation = Controller->GetControlRotation();
-	const FRotator ControlYawRotation(0.0f, ControlRotation.Yaw, 0.f);
+	//const FRotator ControlRotation = Controller->GetControlRotation();
+	//const FRotator ControlYawRotation(0.0f, ControlRotation.Yaw, 0.f);
 
-	const FVector FowardDirection = FRotationMatrix(ControlYawRotation).GetUnitAxis(EAxis::X);
-	const FVector RightDirection = FRotationMatrix(ControlYawRotation).GetUnitAxis(EAxis::Y);
+	//const FVector FowardDirection = FRotationMatrix(ControlYawRotation).GetUnitAxis(EAxis::X);
+	//const FVector RightDirection = FRotationMatrix(ControlYawRotation).GetUnitAxis(EAxis::Y);
 
-	AddMovementInput(FowardDirection, InMovementVector.X);
-	AddMovementInput(RightDirection, InMovementVector.Y);
-
-	FVector LookAt = Camera->GetForwardVector();
+	AddMovementInput(Camera->GetForwardVector(), InMovementVector.X);
+	AddMovementInput(Camera->GetRightVector(), InMovementVector.Y);
 }
 
 // Called to bind functionality to input
