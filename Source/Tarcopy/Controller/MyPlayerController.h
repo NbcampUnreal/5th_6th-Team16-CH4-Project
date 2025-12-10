@@ -27,6 +27,7 @@ protected:
 #pragma endregion
 
 #pragma region Inputs
+public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
 	TObjectPtr<UInputMappingContext> IMC_Character;
