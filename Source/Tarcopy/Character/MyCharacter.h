@@ -6,24 +6,44 @@
 #include "GameFramework/Character.h"
 #include "MyCharacter.generated.h"
 
+class UCameraComponent;
+class USpringArmComponent;
+struct FInputActionValue;
+
 UCLASS()
 class TARCOPY_API AMyCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+#pragma region Character Override
+
 public:
-	// Sets default values for this character's properties
 	AMyCharacter();
 
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+#pragma endregion
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+#pragma region Viewport Components
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UCameraComponent> Camera;
+
+	/** Camera boom positioning the camera above the character */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USpringArmComponent> SpringArm;
+
+#pragma endregion
+
+#pragma region Action
+
+	UFUNCTION()
+	virtual void MoveAction(const FInputActionValue& Value);
+
+#pragma endregion
 
 };
