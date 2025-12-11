@@ -35,6 +35,7 @@ AMyCharacter::AMyCharacter() :
 	SpringArm->TargetArmLength = 1800.f;
 	SpringArm->SetRelativeRotation(FRotator(-50.f, 45.f, 0.f));
 	SpringArm->bDoCollisionTest = false;
+	SpringArm->bEnableCameraLag = true;
 
 	// Create the camera component
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
@@ -68,6 +69,10 @@ void AMyCharacter::StartSprint(const FInputActionValue& Value)
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed * SprintSpeedMultiplier;
+		if (!bIsCrouched)
+		{
+			SpringArm->TargetOffset.Z += 100.f;
+		}
 	}
 }
 
@@ -76,6 +81,10 @@ void AMyCharacter::StopSprint(const FInputActionValue& Value)
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed;
+		if (!bIsCrouched)
+		{
+			SpringArm->TargetOffset.Z -= 100.f;
+		}
 	}
 }
 
