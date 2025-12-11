@@ -4,11 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/SlateWrapperTypes.h"
 #include "UW_TitleLayout.generated.h"
 
 class UButton;
-class UEditableTextBox;
+class UEditableText;
 
 UCLASS()
 class TARCOPY_API UUW_TitleLayout : public UUserWidget
