@@ -10,9 +10,14 @@
 #include "EnhancedInputComponent.h"
 
 // Sets default values
-AMyCharacter::AMyCharacter()
+AMyCharacter::AMyCharacter() :
+	BaseWalkSpeed(600.f),
+	SprintSpeedMultiplier(1.5f),
+	CrouchSpeedMultiplier(0.7f)
 {
 	PrimaryActorTick.bCanEverTick = false;
+	bReplicates = true;
+	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -58,6 +63,42 @@ void AMyCharacter::MoveAction(const FInputActionValue& Value)
 	AddMovementInput(Camera->GetRightVector(), InMovementVector.Y);
 }
 
+void AMyCharacter::StartSprint(const FInputActionValue& Value)
+{
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed * SprintSpeedMultiplier;
+	}
+}
+
+void AMyCharacter::StopSprint(const FInputActionValue& Value)
+{
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed;
+	}
+}
+
+void AMyCharacter::StartCrouch(const FInputActionValue& Value)
+{
+	if (GetCharacterMovement())
+	{
+		if (bIsCrouched)
+		{
+			GetCharacterMovement()->MaxWalkSpeedCrouched = BaseWalkSpeed;
+			UnCrouch(true);
+		}
+		else
+		{
+			if (CanCrouch())
+			{
+				GetCharacterMovement()->MaxWalkSpeedCrouched = BaseWalkSpeed * CrouchSpeedMultiplier;
+				Crouch(true);
+			}
+		}
+	}
+}
+
 // Called to bind functionality to input
 void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -69,12 +110,16 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		{
 			if (PlayerController->MoveAction)
 			{
-				EnhancedInput->BindAction(
-					PlayerController->MoveAction,
-					ETriggerEvent::Triggered,
-					this,
-					&AMyCharacter::MoveAction
-				);
+				EnhancedInput->BindAction(PlayerController->MoveAction,	ETriggerEvent::Triggered, this, &AMyCharacter::MoveAction);
+			}
+			if (PlayerController->SprintAction)
+			{
+				EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Started, this, &AMyCharacter::StartSprint);
+				EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Completed, this, &AMyCharacter::StopSprint);
+			}
+			if (PlayerController->CrouchAction)
+			{
+				EnhancedInput->BindAction(PlayerController->CrouchAction, ETriggerEvent::Started, this, &AMyCharacter::StartCrouch);
 			}
 		}
 	}

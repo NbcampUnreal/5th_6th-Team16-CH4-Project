@@ -40,10 +40,24 @@ protected:
 #pragma endregion
 
 #pragma region Action
-
+private:
 	UFUNCTION()
 	virtual void MoveAction(const FInputActionValue& Value);
 
+	UFUNCTION()
+	virtual void StartSprint(const FInputActionValue& Value);
+	UFUNCTION()
+	virtual void StopSprint(const FInputActionValue& Value);
+
+	UFUNCTION()
+	virtual void StartCrouch(const FInputActionValue& Value);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
+	float BaseWalkSpeed;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
+	float SprintSpeedMultiplier;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
+	float CrouchSpeedMultiplier;
 #pragma endregion
 
 };
