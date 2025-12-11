@@ -10,132 +10,121 @@ class UCameraComponent;
 class USpringArmComponent;
 class UInputAction;
 class UChaosWheeledVehicleMovementComponent;
+class USpotLightComponent;
+class UTCCarCombatComponent;
 struct FInputActionValue;
 
-/**
- *  Vehicle Pawn class
- *  Handles common functionality for all vehicle types,
- *  including input handling and camera management.
- *
- *  Specific vehicle configurations are handled in subclasses.
- */
 UCLASS(abstract)
 class ATCCarBase : public AWheeledVehiclePawn
 {
 	GENERATED_BODY()
 
-	/** Spring Arm for the camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* SpringArm;
 
-	/**Camera component */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* Camera;
+
+	UPROPERTY(EditDefaultsOnly)
+	UStaticMeshComponent* Light;
+
+	UPROPERTY(EditDefaultsOnly)
+	USpotLightComponent* HeadLight_R;
+
+	UPROPERTY(EditDefaultsOnly)
+	USpotLightComponent* HeadLight_L;
  
-	/** Cast pointer to the Chaos Vehicle movement component */
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> ChaosVehicleMovement;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UTCCarCombatComponent> CombatComponent;
+
 
 protected:
 
-	/** Steering Action */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* SteeringAction;
 
-	/** Throttle Action */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* ThrottleAction;
 
-	/** Brake Action */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* BrakeAction;
 
-	/** Handbrake Action */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* HandbrakeAction;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* LightAction;
 
 public:
 	ATCCarBase();
 
-	// Begin Pawn interface
-
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
 
-	// End Pawn interface
-
-	// Begin Actor interface
-
-	/** Initialization */
 	virtual void BeginPlay() override;
 
-	/** Cleanup */
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
 
-	/** Update */
 	virtual void Tick(float Delta) override;
 
-	// End Actor interface
 
 protected:
 
-	/** Handles steering input */
 	void Steering(const FInputActionValue& Value);
 
-	/** Handles throttle input */
 	void Throttle(const FInputActionValue& Value);
 
-	/** Handles brake input */
 	void Brake(const FInputActionValue& Value);
 
-	/** Handles brake start/stop inputs */
 	void StartBrake(const FInputActionValue& Value);
 	void StopBrake(const FInputActionValue& Value);
 
-	/** Handles handbrake start/stop inputs */
 	void StartHandbrake(const FInputActionValue& Value);
 	void StopHandbrake(const FInputActionValue& Value);
 
+	void ToggleLight(const FInputActionValue& Value);
+
+
 public:
 
-	/** Handle steering input by input actions or mobile interface */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoSteering(float SteeringValue);
 
-	/** Handle throttle input by input actions or mobile interface */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoThrottle(float ThrottleValue);
 
-	/** Handle brake input by input actions or mobile interface */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoBrake(float BrakeValue);
 
-	/** Handle brake start input by input actions or mobile interface */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoBrakeStart();
 
-	/** Handle brake stop input by input actions or mobile interface */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoBrakeStop();
 
-	/** Handle handbrake start input by input actions or mobile interface */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoHandbrakeStart();
 
-	/** Handle handbrake stop input by input actions or mobile interface */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoHandbrakeStop();
 
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void DoHandLight();
+
 protected:
 
-	/** Called when the brake lights are turned on or off */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Vehicle")
 	void BrakeLights(bool bBraking);
 
+	UFUNCTION()
+	void DamageOn();
 
 public:
-	/** Returns the front spring arm subobject */
+	bool bLightOn;
+
+public:
 	FORCEINLINE USpringArmComponent* GetFrontSpringArm() const { return SpringArm; }
-	/** Returns the front camera subobject */
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return Camera; }
-	/** Returns the cast Chaos Vehicle Movement subobject */
 	FORCEINLINE const TObjectPtr<UChaosWheeledVehicleMovementComponent>& GetChaosVehicleMovement() const { return ChaosVehicleMovement; }
 };

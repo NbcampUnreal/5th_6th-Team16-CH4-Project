@@ -10,6 +10,8 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
+#include "Components/SpotLightComponent.h"
+#include "Component/TCCarCombatComponent.h"
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
 
@@ -34,8 +36,23 @@ ATCCarBase::ATCCarBase()
 	GetMesh()->SetSimulatePhysics(true);
 	GetMesh()->SetCollisionProfileName(FName("Vehicle"));
 
-	// get the Chaos Wheeled movement component
+	Light = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Glass"));
+	Light->SetupAttachment(GetRootComponent());
+
+	HeadLight_R = CreateDefaultSubobject<USpotLightComponent>(TEXT("PointLight_R"));
+	HeadLight_R->SetupAttachment(Light, FName("HeadLight_R"));
+	HeadLight_R->SetVisibility(false);
+	HeadLight_R->SetIntensity(120000.f);
+	HeadLight_R->SetAttenuationRadius(4000.f);
+	HeadLight_L = CreateDefaultSubobject<USpotLightComponent>(TEXT("PointLight_L"));
+	HeadLight_L->SetupAttachment(Light, FName("HeadLight_L"));
+	HeadLight_L->SetVisibility(false);
+	HeadLight_L->SetIntensity(120000.f);
+	HeadLight_L->SetAttenuationRadius(4000.f);
+
 	ChaosVehicleMovement = CastChecked<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement());
+
+	CombatComponent = CreateDefaultSubobject<UTCCarCombatComponent>(TEXT("CombatComponent"));
 
 }
 
@@ -61,6 +78,9 @@ void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputCom
 		// handbrake 
 		EnhancedInputComponent->BindAction(HandbrakeAction, ETriggerEvent::Started, this, &ATCCarBase::StartHandbrake);
 		EnhancedInputComponent->BindAction(HandbrakeAction, ETriggerEvent::Completed, this, &ATCCarBase::StopHandbrake);
+
+		// Light
+		EnhancedInputComponent->BindAction(LightAction, ETriggerEvent::Started, this, &ATCCarBase::ToggleLight);
 	}
 	else
 	{
@@ -88,101 +108,107 @@ void ATCCarBase::Tick(float Delta)
 
 void ATCCarBase::Steering(const FInputActionValue& Value)
 {
-	// route the input
 	DoSteering(Value.Get<float>());
 }
 
 void ATCCarBase::Throttle(const FInputActionValue& Value)
 {
-	// route the input
 	DoThrottle(Value.Get<float>());
 }
 
 void ATCCarBase::Brake(const FInputActionValue& Value)
 {
-	// route the input
 	DoBrake(Value.Get<float>());
 }
 
 void ATCCarBase::StartBrake(const FInputActionValue& Value)
 {
-	// route the input
 	DoBrakeStart();
 }
 
 void ATCCarBase::StopBrake(const FInputActionValue& Value)
 {
-	// route the input
 	DoBrakeStop();
 }
 
 void ATCCarBase::StartHandbrake(const FInputActionValue& Value)
 {
-	// route the input
 	DoHandbrakeStart();
 }
 
 void ATCCarBase::StopHandbrake(const FInputActionValue& Value)
 {
-	// route the input
 	DoHandbrakeStop();
+}
+
+void ATCCarBase::ToggleLight(const FInputActionValue& Value)
+{
+	DoHandLight();
 }
 
 void ATCCarBase::DoSteering(float SteeringValue)
 {
-	// add the input
 	ChaosVehicleMovement->SetSteeringInput(SteeringValue);
 }
 
 void ATCCarBase::DoThrottle(float ThrottleValue)
 {
-	// add the input
 	ChaosVehicleMovement->SetThrottleInput(ThrottleValue);
 
-	// reset the brake input
 	ChaosVehicleMovement->SetBrakeInput(0.0f);
 }
 
 void ATCCarBase::DoBrake(float BrakeValue)
 {
-	// add the input
 	ChaosVehicleMovement->SetBrakeInput(BrakeValue);
 
-	// reset the throttle input
 	ChaosVehicleMovement->SetThrottleInput(0.0f);
 }
 
 void ATCCarBase::DoBrakeStart()
 {
-	// call the Blueprint hook for the brake lights
 	BrakeLights(true);
 }
 
 void ATCCarBase::DoBrakeStop()
 {
-	// call the Blueprint hook for the brake lights
 	BrakeLights(false);
 
-	// reset brake input to zero
 	ChaosVehicleMovement->SetBrakeInput(0.0f);
 }
 
 void ATCCarBase::DoHandbrakeStart()
 {
-	// add the input
 	ChaosVehicleMovement->SetHandbrakeInput(true);
 
-	// call the Blueprint hook for the break lights
 	BrakeLights(true);
 }
 
 void ATCCarBase::DoHandbrakeStop()
 {
-	// add the input
 	ChaosVehicleMovement->SetHandbrakeInput(false);
 
-	// call the Blueprint hook for the break lights
 	BrakeLights(false);
 }
 
+void ATCCarBase::DoHandLight()
+{
+	DamageOn();
+	if (bLightOn)
+	{
+		HeadLight_R->SetVisibility(false);
+		HeadLight_L->SetVisibility(false);
+		bLightOn = false;
+	}
+	else
+	{
+		HeadLight_R->SetVisibility(true);
+		HeadLight_L->SetVisibility(true);
+		bLightOn = true;
+	}
+}
+void ATCCarBase::DamageOn()
+{
+	CombatComponent->ApplyDamage(CombatComponent->GetTestMesh(), 100.f);
+}
 #undef LOCTEXT_NAMESPACE

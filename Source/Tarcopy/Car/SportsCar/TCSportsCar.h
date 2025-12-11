@@ -6,9 +6,6 @@
 #include "Car/TCCarBase.h"
 #include "TCSportsCar.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class TARCOPY_API ATCSportsCar : public ATCCarBase
 {
@@ -16,5 +13,5 @@ class TARCOPY_API ATCSportsCar : public ATCCarBase
 
 public:
 	ATCSportsCar();
-	
+
 };
