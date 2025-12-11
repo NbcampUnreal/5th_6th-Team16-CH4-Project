@@ -8,6 +8,7 @@
 #include "Controller/MyPlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -68,7 +69,7 @@ void AMyCharacter::StartSprint(const FInputActionValue& Value)
 {
 	if (GetCharacterMovement())
 	{
-		GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed * SprintSpeedMultiplier;
+		ServerRPC_StartSprint();
 		if (!bIsCrouched)
 		{
 			SpringArm->TargetOffset.Z += 100.f;
@@ -76,11 +77,20 @@ void AMyCharacter::StartSprint(const FInputActionValue& Value)
 	}
 }
 
+void AMyCharacter::ServerRPC_StartSprint_Implementation()
+{
+	if (GetCharacterMovement())
+	{
+		CurrentSpeed = BaseWalkSpeed * SprintSpeedMultiplier;
+		GetCharacterMovement()->MaxWalkSpeed = CurrentSpeed;
+	}
+}
+
 void AMyCharacter::StopSprint(const FInputActionValue& Value)
 {
 	if (GetCharacterMovement())
 	{
-		GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed;
+		ServerRPC_StopSprint();
 		if (!bIsCrouched)
 		{
 			SpringArm->TargetOffset.Z -= 100.f;
@@ -88,7 +98,31 @@ void AMyCharacter::StopSprint(const FInputActionValue& Value)
 	}
 }
 
+void AMyCharacter::ServerRPC_StopSprint_Implementation()
+{
+	if (GetCharacterMovement())
+	{
+		CurrentSpeed = BaseWalkSpeed;
+		GetCharacterMovement()->MaxWalkSpeed = CurrentSpeed;
+	}
+}
+
+void AMyCharacter::OnRep_SetSpeed()
+{
+	GetCharacterMovement()->MaxWalkSpeed = CurrentSpeed;
+}
+
 void AMyCharacter::StartCrouch(const FInputActionValue& Value)
+{
+	ServerRPC_Crouch();
+}
+
+void AMyCharacter::ServerRPC_Crouch_Implementation()
+{
+	MulticastRPC_Crouch();
+}
+
+void AMyCharacter::MulticastRPC_Crouch_Implementation()
 {
 	if (GetCharacterMovement())
 	{
@@ -106,6 +140,15 @@ void AMyCharacter::StartCrouch(const FInputActionValue& Value)
 			}
 		}
 	}
+}
+
+void AMyCharacter::Wheel(const FInputActionValue& Value)
+{
+	if (!IsLocallyControlled())
+		return;
+
+	const float Input = Value.Get<float>() * -200;
+	SpringArm->TargetArmLength = FMath::Clamp(SpringArm->TargetArmLength + Input, 900.f, 1800.f);
 }
 
 // Called to bind functionality to input
@@ -130,7 +173,18 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			{
 				EnhancedInput->BindAction(PlayerController->CrouchAction, ETriggerEvent::Started, this, &AMyCharacter::StartCrouch);
 			}
+			if (PlayerController->WheelAction)
+			{
+				EnhancedInput->BindAction(PlayerController->WheelAction, ETriggerEvent::Started, this, &AMyCharacter::Wheel);
+			}
 		}
 	}
+}
+
+void AMyCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, CurrentSpeed);
 }
 

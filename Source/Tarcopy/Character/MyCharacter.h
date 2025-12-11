@@ -22,6 +22,8 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -46,11 +48,24 @@ private:
 
 	UFUNCTION()
 	virtual void StartSprint(const FInputActionValue& Value);
+	UFUNCTION(Server, Reliable)
+	virtual void ServerRPC_StartSprint();
 	UFUNCTION()
 	virtual void StopSprint(const FInputActionValue& Value);
+	UFUNCTION(Server, Reliable)
+	virtual void ServerRPC_StopSprint();
+	UFUNCTION()
+	virtual void OnRep_SetSpeed();
 
 	UFUNCTION()
 	virtual void StartCrouch(const FInputActionValue& Value);
+	UFUNCTION(Server, Reliable)
+	virtual void ServerRPC_Crouch();
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void MulticastRPC_Crouch();
+
+	UFUNCTION()
+	virtual void Wheel(const FInputActionValue& Value);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
 	float BaseWalkSpeed;
@@ -58,6 +73,10 @@ private:
 	float SprintSpeedMultiplier;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
 	float CrouchSpeedMultiplier;
+
+	UPROPERTY(Replicated, ReplicatedUsing = OnRep_SetSpeed)
+	float CurrentSpeed;
+
 #pragma endregion
 
 };
