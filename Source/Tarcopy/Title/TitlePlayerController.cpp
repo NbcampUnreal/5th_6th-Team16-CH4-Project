@@ -1,9 +1,10 @@
-// PlayerController for the title screen that spawns the title UI.
+﻿// PlayerController for the title screen that spawns the title UI.
 
 #include "Title/TitlePlayerController.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
+#include "UI/UISubsystem.h"
 
 ATitlePlayerController::ATitlePlayerController()
 	: TitleWidgetClass(nullptr)
@@ -20,21 +21,25 @@ void ATitlePlayerController::BeginPlay()
 	{
 		return;
 	}
+	
+	//if (IsValid(TitleWidgetClass) == true)
+	//{
+	//	TitleWidgetInstance = CreateWidget<UUserWidget>(this, TitleWidgetClass); 
+	//	if (IsValid(TitleWidgetInstance) == true)
+	//	{
+	//		TitleWidgetInstance->AddToViewport();
 
-	if (IsValid(TitleWidgetClass) == true)
-	{
-		TitleWidgetInstance = CreateWidget<UUserWidget>(this, TitleWidgetClass); 
-		if (IsValid(TitleWidgetInstance) == true)
-		{
-			TitleWidgetInstance->AddToViewport();
+	//		FInputModeUIOnly Mode;
+	//		Mode.SetWidgetToFocus(TitleWidgetInstance->GetCachedWidget());
+	//		SetInputMode(Mode);
 
-			FInputModeUIOnly Mode;
-			Mode.SetWidgetToFocus(TitleWidgetInstance->GetCachedWidget());
-			SetInputMode(Mode);
+	//		bShowMouseCursor = true;
+	//	}
+	//}
 
-			bShowMouseCursor = true;
-		}
-	}
+	auto* LP = GetLocalPlayer();
+	auto* UIS = LP->GetSubsystem<UUISubsystem>();
+	auto* Test = UIS->ShowUI(EUIType::Title);
 }
 
 void ATitlePlayerController::JoinServer(const FString& InIPAddress)
