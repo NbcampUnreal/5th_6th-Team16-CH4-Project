@@ -1,0 +1,33 @@
+﻿#pragma once
+
+#include "CoreMinimal.h"
+#include "Item/ItemEnums.h"
+#include "ItemData.generated.h"
+
+USTRUCT(BlueprintType)
+struct TARCOPY_API FItemData : public FTableRowBase
+{
+public:
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	int32 ItemId;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	EItemType ItemType;										// UI 출력용
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	EEquipSlot EquipSlot;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FText TextName;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FText TextDesc;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FIntPoint InventoryBound;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float Weight;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TArray<EInteractType> InteractType;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Bitmask, BitmaskEnum = "/Script/Tarcopy.EItemCategory"))
+	int32 ItemCategory = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float ToolEfficiency = 1.0f;
+};
