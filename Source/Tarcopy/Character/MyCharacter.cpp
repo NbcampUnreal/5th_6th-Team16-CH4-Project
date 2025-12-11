@@ -14,7 +14,8 @@
 AMyCharacter::AMyCharacter() :
 	BaseWalkSpeed(600.f),
 	SprintSpeedMultiplier(1.5f),
-	CrouchSpeedMultiplier(0.7f)
+	CrouchSpeedMultiplier(0.7f),
+	bIsAttackMode(false)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
@@ -186,5 +187,6 @@ void AMyCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ThisClass, CurrentSpeed);
+	DOREPLIFETIME(ThisClass, bIsAttackMode);
 }
 

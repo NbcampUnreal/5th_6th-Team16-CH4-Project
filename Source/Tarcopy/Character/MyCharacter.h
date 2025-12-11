@@ -41,8 +41,8 @@ protected:
 
 #pragma endregion
 
-#pragma region Action
-private:
+#pragma region MoveAction
+protected:
 	UFUNCTION()
 	virtual void MoveAction(const FInputActionValue& Value);
 
@@ -64,9 +64,6 @@ private:
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void MulticastRPC_Crouch();
 
-	UFUNCTION()
-	virtual void Wheel(const FInputActionValue& Value);
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
 	float BaseWalkSpeed;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
@@ -76,6 +73,17 @@ private:
 
 	UPROPERTY(Replicated, ReplicatedUsing = OnRep_SetSpeed)
 	float CurrentSpeed;
+
+#pragma endregion
+
+#pragma region Mouse Action
+
+protected:
+	UFUNCTION()
+	virtual void Wheel(const FInputActionValue& Value);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attack", meta = (AllowPrivateAccess = "true"))
+	bool bIsAttackMode;
 
 #pragma endregion
 
