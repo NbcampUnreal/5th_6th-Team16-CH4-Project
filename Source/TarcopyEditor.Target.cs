@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public class TarcopyEditorTarget : TargetRules
 {
-	public TarcopyEditorTarget( TargetInfo Target) : base(Target)
+	public TarcopyEditorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V6;
