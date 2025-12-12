@@ -25,13 +25,25 @@ protected:
 
 	virtual void BeginPlay() override;
 
+	void DestroyPart(UPrimitiveComponent* DestroyComponent);
+
+	void DestroyWindow(UPrimitiveComponent* DestroyComponent);
+
+	void DestroyWheel(UPrimitiveComponent* DestroyComponent);
+
+	void DisableWheelPhysics(int32 WheelIndex);
+
+	int32 FindWheelIndexFromComp(UPrimitiveComponent* DestroyComponent);
+
 	
 public:	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	//Test
-	UPrimitiveComponent* GetTestMesh() { return TestMesh; }
+	UPrimitiveComponent* GetTestMesh();
 
 	UPrimitiveComponent* TestMesh;
+
+	TArray<UStaticMeshComponent*> Meshes;
 		
 };

@@ -208,8 +208,11 @@ void ATCCarBase::DoHandLight()
 		bLightOn = true;
 	}
 }
+
 void ATCCarBase::DamageOn()
 {
 	CombatComponent->ApplyDamage(CombatComponent->GetTestMesh(), 100.f);
 }
+
+
 #undef LOCTEXT_NAMESPACE

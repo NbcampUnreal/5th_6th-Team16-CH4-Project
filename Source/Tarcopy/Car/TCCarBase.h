@@ -120,6 +120,8 @@ protected:
 	UFUNCTION()
 	void DamageOn();
 
+	int32 FindWheelIndex(UPrimitiveComponent* Wheel);
+
 public:
 	bool bLightOn;
 
