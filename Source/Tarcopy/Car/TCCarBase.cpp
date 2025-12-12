@@ -54,6 +54,7 @@ ATCCarBase::ATCCarBase()
 
 	CombatComponent = CreateDefaultSubobject<UTCCarCombatComponent>(TEXT("CombatComponent"));
 
+	ChaosVehicleMovement->SetIsReplicated(true);
 }
 
 void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
