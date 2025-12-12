@@ -9,6 +9,7 @@ AMyPlayerController::AMyPlayerController() :
 	MoveAction(nullptr),
 	LookAction(nullptr)
 {
+	bReplicates = true;
 }
 
 void AMyPlayerController::BeginPlay()

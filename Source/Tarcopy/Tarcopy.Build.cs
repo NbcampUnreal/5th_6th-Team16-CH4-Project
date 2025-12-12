@@ -16,6 +16,11 @@ public class Tarcopy : ModuleRules
 			"InputCore",
             "ChaosVehicles",
             "EnhancedInput"
+			"InputCore", 
+			"EnhancedInput",
+			"UMG",
+			"Slate",
+			"SlateCore"
 		});
 		
 		PublicIncludePaths.AddRange(new []
