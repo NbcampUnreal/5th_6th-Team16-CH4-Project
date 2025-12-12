@@ -15,7 +15,7 @@ public class Tarcopy : ModuleRules
 			"Engine", 
 			"InputCore",
             "ChaosVehicles",
-            "EnhancedInput"
+            "EnhancedInput",
 			"InputCore", 
 			"EnhancedInput",
 			"UMG",
