@@ -47,6 +47,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
 	TObjectPtr<UInputAction> WheelAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
+	TObjectPtr<UInputAction> RightClickAction;
+
 #pragma endregion
 
 };

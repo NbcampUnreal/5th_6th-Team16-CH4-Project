@@ -49,11 +49,9 @@ protected:
 	UFUNCTION()
 	virtual void StartSprint(const FInputActionValue& Value);
 	UFUNCTION(Server, Reliable)
-	virtual void ServerRPC_StartSprint();
+	virtual void ServerRPC_SetSpeed(float InSpeed);
 	UFUNCTION()
 	virtual void StopSprint(const FInputActionValue& Value);
-	UFUNCTION(Server, Reliable)
-	virtual void ServerRPC_StopSprint();
 	UFUNCTION()
 	virtual void OnRep_SetSpeed();
 
@@ -64,11 +62,11 @@ protected:
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void MulticastRPC_Crouch();
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
 	float BaseWalkSpeed;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
 	float SprintSpeedMultiplier;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
 	float CrouchSpeedMultiplier;
 
 	UPROPERTY(Replicated, ReplicatedUsing = OnRep_SetSpeed)
@@ -82,7 +80,14 @@ protected:
 	UFUNCTION()
 	virtual void Wheel(const FInputActionValue& Value);
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attack", meta = (AllowPrivateAccess = "true"))
+	UFUNCTION()
+	virtual void CanceledRightClick(const FInputActionValue& Value);
+	UFUNCTION()
+	virtual void TriggeredRightClick(const FInputActionValue& Value);
+	UFUNCTION()
+	virtual void CompletedRightClick(const FInputActionValue& Value);
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Attack", meta = (AllowPrivateAccess = "true"))
 	bool bIsAttackMode;
 
 #pragma endregion

@@ -68,9 +68,12 @@ void AMyCharacter::MoveAction(const FInputActionValue& Value)
 
 void AMyCharacter::StartSprint(const FInputActionValue& Value)
 {
+	if (bIsAttackMode)
+		return;
+
 	if (GetCharacterMovement())
 	{
-		ServerRPC_StartSprint();
+		ServerRPC_SetSpeed(BaseWalkSpeed * SprintSpeedMultiplier);
 		if (!bIsCrouched)
 		{
 			SpringArm->TargetOffset.Z += 100.f;
@@ -78,33 +81,27 @@ void AMyCharacter::StartSprint(const FInputActionValue& Value)
 	}
 }
 
-void AMyCharacter::ServerRPC_StartSprint_Implementation()
+void AMyCharacter::ServerRPC_SetSpeed_Implementation(float InSpeed)
 {
 	if (GetCharacterMovement())
 	{
-		CurrentSpeed = BaseWalkSpeed * SprintSpeedMultiplier;
+		CurrentSpeed = InSpeed;
 		GetCharacterMovement()->MaxWalkSpeed = CurrentSpeed;
 	}
 }
 
 void AMyCharacter::StopSprint(const FInputActionValue& Value)
 {
+	if (bIsAttackMode)
+		return;
+
 	if (GetCharacterMovement())
 	{
-		ServerRPC_StopSprint();
+		ServerRPC_SetSpeed(BaseWalkSpeed);
 		if (!bIsCrouched)
 		{
 			SpringArm->TargetOffset.Z -= 100.f;
 		}
-	}
-}
-
-void AMyCharacter::ServerRPC_StopSprint_Implementation()
-{
-	if (GetCharacterMovement())
-	{
-		CurrentSpeed = BaseWalkSpeed;
-		GetCharacterMovement()->MaxWalkSpeed = CurrentSpeed;
 	}
 }
 
@@ -115,6 +112,9 @@ void AMyCharacter::OnRep_SetSpeed()
 
 void AMyCharacter::StartCrouch(const FInputActionValue& Value)
 {
+	if (bIsAttackMode)
+		return;
+
 	ServerRPC_Crouch();
 }
 
@@ -152,6 +152,29 @@ void AMyCharacter::Wheel(const FInputActionValue& Value)
 	SpringArm->TargetArmLength = FMath::Clamp(SpringArm->TargetArmLength + Input, 900.f, 1800.f);
 }
 
+void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
+{
+	bIsAttackMode = false;
+	UE_LOG(LogTemp, Error, TEXT("Canceled"))
+}
+
+void AMyCharacter::TriggeredRightClick(const FInputActionValue& Value)
+{
+	if (bIsAttackMode)
+		return;
+
+	bIsAttackMode = true;
+	ServerRPC_SetSpeed(BaseWalkSpeed * CrouchSpeedMultiplier);
+	UE_LOG(LogTemp, Error, TEXT("Triggered"))
+}
+
+void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
+{
+	bIsAttackMode = false;
+	ServerRPC_SetSpeed(BaseWalkSpeed);
+	UE_LOG(LogTemp, Error, TEXT("Completed"));
+}
+
 // Called to bind functionality to input
 void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -178,6 +201,12 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			{
 				EnhancedInput->BindAction(PlayerController->WheelAction, ETriggerEvent::Started, this, &AMyCharacter::Wheel);
 			}
+			if (PlayerController->RightClickAction)
+			{
+				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Canceled, this, &AMyCharacter::CanceledRightClick);
+				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Triggered, this, &AMyCharacter::TriggeredRightClick);
+				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Completed, this, &AMyCharacter::CompletedRightClick);
+			}
 		}
 	}
 }
@@ -186,6 +215,9 @@ void AMyCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME(ThisClass, BaseWalkSpeed);
+	DOREPLIFETIME(ThisClass, SprintSpeedMultiplier);
+	DOREPLIFETIME(ThisClass, CrouchSpeedMultiplier);
 	DOREPLIFETIME(ThisClass, CurrentSpeed);
 	DOREPLIFETIME(ThisClass, bIsAttackMode);
 }
