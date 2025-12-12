@@ -7,7 +7,11 @@
 		{
 			"Name": "Tarcopy",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"UMG"
+			]
 		}
 	],
 	"Plugins": [
@@ -19,11 +23,7 @@
 			]
 		},
 		{
-			"Name": "StateTree",
-			"Enabled": true
-		},
-		{
-			"Name": "GameplayStateTree",
+			"Name": "ChaosVehiclesPlugin",
 			"Enabled": true
 		}
 	]

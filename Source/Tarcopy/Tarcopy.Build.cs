@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+﻿// Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -7,37 +7,32 @@ public class Tarcopy : ModuleRules
 	public Tarcopy(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-
-		PublicDependencyModuleNames.AddRange(new string[] {
-			"Core",
-			"CoreUObject",
-			"Engine",
+	
+		PublicDependencyModuleNames.AddRange(new string[]
+		{
+			"Core", 
+			"CoreUObject", 
+			"Engine", 
 			"InputCore",
+            "ChaosVehicles",
+            "EnhancedInput",
+			"InputCore", 
 			"EnhancedInput",
-			"AIModule",
-			"NavigationSystem",
-			"StateTreeModule",
-			"GameplayStateTreeModule",
-			"Niagara",
 			"UMG",
-			"Slate"
+			"Slate",
+			"SlateCore"
+		});
+		
+		PublicIncludePaths.AddRange(new []
+		{
+			"Tarcopy"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
-
-		PublicIncludePaths.AddRange(new string[] {
-			"Tarcopy",
-			"Tarcopy/Variant_Strategy",
-			"Tarcopy/Variant_Strategy/UI",
-			"Tarcopy/Variant_TwinStick",
-			"Tarcopy/Variant_TwinStick/AI",
-			"Tarcopy/Variant_TwinStick/Gameplay",
-			"Tarcopy/Variant_TwinStick/UI"
-		});
+		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-
+		
 		// Uncomment if you are using online features
 		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
 
