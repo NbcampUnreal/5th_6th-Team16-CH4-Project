@@ -38,10 +38,12 @@ protected:
 	void DisableWheelPhysics(int32 WheelIndex);
 
 	int32 FindWheelIndexFromComp(UPrimitiveComponent* DestroyComponent);
-
 	
 public:	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> WheelActorClass;
 
 	//Test
 	UPrimitiveComponent* GetTestMesh();
@@ -49,5 +51,6 @@ public:
 	UPrimitiveComponent* TestMesh;
 
 	TArray<UStaticMeshComponent*> Meshes;
-		
+
+	
 };

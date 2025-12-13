@@ -66,10 +66,23 @@ void UTCCarCombatComponent::DestroyWheel(UPrimitiveComponent* DestroyComponent)
 	int32 WheelIndex = FindWheelIndexFromComp(DestroyComponent);
 
 	UStaticMeshComponent* WheelMesh = Cast<UStaticMeshComponent>(DestroyComponent);
+	if (!WheelMesh) return;
+
+	if (WheelActorClass) 
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride =
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		GetWorld()->SpawnActor<AActor>(
+			WheelActorClass,
+			WheelMesh->GetComponentTransform(),
+			Params
+		);
+	}
 
 	WheelMesh->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-	WheelMesh->SetSimulatePhysics(true);
-	WheelMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	WheelMesh->SetVisibility(false);
 
 	DisableWheelPhysics(WheelIndex);
 }
@@ -107,6 +120,7 @@ void UTCCarCombatComponent::DisableWheelPhysics(int32 WheelIndex)
 	Move->SetWheelSlipGraphMultiplier(WheelIndex, 0.1f);
 
 	Move->SetSuspensionParams(0.f, 0.f, 0.f, 0.f, 0.f, WheelIndex);*///이방법은 너무 연산을 많이먹음 바퀴가 부서지면 차체에서 인풋값을 절반을받거나 하는 방식으로 해야할듯..? 기우는 걸 해결할 방법이 없기는 함.. 이거하니까 차체가 날아감
+
 }
 
 int32 UTCCarCombatComponent::FindWheelIndexFromComp(UPrimitiveComponent* DestroyComponent)
