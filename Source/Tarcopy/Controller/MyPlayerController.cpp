@@ -20,6 +20,7 @@ void AMyPlayerController::BeginPlay()
 		return;
 
 	FInputModeGameAndUI GameAndUI;
+	GameAndUI.SetHideCursorDuringCapture(false).SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(GameAndUI);
 	bShowMouseCursor = true;
 }

@@ -87,6 +87,17 @@ protected:
 	UFUNCTION()
 	virtual void CompletedRightClick(const FInputActionValue& Value);
 
+	UFUNCTION(Server, Reliable)
+	virtual void ServerRPC_TurnToMouse(const FRotator& TargetRot);
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void MulticastRPC_TurnToMouse(const FRotator& TargetRot);
+	virtual void TurnToMouse();
+
+	UFUNCTION(Server, Reliable)
+	virtual void ServerRPC_StopTurnToMouse();
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void MulticastRPC_StopTurnToMouse();
+
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Attack", meta = (AllowPrivateAccess = "true"))
 	bool bIsAttackMode;
 

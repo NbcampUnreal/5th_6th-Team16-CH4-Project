@@ -49,7 +49,6 @@ AMyCharacter::AMyCharacter() :
 void AMyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
 }
 
 void AMyCharacter::MoveAction(const FInputActionValue& Value)
@@ -71,13 +70,13 @@ void AMyCharacter::StartSprint(const FInputActionValue& Value)
 	if (bIsAttackMode)
 		return;
 
-	if (GetCharacterMovement())
+	if (GetCharacterMovement()->MaxWalkSpeed != BaseWalkSpeed * SprintSpeedMultiplier)
 	{
 		ServerRPC_SetSpeed(BaseWalkSpeed * SprintSpeedMultiplier);
-		if (!bIsCrouched)
-		{
-			SpringArm->TargetOffset.Z += 100.f;
-		}
+	}
+	if (!bIsCrouched)
+	{
+		SpringArm->TargetOffset.Z = 100.f;
 	}
 }
 
@@ -92,16 +91,15 @@ void AMyCharacter::ServerRPC_SetSpeed_Implementation(float InSpeed)
 
 void AMyCharacter::StopSprint(const FInputActionValue& Value)
 {
+	SpringArm->TargetOffset.Z = 0.f;
+
 	if (bIsAttackMode)
 		return;
 
-	if (GetCharacterMovement())
+	ServerRPC_SetSpeed(BaseWalkSpeed);
+	if (!bIsCrouched)
 	{
-		ServerRPC_SetSpeed(BaseWalkSpeed);
-		if (!bIsCrouched)
-		{
-			SpringArm->TargetOffset.Z -= 100.f;
-		}
+		SpringArm->TargetOffset.Z = 0.f;
 	}
 }
 
@@ -155,24 +153,80 @@ void AMyCharacter::Wheel(const FInputActionValue& Value)
 void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
 {
 	bIsAttackMode = false;
-	UE_LOG(LogTemp, Error, TEXT("Canceled"))
 }
 
 void AMyCharacter::TriggeredRightClick(const FInputActionValue& Value)
 {
+	TurnToMouse();
+	SpringArm->TargetOffset.Z = 0.f;
+
 	if (bIsAttackMode)
 		return;
 
 	bIsAttackMode = true;
 	ServerRPC_SetSpeed(BaseWalkSpeed * CrouchSpeedMultiplier);
-	UE_LOG(LogTemp, Error, TEXT("Triggered"))
 }
 
 void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
 {
-	bIsAttackMode = false;
-	ServerRPC_SetSpeed(BaseWalkSpeed);
-	UE_LOG(LogTemp, Error, TEXT("Completed"));
+	SpringArm->TargetOffset.Z = 0.f;
+	if (bIsAttackMode)
+	{
+		ServerRPC_StopTurnToMouse();
+		ServerRPC_SetSpeed(BaseWalkSpeed);
+		bIsAttackMode = false;
+	}
+}
+
+void AMyCharacter::ServerRPC_TurnToMouse_Implementation(const FRotator& TargetRot)
+{
+	MulticastRPC_TurnToMouse(TargetRot);
+}
+
+void AMyCharacter::MulticastRPC_TurnToMouse_Implementation(const FRotator& TargetRot)
+{
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	SetActorRotation(TargetRot);
+}
+
+void AMyCharacter::TurnToMouse()
+{
+	AMyPlayerController* MyPC = GetOwner<AMyPlayerController>();
+	if (!IsValid(MyPC))
+		return;
+
+	FVector WorldLocation, WorldDirection;
+	if (MyPC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection) == false)
+		return;
+
+	FVector Start = Camera->GetComponentLocation();
+	FVector Direction = WorldLocation - Start;
+	FVector End = Start + Direction * 10000.f; 
+
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	Params.bTraceComplex = true;
+	Params.AddIgnoredActor(this);
+
+	if (GetWorld()->LineTraceSingleByChannel(
+		Hit, Start, End, ECC_Visibility, Params) == false)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Line Trace Error"));
+		return;
+	}
+	FVector TargetPoint = Hit.ImpactPoint; 
+	FRotator TargetRot = { 0.f, (TargetPoint - GetActorLocation()).Rotation().Yaw, 0.f };
+	ServerRPC_TurnToMouse(TargetRot);
+}
+
+void AMyCharacter::MulticastRPC_StopTurnToMouse_Implementation()
+{
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+}
+
+void AMyCharacter::ServerRPC_StopTurnToMouse_Implementation()
+{
+	MulticastRPC_StopTurnToMouse();
 }
 
 // Called to bind functionality to input
@@ -190,7 +244,7 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			}
 			if (PlayerController->SprintAction)
 			{
-				EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Started, this, &AMyCharacter::StartSprint);
+				EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Triggered, this, &AMyCharacter::StartSprint);
 				EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Completed, this, &AMyCharacter::StopSprint);
 			}
 			if (PlayerController->CrouchAction)
