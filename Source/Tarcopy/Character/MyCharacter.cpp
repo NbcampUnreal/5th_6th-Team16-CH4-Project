@@ -9,6 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Components/StaticMeshComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -43,12 +44,62 @@ AMyCharacter::AMyCharacter() :
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
+
+	VisionMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisionMesh"));
+	VisionMesh->SetupAttachment(RootComponent);
+	VisionMesh->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+	VisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshBeginOverlap);
+	VisionMesh->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshEndOverlap);
 }
 
 // Called when the game starts or when spawned
 void AMyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+}
+
+void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(OtherActor);
+	if (IsValid(MyCharacter))
+		return;
+
+	UE_LOG(LogTemp, Warning, TEXT("Overlap"));
+
+	FVector MyLocation = GetActorLocation();
+	FVector OtherLocation = OtherActor->GetActorLocation();
+
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);     
+	Params.AddIgnoredActor(OtherActor); 
+	Params.bTraceComplex = true;
+
+	bool bHitWall = GetWorld()->LineTraceSingleByChannel(
+		Hit,
+		MyLocation,
+		OtherLocation,
+		ECC_WorldStatic, 
+		Params
+	);
+
+	if (!bHitWall)
+	{
+		OtherActor->SetActorHiddenInGame(false);
+	}
+	else
+	{
+		OtherActor->SetActorHiddenInGame(true);
+	}
+}
+
+void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(OtherActor);
+	if (IsValid(MyCharacter))
+		return;
+
+	OtherActor->SetActorHiddenInGame(true);
 }
 
 void AMyCharacter::MoveAction(const FInputActionValue& Value)
