@@ -43,9 +43,14 @@ void UTCCarCombatComponent::DestroyPart(UPrimitiveComponent* DestroyComponent)
 		return;
 	}
 
-	DestroyComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-	DestroyComponent->SetSimulatePhysics(true);
-	DestroyComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	if (DestroyComponent->ComponentHasTag("Main"))
+	{
+		DestroyMain(DestroyComponent);
+		return;
+	}
+
+	DestroyDefault(DestroyComponent);
+	return;
 }
 
 void UTCCarCombatComponent::DestroyWindow(UPrimitiveComponent* DestroyComponent)
@@ -62,9 +67,23 @@ void UTCCarCombatComponent::DestroyWheel(UPrimitiveComponent* DestroyComponent)
 
 	UStaticMeshComponent* WheelMesh = Cast<UStaticMeshComponent>(DestroyComponent);
 
-	WheelMesh->SetVisibility(false);
+	WheelMesh->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	WheelMesh->SetSimulatePhysics(true);
+	WheelMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 
 	DisableWheelPhysics(WheelIndex);
+}
+
+void UTCCarCombatComponent::DestroyMain(UPrimitiveComponent* DestroyComponent)
+{
+	//자동차 전체파괴
+}
+
+void UTCCarCombatComponent::DestroyDefault(UPrimitiveComponent* DestroyComponent)
+{
+	DestroyComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	DestroyComponent->SetSimulatePhysics(true);
+	DestroyComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 }
 
 void UTCCarCombatComponent::DisableWheelPhysics(int32 WheelIndex)
@@ -80,15 +99,14 @@ void UTCCarCombatComponent::DisableWheelPhysics(int32 WheelIndex)
 
 	FChaosWheelSetup& Wheel = Move->WheelSetups[WheelIndex];
 
-	Move->SetWheelFrictionMultiplier(WheelIndex, 0.1f);
+	/*Move->SetWheelFrictionMultiplier(WheelIndex, 0.1f);
 	Move->SetWheelHandbrakeTorque(WheelIndex, 0.1f);
 	Move->SetWheelMaxBrakeTorque(WheelIndex, 0.f);
 	Move->SetWheelMaxSteerAngle(WheelIndex, 0.1f);
 	Move->SetWheelRadius(WheelIndex, 10.f);
 	Move->SetWheelSlipGraphMultiplier(WheelIndex, 0.1f);
 
-	Move->SetSuspensionParams(0.f, 0.f, 0.f, 0.f, 0.f, WheelIndex);
-
+	Move->SetSuspensionParams(0.f, 0.f, 0.f, 0.f, 0.f, WheelIndex);*///이방법은 너무 연산을 많이먹음 바퀴가 부서지면 차체에서 인풋값을 절반을받거나 하는 방식으로 해야할듯..? 기우는 걸 해결할 방법이 없기는 함.. 이거하니까 차체가 날아감
 }
 
 int32 UTCCarCombatComponent::FindWheelIndexFromComp(UPrimitiveComponent* DestroyComponent)
@@ -117,7 +135,6 @@ int32 UTCCarCombatComponent::FindWheelIndexFromComp(UPrimitiveComponent* Destroy
 	{
 		if (Move->WheelSetups[i].BoneName == HitBone)
 		{
-			UE_LOG(LogTemp, Error, TEXT("Find Index %d"), i);
 			return i;		
 		}
 	}

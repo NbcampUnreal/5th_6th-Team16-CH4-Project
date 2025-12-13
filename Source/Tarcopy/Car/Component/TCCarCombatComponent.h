@@ -31,6 +31,10 @@ protected:
 
 	void DestroyWheel(UPrimitiveComponent* DestroyComponent);
 
+	void DestroyMain(UPrimitiveComponent* DestroyComponent);
+
+	void DestroyDefault(UPrimitiveComponent* DestroyComponent);
+
 	void DisableWheelPhysics(int32 WheelIndex);
 
 	int32 FindWheelIndexFromComp(UPrimitiveComponent* DestroyComponent);
