@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Character/MyCharacter.h"
@@ -9,6 +9,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Item/EquipComponent.h"
+#include "Item/ItemInstance.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -177,6 +179,12 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			{
 				EnhancedInput->BindAction(PlayerController->WheelAction, ETriggerEvent::Started, this, &AMyCharacter::Wheel);
 			}
+
+			// 아이템 테스트용
+			if (PlayerController->ItemAction)
+			{
+				EnhancedInput->BindAction(PlayerController->ItemAction, ETriggerEvent::Started, this, &AMyCharacter::SetItem);
+			}
 		}
 	}
 }
@@ -188,3 +196,22 @@ void AMyCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, CurrentSpeed);
 }
 
+void AMyCharacter::SetItem()
+{
+	if (AMyPlayerController* PlayerController = Cast<AMyPlayerController>(GetController()))
+	{
+		UEquipComponent* EquipComponent = FindComponentByClass<UEquipComponent>();
+		if (IsValid(EquipComponent) == false)
+			return;
+
+		const auto& EquippedItems = EquipComponent->GetEquippedItems();
+		for (const auto& Pair : EquippedItems)
+		{
+			if (IsValid(Pair.Value) == true)
+			{
+				PlayerController->SetItem(Pair.Value);
+				break;
+			}
+		}
+	}
+}
