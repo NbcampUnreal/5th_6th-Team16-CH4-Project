@@ -7,10 +7,13 @@
 #include "UI/UIConfig.h"
 #include "UISubsystem.generated.h"
 
+class UUW_RootHUD;
+class UCanvasPanelSlot;
+
 /**
  * 
  */
-UCLASS(Blueprintable)
+UCLASS()
 class TARCOPY_API UUISubsystem : public ULocalPlayerSubsystem
 {
 	GENERATED_BODY()
@@ -18,10 +21,20 @@ class TARCOPY_API UUISubsystem : public ULocalPlayerSubsystem
 public:
 	UUISubsystem();
 
+	virtual void PlayerControllerChanged(APlayerController* NewPlayerController) override;
+
 	UUserWidget* ShowUI(EUIType Type);
 	void HideUI(EUIType Type);
 
 private:
+	void InitRootHUD();
+
+	void ApplyLayoutPreset(UCanvasPanelSlot* Slot, const FUILayoutPreset& Layout);
+
+	UPROPERTY()
+	TObjectPtr<UUW_RootHUD> RootHUD;
+
+	UPROPERTY()
 	TObjectPtr<UUIConfig> UIConfigData;
 
 	UPROPERTY()
