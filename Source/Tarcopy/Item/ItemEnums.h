@@ -5,7 +5,8 @@ enum class EItemType : uint8
 {
 	Food					UMETA(DisplayName = "Food"),				// 음식
 	Clothing				UMETA(DisplayName = "Clothing"),			// 의류
-	Weapon					UMETA(DisplayName = "Weapon"),				// 무기류
+	MeleeWeapon				UMETA(DisplayName = "MeleeWeapon"),			// 근접 무기
+	FireArms				UMETA(DisplayName = "FireArms"),			// 총기류
 	WeaponPart				UMETA(DisplayName = "WeaponPart"),			// 무기 부착물
 	Ammo					UMETA(DisplayName = "Ammo"),				// 탄약
 	Container				UMETA(DisplayName = "Container"),			// 가방, 케이스 등의 컨테이너
@@ -40,8 +41,21 @@ enum class EInteractType : uint8
 	OpenCan,				// 캔 따기
 };
 
+// 어떤 속성을 가지고 있는지 (속성에 따라 테이블 참조 및 아이템 인스턴스에 컴포넌트 추가)
+// 중복 가능하게 해야 하면 bitflag 사용하거나 FGameplayTag로 변경
+UENUM(BlueprintType)
+enum class EItemComponent : uint8
+{
+	None							UMETA(DisplayName = "None"),
+
+	Food							UMETA(DisplayName = "Food"),				// 섭취류
+	MeleeWeapon						UMETA(DisplayName = "MeleeWeapon"),			// 근접 무기
+	Firearms						UMETA(DisplayName = "Firearms"),			// 총기류
+	Tool							UMETA(DisplayName = "Tool"),				// 도구류
+};
+
 UENUM()
-enum class EEquipSlot : uint32
+enum class EBodyLocation : uint32
 {
 	None				= 0				UMETA(DisplayName = "None"),
 
@@ -100,7 +114,7 @@ enum class EEquipSlot : uint32
 #pragma endregion
 };
 
-FORCEINLINE bool Exclusive(EEquipSlot Slot1, EEquipSlot Slot2)
+FORCEINLINE bool Exclusive(EBodyLocation Slot1, EBodyLocation Slot2)
 {
 	return (static_cast<uint32>(Slot1) & static_cast<uint32>(Slot2)) != 0;
 }

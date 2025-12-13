@@ -46,13 +46,13 @@ void UInteractComponent::StartInteraction(AActor* Target, const FInteractionData
 	if (OnProgressTasks.IsEmpty() == false && bCanMultitask == false)
 		return;
 
-	UInteractionTask* NewTask = NewObject<UInteractionTask>(this, Data.InteractionTaskClass);
+	/*UInteractionTask* NewTask = NewObject<UInteractionTask>(this, Data.InteractionTaskClass);
 	if (IsValid(NewTask) == false)
 		return;
 
 	SetComponentTickEnabled(true);
 	NewTask->Init(GetOwner(), Data);
 	NewTask->OnCompleted.BindUObject(this, &ThisClass::OnTaskCompleted);
-	OnProgressTasks.Add(NewTask);
+	OnProgressTasks.Add(NewTask);*/
 }
 

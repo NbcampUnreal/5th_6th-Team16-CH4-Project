@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Character/MyCharacter.h"
@@ -8,6 +8,8 @@
 #include "Controller/MyPlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
+#include "Item/EquipComponent.h"
+#include "Item/ItemInstance.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter()
@@ -64,6 +66,26 @@ void AMyCharacter::MoveAction(const FInputActionValue& Value)
 	AddMovementInput(Camera->GetRightVector(), InMovementVector.Y);
 }
 
+void AMyCharacter::SetItem()
+{
+	if (AMyPlayerController* PlayerController = Cast<AMyPlayerController>(GetController()))
+	{
+		UEquipComponent* EquipComponent = FindComponentByClass<UEquipComponent>();
+		if (IsValid(EquipComponent) == false)
+			return;
+
+		const auto& EquippedItems = EquipComponent->GetEquippedItems();
+		for (const auto& Pair : EquippedItems)
+		{
+			if (IsValid(Pair.Value) == true)
+			{
+				PlayerController->SetItem(Pair.Value);
+				break;
+			}
+		}
+	}
+}
+
 // Called to bind functionality to input
 void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -81,6 +103,8 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 					this,
 					&AMyCharacter::MoveAction
 				);
+
+				EnhancedInput->BindAction(PlayerController->ItemAction, ETriggerEvent::Started, this, &AMyCharacter::SetItem);
 			}
 		}
 	}

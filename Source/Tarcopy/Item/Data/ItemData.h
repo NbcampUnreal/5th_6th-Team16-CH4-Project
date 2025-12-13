@@ -11,11 +11,9 @@ public:
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	int32 ItemId;
+	FName ItemId;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	EItemType ItemType;										// UI 출력용
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	EEquipSlot EquipSlot;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FText TextName;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -30,4 +28,6 @@ public:
 	int32 ItemCategory = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float ToolEfficiency = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (DisallowedClasses="/Script/Tarcopy.CraftComponent"))
+	TArray<TSubclassOf<class UItemComponentBase>> ItemComponents;
 };

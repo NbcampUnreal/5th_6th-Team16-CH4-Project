@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
-#include "Item/Data/InteractionData.h"
+//#include "Item/Data/InteractionData.h"
 #include "InteractionTask.generated.h"
 
 DECLARE_DELEGATE_OneParam(FOnCompleted, UInteractionTask*)
@@ -13,7 +13,7 @@ class TARCOPY_API UInteractionTask : public UObject
 	GENERATED_BODY()
 	
 public:
-	void Init(AActor* InInstigator, const FInteractionData& InData);
+	//void Init(AActor* InInstigator, const FInteractionData& InData);
 	void OnProgressInteraction(float DeltaTime);
 
 protected:
@@ -26,8 +26,8 @@ public:
 protected:
 	UPROPERTY()
 	TWeakObjectPtr<AActor> Instigator;
-	UPROPERTY()
-	FInteractionData Data;
+	//UPROPERTY()
+	//FInteractionData Data;
 
 	float Duration = 0.0f;
 	float ElapsedTime = 0.0f;

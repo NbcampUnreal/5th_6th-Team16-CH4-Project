@@ -1,8 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Controller/MyPlayerController.h"
 #include <EnhancedInputSubsystems.h>
+#include "Item/Temp/UW_TempItem.h"
 
 AMyPlayerController::AMyPlayerController() :
 	IMC_Character(nullptr),
@@ -21,6 +22,15 @@ void AMyPlayerController::BeginPlay()
 	FInputModeGameAndUI GameAndUI;
 	SetInputMode(GameAndUI);
 	bShowMouseCursor = true;
+
+	if (IsValid(TempItemClass) == true)
+	{
+		TempItemInstance = CreateWidget<UUW_TempItem>(this, TempItemClass);
+		if (IsValid(TempItemInstance) == true)
+		{
+			TempItemInstance->AddToViewport(0);
+		}
+	}
 }
 
 void AMyPlayerController::SetupInputComponent()
@@ -35,4 +45,12 @@ void AMyPlayerController::SetupInputComponent()
 			Subsystem->AddMappingContext(IMC_Character, 0);
 		}
 	}
+}
+
+void AMyPlayerController::SetItem(UItemInstance* Item)
+{
+	if (IsValid(TempItemInstance) == false)
+		return;
+
+	TempItemInstance->SetItem(Item);
 }

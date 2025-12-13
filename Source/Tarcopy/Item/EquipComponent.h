@@ -4,7 +4,8 @@
 #include "Components/ActorComponent.h"
 #include "EquipComponent.generated.h"
 
-enum class EEquipSlot : uint32;
+enum class EBodyLocation : uint32;
+class UItemInstance;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class TARCOPY_API UEquipComponent : public UActorComponent
@@ -19,22 +20,22 @@ protected:
 
 public:
 	FORCEINLINE float GetWeight() const { return TotalWeight; }
+	const TMap<EBodyLocation, TObjectPtr<UItemInstance>>& GetEquippedItems() const { return EquippedItems; }
 
 protected:
-	void EquipItem(int32 ItemId);
-	void RemoveItem(int32 ItemId);
-
+	void EquipItem(EBodyLocation BodyLocation, UItemInstance* Item);
+	void RemoveItem(UItemInstance* Item);
 	//void UseTool(ToolType);
 	
 private:
-	const struct FItemData* GetItemData(int32 InItemId) const;
+	const struct FItemData* GetItemData(const FName& InItemId) const;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TWeakObjectPtr<UDataTable> ItemTable;
+	TObjectPtr<UDataTable> ItemTable;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TMap<EEquipSlot, int32> EquippedItems;
+	TMap<EBodyLocation, TObjectPtr<UItemInstance>> EquippedItems;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float TotalWeight;
 

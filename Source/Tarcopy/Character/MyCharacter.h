@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -44,6 +44,13 @@ protected:
 	UFUNCTION()
 	virtual void MoveAction(const FInputActionValue& Value);
 
+
+public:
+	UPROPERTY(EditAnywhere)
+	FName ItemId;
+
+	UFUNCTION()
+	void SetItem();
 #pragma endregion
 
 };

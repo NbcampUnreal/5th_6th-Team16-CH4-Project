@@ -1,5 +1,6 @@
 ﻿#include "Item/EquipComponent.h"
 #include "Item/Data/ItemData.h"
+#include "Item/ItemInstance.h"
 
 const float UEquipComponent::WeightMultiplier = 0.3f;
 
@@ -13,68 +14,67 @@ void UEquipComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	for (uint32 SlotBit = 1; SlotBit < (uint32)EEquipSlot::MAX_BASE; SlotBit <<= 1)
+	for (uint32 SlotBit = 1; SlotBit < (uint32)EBodyLocation::MAX_BASE; SlotBit <<= 1)
 	{
-		EquippedItems.Add((EEquipSlot)SlotBit, -1);
+		EquippedItems.Add((EBodyLocation)SlotBit, nullptr);
 	}
 
-	EquipItem(10000);
-	EquipItem(10001);
-	EquipItem(10002);
-	EquipItem(10003);
-	EquipItem(10004);
+	// 인벤토리 없어서 임시 테스트용으로 부위 아무데나 정해서 Equip에 넣고 캐릭터에서 Equip에 장착된 아이템 표시되게 해서 테스트 중
+	UItemInstance* NewItem = NewObject<UItemInstance>(this);
+	NewItem->SetData(GetItemData(TEXT("Axe1")));
+	EquipItem(EBodyLocation::Ear, NewItem);
 }
 
-void UEquipComponent::EquipItem(int32 ItemId)
+void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item)
 {
-	const FItemData* Data = GetItemData(ItemId);
-	checkf(Data != nullptr, TEXT("EquipComponent => There's no new item's data"));
-
-	for (auto& Pair : EquippedItems)
-	{
-		if (Exclusive(Pair.Key, Data->EquipSlot) == true)
-		{
-			RemoveItem(Pair.Value);
-			Pair.Value = ItemId;
-		}
-	}
-
-	TotalWeight += Data->Weight * WeightMultiplier;
-}
-
-void UEquipComponent::RemoveItem(int32 ItemId)
-{
-	if (ItemId < 0)
+	if (IsValid(Item) == false)
 		return;
 
-	const FItemData* Data = GetItemData(ItemId);
-	checkf(Data != nullptr, TEXT("EquipComponent => There's no equipped item's data"));
+	const FItemData* ItemData = Item->GetData();
+	if (ItemData == nullptr)
+		return;
 
 	for (auto& Pair : EquippedItems)
 	{
-		if (Pair.Value == ItemId)
+		if (Exclusive(Pair.Key, BodyLocation) == true)
 		{
-			Pair.Value = -1;
+			RemoveItem(Pair.Value);
+			Pair.Value = Item;
 		}
 	}
 
-	TotalWeight -= Data->Weight * WeightMultiplier;
+	TotalWeight += ItemData->Weight * WeightMultiplier;
 }
 
-const FItemData* UEquipComponent::GetItemData(int32 InItemId) const
+void UEquipComponent::RemoveItem(UItemInstance* Item)
 {
-	if (ItemTable.IsValid() == false)
-		return nullptr;
+	if (IsValid(Item) == false)
+		return;
 
-	const auto& Rows = ItemTable->GetRowMap();
-	for (const auto& Row : Rows)
+	const FItemData* ItemData = Item->GetData();
+	checkf(ItemData != nullptr, TEXT("EquipComponent => There's no equipped item's data"));
+
+	for (auto& Pair : EquippedItems)
 	{
-		FItemData* Data = (FItemData*)Row.Value;
-		if (Data->ItemId == InItemId)
+		if (IsValid(Pair.Value) == true)
 		{
-			return Data;
+			const FItemData* CompareData = Pair.Value->GetData();
+			if (CompareData != nullptr && CompareData->ItemId != ItemData->ItemId)
+				continue;
 		}
+
+		// Equipment에 이상한 값 들어있거나 유효하지 않은 상태면 정리
+		// 장착한 아이템이 지울 아이템이면 정리
+		Pair.Value = nullptr;
 	}
 
-	return nullptr;
+	TotalWeight -= ItemData->Weight * WeightMultiplier;
+}
+
+const FItemData* UEquipComponent::GetItemData(const FName& InItemId) const
+{
+	if (IsValid(ItemTable) == false)
+		return nullptr;
+
+	return ItemTable->FindRow<FItemData>(InItemId, FString(""));
 }

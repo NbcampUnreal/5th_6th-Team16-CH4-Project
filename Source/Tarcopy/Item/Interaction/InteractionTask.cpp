@@ -1,11 +1,11 @@
 ﻿#include "Item/Interaction/InteractionTask.h"
 #include "Item/EquipComponent.h"
 
-void UInteractionTask::Init(AActor* InInstigator, const FInteractionData& InData)
-{
-	Instigator = InInstigator;
-	Data = InData;
-}
+//void UInteractionTask::Init(AActor* InInstigator, const FInteractionData& InData)
+//{
+//	Instigator = InInstigator;
+//	Data = InData;
+//}
 
 void UInteractionTask::OnProgressInteraction(float DeltaTime)
 {
