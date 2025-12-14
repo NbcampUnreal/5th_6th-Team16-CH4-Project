@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -8,6 +8,7 @@
 
 class UInputAction;
 class UInputMappingContext;
+class UUW_TempItem;
 
 UCLASS()
 class TARCOPY_API AMyPlayerController : public APlayerController
@@ -47,6 +48,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
 	TObjectPtr<UInputAction> WheelAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
+	TObjectPtr<UInputAction> ItemAction;
+
 #pragma endregion
 
+public:
+	void SetItem(class UItemInstance* Item);
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UUW_TempItem> TempItemClass;
+	UPROPERTY()
+	TObjectPtr<UUW_TempItem> TempItemInstance;
 };

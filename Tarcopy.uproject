@@ -1,4 +1,4 @@
-{
+﻿{
 	"FileVersion": 3,
 	"EngineAssociation": "5.7",
 	"Category": "",
@@ -10,8 +10,8 @@
 			"LoadingPhase": "Default",
 			"AdditionalDependencies": [
 				"Engine",
-				"UMG",
-				"CoreUObject"
+				"CoreUObject",
+				"UMG"
 			]
 		}
 	],
