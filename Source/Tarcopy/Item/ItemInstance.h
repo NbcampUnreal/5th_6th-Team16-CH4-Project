@@ -2,6 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
+
+// test
+#include "Misc/Guid.h"
+
 #include "ItemInstance.generated.h"
 
 enum class EItemComponent : uint8;
@@ -40,4 +44,9 @@ protected:
 	TArray<TObjectPtr<UItemComponentBase>> ItemComponents;
 
 	const FItemData* Data = nullptr;
+
+//test
+public:
+	FGuid InstanceID;
+	FGuid GetInstanceId() { return InstanceID; }
 };

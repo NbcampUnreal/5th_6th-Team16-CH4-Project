@@ -34,6 +34,9 @@ void UItemInstance::SetData(const FItemData* InData)
 			ItemComponents.Add(CraftComponent);
 		}
 	}
+
+	// test
+	InstanceID = FGuid::NewGuid();
 }
 
 const TArray<TObjectPtr<UItemComponentBase>> UItemInstance::GetItemComponents() const
