@@ -7,6 +7,8 @@
 #include "UI/UW_RootHUD.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Inventory/InventoryData.h"
+#include "Misc/Guid.h"
 
 UUISubsystem::UUISubsystem()
 {
@@ -82,6 +84,54 @@ void UUISubsystem::HideUI(EUIType Type)
     {
         (*Found)->SetVisibility(ESlateVisibility::Collapsed);
     }
+}
+
+UUserWidget* UUISubsystem::ShowInventoryUI(UInventoryData* InventoryData)
+{
+    // UI를 생성해야 하는 경우
+    APlayerController* PC = GetLocalPlayer()->GetPlayerController(GetWorld());
+    if (!PC)
+    {
+        UE_LOG(LogTemp, Error, TEXT("UUISubsystem::ShowUI: PC is nullptr!"));
+        return nullptr;
+    }
+
+    FUIInfo WidgetInfo;
+    if (!UIConfigData->GetInfo(EUIType::Inventory, WidgetInfo))
+    {
+        UE_LOG(LogTemp, Error, TEXT("UUISubsystem::ShowUI: Cannot Find UIConfig Info!"));
+        return nullptr;
+    }
+
+    UUserWidget* WidgetInstance = CreateWidget<UUserWidget>(PC, WidgetInfo.WidgetClass);
+    if (!WidgetInstance)
+    {
+        UE_LOG(LogTemp, Error, TEXT("UUISubsystem::ShowUI: WidgetInstance is nullptr!"));
+        return nullptr;
+    }
+
+    if (!RootHUD)
+    {
+        InitRootHUD();
+    }
+    UCanvasPanelSlot* Slot = RootHUD->GetRootCanvas()->AddChildToCanvas(WidgetInstance);
+    if (!Slot)
+    {
+        UE_LOG(LogTemp, Error, TEXT("UUISubsystem::ShowUI: Slot is nullptr!"));
+        return nullptr;
+    }
+    ApplyLayoutPreset(Slot, WidgetInfo.Layout);
+
+    FGuid InventoryID = InventoryData->GetID();
+    InventoryWidgets.Add(InventoryID, WidgetInstance);
+
+    return WidgetInstance;
+}
+
+void UUISubsystem::HideInventoryUI(FGuid InventoryID)
+{
+    InventoryWidgets[InventoryID]->RemoveFromParent();
+    InventoryWidgets.Remove(InventoryID);
 }
 
 void UUISubsystem::InitRootHUD()

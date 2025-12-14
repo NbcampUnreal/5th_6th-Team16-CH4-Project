@@ -9,6 +9,8 @@
 
 class UUW_RootHUD;
 class UCanvasPanelSlot;
+class UInventoryData;
+struct FGuid;
 
 /**
  * 
@@ -26,6 +28,9 @@ public:
 	UUserWidget* ShowUI(EUIType Type);
 	void HideUI(EUIType Type);
 
+	UUserWidget* ShowInventoryUI(UInventoryData* InventoryData);
+	void HideInventoryUI(FGuid InventoryID);
+
 private:
 	void InitRootHUD();
 
@@ -39,4 +44,7 @@ private:
 
 	UPROPERTY()
 	TMap<EUIType, TObjectPtr<UUserWidget>> SingleWidgets;
+
+	UPROPERTY()
+	TMap<FGuid, TObjectPtr<UUserWidget>> InventoryWidgets;
 };
