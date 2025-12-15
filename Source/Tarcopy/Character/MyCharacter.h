@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -119,6 +119,14 @@ protected:
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Attack", meta = (AllowPrivateAccess = "true"))
 	bool bIsAttackMode;
+#pragma region TestItem
+
+public:
+	UPROPERTY(EditAnywhere)
+	FName ItemId;
+
+	UFUNCTION()
+	void SetItem();
 
 #pragma endregion
 

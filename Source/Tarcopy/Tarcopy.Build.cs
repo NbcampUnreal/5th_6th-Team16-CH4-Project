@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+﻿// Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -13,6 +13,9 @@ public class Tarcopy : ModuleRules
 			"Core", 
 			"CoreUObject", 
 			"Engine", 
+			"InputCore",
+            "ChaosVehicles",
+            "EnhancedInput",
 			"InputCore", 
 			"EnhancedInput",
 			"UMG",

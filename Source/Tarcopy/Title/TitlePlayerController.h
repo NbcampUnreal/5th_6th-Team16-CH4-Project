@@ -8,6 +8,8 @@
 
 class UUW_TitleLayout;
 class UUserWidget;
+class UUISubsystem;
+class UUW_TitleScreen;
 
 UCLASS()
 class TARCOPY_API ATitlePlayerController : public APlayerController
@@ -22,6 +24,9 @@ public:
 	void JoinServer(const FString& InIPAddress);
 
 private:
+	UFUNCTION()
+	void HandleJoinRequested(const FText& InIpPort);
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Title", Meta = (AllowPrivateAccess))
 	TSubclassOf<UUserWidget> TitleWidgetClass;
 
@@ -29,5 +34,11 @@ private:
 	TObjectPtr<UUserWidget> TitleWidgetInstance;
 	
 	UPROPERTY()
-	TObjectPtr<UUW_TitleLayout> TitleWidget;
+	TObjectPtr<UUW_TitleScreen> TitleWidget;
+
+	UPROPERTY()
+	TObjectPtr<UUISubsystem> UISubsystem;
+
+	UPROPERTY()
+	TObjectPtr<UUW_TitleScreen> TitleScreenWidget;
 };

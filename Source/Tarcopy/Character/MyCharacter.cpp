@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Character/MyCharacter.h"
@@ -10,6 +10,8 @@
 #include "EnhancedInputComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/StaticMeshComponent.h"
+#include "Item/EquipComponent.h"
+#include "Item/ItemInstance.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -311,6 +313,11 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Canceled, this, &AMyCharacter::CanceledRightClick);
 				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Triggered, this, &AMyCharacter::TriggeredRightClick);
 				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Completed, this, &AMyCharacter::CompletedRightClick);
+
+			// 아이템 테스트용
+			if (PlayerController->ItemAction)
+			{
+				EnhancedInput->BindAction(PlayerController->ItemAction, ETriggerEvent::Started, this, &AMyCharacter::SetItem);
 			}
 		}
 	}
@@ -327,3 +334,22 @@ void AMyCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, bIsAttackMode);
 }
 
+void AMyCharacter::SetItem()
+{
+	if (AMyPlayerController* PlayerController = Cast<AMyPlayerController>(GetController()))
+	{
+		UEquipComponent* EquipComponent = FindComponentByClass<UEquipComponent>();
+		if (IsValid(EquipComponent) == false)
+			return;
+
+		const auto& EquippedItems = EquipComponent->GetEquippedItems();
+		for (const auto& Pair : EquippedItems)
+		{
+			if (IsValid(Pair.Value) == true)
+			{
+				PlayerController->SetItem(Pair.Value);
+				break;
+			}
+		}
+	}
+}
