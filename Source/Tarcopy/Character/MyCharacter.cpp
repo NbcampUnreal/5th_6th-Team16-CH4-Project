@@ -9,6 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Components/StaticMeshComponent.h"
 #include "Item/EquipComponent.h"
 #include "Item/ItemInstance.h"
 
@@ -16,7 +17,8 @@
 AMyCharacter::AMyCharacter() :
 	BaseWalkSpeed(600.f),
 	SprintSpeedMultiplier(1.5f),
-	CrouchSpeedMultiplier(0.7f)
+	CrouchSpeedMultiplier(0.7f),
+	bIsAttackMode(false)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
@@ -44,13 +46,62 @@ AMyCharacter::AMyCharacter() :
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
+
+	VisionMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisionMesh"));
+	VisionMesh->SetupAttachment(RootComponent);
+	VisionMesh->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+	VisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshBeginOverlap);
+	VisionMesh->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshEndOverlap);
 }
 
 // Called when the game starts or when spawned
 void AMyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+}
 
+void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(OtherActor);
+	if (IsValid(MyCharacter))
+		return;
+
+	UE_LOG(LogTemp, Warning, TEXT("Overlap"));
+
+	FVector MyLocation = GetActorLocation();
+	FVector OtherLocation = OtherActor->GetActorLocation();
+
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);     
+	Params.AddIgnoredActor(OtherActor); 
+	Params.bTraceComplex = true;
+
+	bool bHitWall = GetWorld()->LineTraceSingleByChannel(
+		Hit,
+		MyLocation,
+		OtherLocation,
+		ECC_WorldStatic, 
+		Params
+	);
+
+	if (!bHitWall)
+	{
+		OtherActor->SetActorHiddenInGame(false);
+	}
+	else
+	{
+		OtherActor->SetActorHiddenInGame(true);
+	}
+}
+
+void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(OtherActor);
+	if (IsValid(MyCharacter))
+		return;
+
+	OtherActor->SetActorHiddenInGame(true);
 }
 
 void AMyCharacter::MoveAction(const FInputActionValue& Value)
@@ -69,43 +120,39 @@ void AMyCharacter::MoveAction(const FInputActionValue& Value)
 
 void AMyCharacter::StartSprint(const FInputActionValue& Value)
 {
-	if (GetCharacterMovement())
+	if (bIsAttackMode)
+		return;
+
+	if (GetCharacterMovement()->MaxWalkSpeed != BaseWalkSpeed * SprintSpeedMultiplier)
 	{
-		ServerRPC_StartSprint();
-		if (!bIsCrouched)
-		{
-			SpringArm->TargetOffset.Z += 100.f;
-		}
+		ServerRPC_SetSpeed(BaseWalkSpeed * SprintSpeedMultiplier);
+	}
+	if (!bIsCrouched)
+	{
+		SpringArm->TargetOffset.Z = 100.f;
 	}
 }
 
-void AMyCharacter::ServerRPC_StartSprint_Implementation()
+void AMyCharacter::ServerRPC_SetSpeed_Implementation(float InSpeed)
 {
 	if (GetCharacterMovement())
 	{
-		CurrentSpeed = BaseWalkSpeed * SprintSpeedMultiplier;
+		CurrentSpeed = InSpeed;
 		GetCharacterMovement()->MaxWalkSpeed = CurrentSpeed;
 	}
 }
 
 void AMyCharacter::StopSprint(const FInputActionValue& Value)
 {
-	if (GetCharacterMovement())
-	{
-		ServerRPC_StopSprint();
-		if (!bIsCrouched)
-		{
-			SpringArm->TargetOffset.Z -= 100.f;
-		}
-	}
-}
+	SpringArm->TargetOffset.Z = 0.f;
 
-void AMyCharacter::ServerRPC_StopSprint_Implementation()
-{
-	if (GetCharacterMovement())
+	if (bIsAttackMode)
+		return;
+
+	ServerRPC_SetSpeed(BaseWalkSpeed);
+	if (!bIsCrouched)
 	{
-		CurrentSpeed = BaseWalkSpeed;
-		GetCharacterMovement()->MaxWalkSpeed = CurrentSpeed;
+		SpringArm->TargetOffset.Z = 0.f;
 	}
 }
 
@@ -116,6 +163,9 @@ void AMyCharacter::OnRep_SetSpeed()
 
 void AMyCharacter::StartCrouch(const FInputActionValue& Value)
 {
+	if (bIsAttackMode)
+		return;
+
 	ServerRPC_Crouch();
 }
 
@@ -153,6 +203,85 @@ void AMyCharacter::Wheel(const FInputActionValue& Value)
 	SpringArm->TargetArmLength = FMath::Clamp(SpringArm->TargetArmLength + Input, 900.f, 1800.f);
 }
 
+void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
+{
+	bIsAttackMode = false;
+}
+
+void AMyCharacter::TriggeredRightClick(const FInputActionValue& Value)
+{
+	TurnToMouse();
+	SpringArm->TargetOffset.Z = 0.f;
+
+	if (bIsAttackMode)
+		return;
+
+	bIsAttackMode = true;
+	ServerRPC_SetSpeed(BaseWalkSpeed * CrouchSpeedMultiplier);
+}
+
+void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
+{
+	SpringArm->TargetOffset.Z = 0.f;
+	if (bIsAttackMode)
+	{
+		ServerRPC_StopTurnToMouse();
+		ServerRPC_SetSpeed(BaseWalkSpeed);
+		bIsAttackMode = false;
+	}
+}
+
+void AMyCharacter::ServerRPC_TurnToMouse_Implementation(const FRotator& TargetRot)
+{
+	MulticastRPC_TurnToMouse(TargetRot);
+}
+
+void AMyCharacter::MulticastRPC_TurnToMouse_Implementation(const FRotator& TargetRot)
+{
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	SetActorRotation(TargetRot);
+}
+
+void AMyCharacter::TurnToMouse()
+{
+	AMyPlayerController* MyPC = GetOwner<AMyPlayerController>();
+	if (!IsValid(MyPC))
+		return;
+
+	FVector WorldLocation, WorldDirection;
+	if (MyPC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection) == false)
+		return;
+
+	FVector Start = Camera->GetComponentLocation();
+	FVector Direction = WorldLocation - Start;
+	FVector End = Start + Direction * 10000.f; 
+
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	Params.bTraceComplex = true;
+	Params.AddIgnoredActor(this);
+
+	if (GetWorld()->LineTraceSingleByChannel(
+		Hit, Start, End, ECC_Visibility, Params) == false)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Line Trace Error"));
+		return;
+	}
+	FVector TargetPoint = Hit.ImpactPoint; 
+	FRotator TargetRot = { 0.f, (TargetPoint - GetActorLocation()).Rotation().Yaw, 0.f };
+	ServerRPC_TurnToMouse(TargetRot);
+}
+
+void AMyCharacter::MulticastRPC_StopTurnToMouse_Implementation()
+{
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+}
+
+void AMyCharacter::ServerRPC_StopTurnToMouse_Implementation()
+{
+	MulticastRPC_StopTurnToMouse();
+}
+
 // Called to bind functionality to input
 void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -168,7 +297,7 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			}
 			if (PlayerController->SprintAction)
 			{
-				EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Started, this, &AMyCharacter::StartSprint);
+				EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Triggered, this, &AMyCharacter::StartSprint);
 				EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Completed, this, &AMyCharacter::StopSprint);
 			}
 			if (PlayerController->CrouchAction)
@@ -179,6 +308,11 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			{
 				EnhancedInput->BindAction(PlayerController->WheelAction, ETriggerEvent::Started, this, &AMyCharacter::Wheel);
 			}
+			if (PlayerController->RightClickAction)
+			{
+				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Canceled, this, &AMyCharacter::CanceledRightClick);
+				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Triggered, this, &AMyCharacter::TriggeredRightClick);
+				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Completed, this, &AMyCharacter::CompletedRightClick);
 
 			// 아이템 테스트용
 			if (PlayerController->ItemAction)
@@ -193,7 +327,11 @@ void AMyCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME(ThisClass, BaseWalkSpeed);
+	DOREPLIFETIME(ThisClass, SprintSpeedMultiplier);
+	DOREPLIFETIME(ThisClass, CrouchSpeedMultiplier);
 	DOREPLIFETIME(ThisClass, CurrentSpeed);
+	DOREPLIFETIME(ThisClass, bIsAttackMode);
 }
 
 void AMyCharacter::SetItem()
