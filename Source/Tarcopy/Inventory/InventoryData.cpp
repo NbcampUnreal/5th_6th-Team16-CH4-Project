@@ -19,6 +19,17 @@ void UInventoryData::Init(const FIntPoint& InGridSize)
 	}
 }
 
+UItemInstance* UInventoryData::FindItemByID(FGuid ItemID)
+{
+	return *Items.Find(ItemID);
+}
+
+FIntPoint UInventoryData::GetItemSizeByID(FGuid ItemID, bool bRotated)
+{
+	UItemInstance* Item = FindItemByID(ItemID);
+	return GetItemSize(Item, bRotated);
+}
+
 bool UInventoryData::TryAddItem(UItemInstance* NewItem, const FIntPoint& Origin, bool bRotated)
 {
 	if (!IsValid(NewItem))

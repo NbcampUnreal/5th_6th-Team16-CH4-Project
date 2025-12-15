@@ -9,6 +9,8 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Inventory/InventoryData.h"
 #include "Misc/Guid.h"
+#include "UI/UW_Inventory.h"
+#include "UI/UW_InventoryBorder.h"
 
 UUISubsystem::UUISubsystem()
 {
@@ -86,7 +88,7 @@ void UUISubsystem::HideUI(EUIType Type)
     }
 }
 
-UUserWidget* UUISubsystem::ShowInventoryUI(UInventoryData* InventoryData)
+UUW_Inventory* UUISubsystem::ShowInventoryUI(UInventoryData* InventoryData)
 {
     // UI를 생성해야 하는 경우
     APlayerController* PC = GetLocalPlayer()->GetPlayerController(GetWorld());
@@ -103,29 +105,48 @@ UUserWidget* UUISubsystem::ShowInventoryUI(UInventoryData* InventoryData)
         return nullptr;
     }
 
-    UUserWidget* WidgetInstance = CreateWidget<UUserWidget>(PC, WidgetInfo.WidgetClass);
-    if (!WidgetInstance)
+    UUW_Inventory* InventoryInstance = CreateWidget<UUW_Inventory>(PC, WidgetInfo.WidgetClass);
+    if (!InventoryInstance)
     {
-        UE_LOG(LogTemp, Error, TEXT("UUISubsystem::ShowUI: WidgetInstance is nullptr!"));
+        UE_LOG(LogTemp, Error, TEXT("UUISubsystem::ShowUI: InventoryInstance is nullptr!"));
         return nullptr;
     }
+
+    InventoryInstance->BindInventory(InventoryData);
+
+    FUIInfo BorderWidgetInfo;
+    if (!UIConfigData->GetInfo(EUIType::InventoryBorder, BorderWidgetInfo))
+    {
+        UE_LOG(LogTemp, Error, TEXT("UUISubsystem::ShowUI: Cannot Find UIConfig Info!"));
+        return nullptr;
+    }
+
+    UUW_InventoryBorder* BorderInstance = CreateWidget<UUW_InventoryBorder>(PC, BorderWidgetInfo.WidgetClass);
+    if (!BorderInstance)
+    {
+        UE_LOG(LogTemp, Error, TEXT("UUISubsystem::ShowUI: BorderInstance is nullptr!"));
+        return nullptr;
+    }
+
+    BorderInstance->SetContentWidget(InventoryInstance);
 
     if (!RootHUD)
     {
         InitRootHUD();
     }
-    UCanvasPanelSlot* Slot = RootHUD->GetRootCanvas()->AddChildToCanvas(WidgetInstance);
+    UCanvasPanelSlot* Slot = RootHUD->GetRootCanvas()->AddChildToCanvas(BorderInstance);
     if (!Slot)
     {
         UE_LOG(LogTemp, Error, TEXT("UUISubsystem::ShowUI: Slot is nullptr!"));
         return nullptr;
     }
     ApplyLayoutPreset(Slot, WidgetInfo.Layout);
+    Slot->SetPosition(FVector2D(WidgetInfo.Layout.Position.X + InventoryWidgets.Num() * 10, WidgetInfo.Layout.Position.Y + InventoryWidgets.Num() * 10));
 
     FGuid InventoryID = InventoryData->GetID();
-    InventoryWidgets.Add(InventoryID, WidgetInstance);
+    InventoryWidgets.Add(InventoryID, InventoryInstance);
 
-    return WidgetInstance;
+    return InventoryInstance;
 }
 
 void UUISubsystem::HideInventoryUI(FGuid InventoryID)

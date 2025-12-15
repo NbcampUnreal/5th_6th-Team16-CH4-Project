@@ -16,6 +16,7 @@ enum class EUIType : uint8
     Root,
     Title,
     Inventory,
+    InventoryBorder,
     Test
 };
 

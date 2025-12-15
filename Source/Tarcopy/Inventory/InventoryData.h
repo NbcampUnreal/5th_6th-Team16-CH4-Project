@@ -32,6 +32,9 @@ class TARCOPY_API UInventoryData : public UObject
 public:
 	void Init(const FIntPoint& InGridSize);
 	FGuid GetID() const { return InventoryID; }
+	FIntPoint GetGridSize() const { return GridSize; }
+	UItemInstance* FindItemByID(FGuid ItemID);
+	FIntPoint GetItemSizeByID(FGuid ItemID, bool bRotated);
 
 	bool TryAddItem(UItemInstance* NewItem, const FIntPoint& Origin, bool bRotated);
 
