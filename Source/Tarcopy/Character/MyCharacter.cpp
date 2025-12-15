@@ -12,6 +12,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Item/EquipComponent.h"
 #include "Item/ItemInstance.h"
+#include "Framework/DoorActor.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -20,7 +21,7 @@ AMyCharacter::AMyCharacter() :
 	CrouchSpeedMultiplier(0.7f),
 	bIsAttackMode(false)
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 
@@ -60,7 +61,76 @@ void AMyCharacter::BeginPlay()
 	Super::BeginPlay();
 }
 
-void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AMyCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	TimeSinceLastObstructionTrace += DeltaTime;
+	if (TimeSinceLastObstructionTrace >= ObstructionTraceInterval)
+	{
+		TimeSinceLastObstructionTrace = 0.f;
+		UpdateCameraObstructionFade();
+	}
+}
+
+void AMyCharacter::UpdateCameraObstructionFade()
+{
+	if (!IsValid(Camera) || !IsValid(GetWorld()))
+	{
+		return;
+	}
+
+	const float Now = GetWorld()->GetTimeSeconds();
+
+	// Unhide components whose hold time expired.
+	for (auto It = FadeHoldUntil.CreateIterator(); It; ++It)
+	{
+		if (!It.Key().IsValid() || Now > It.Value())
+		{
+			if (It.Key().IsValid())
+			{
+				It.Key()->SetVisibility(true, true);
+			}
+			It.RemoveCurrent();
+		}
+	}
+
+	const FVector Start = Camera->GetComponentLocation();
+	const FVector End = GetActorLocation() + FVector(0.f, 0.f, GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(CameraOcclusion), /*bTraceComplex=*/ false);
+	Params.AddIgnoredActor(this);
+
+	TArray<FHitResult> Hits;
+	if (GetWorld()->LineTraceMultiByChannel(Hits, Start, End, ECC_Visibility, Params))
+	{
+		for (const FHitResult& Hit : Hits)
+		{
+			UPrimitiveComponent* HitComp = Hit.GetComponent();
+			if (!IsValid(HitComp))
+			{
+				continue;
+			}
+
+			// Skip overlaps with our own components.
+			if (HitComp->GetOwner() == this)
+			{
+				continue;
+			}
+
+			// Refresh hold time and hide if not already hidden.
+			FadeHoldUntil.FindOrAdd(HitComp) = Now + FadeHoldTime;
+			if (HitComp->IsVisible())
+			{
+				HitComp->SetVisibility(false, true);
+			}
+		}
+	}
+}
+
+void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+                                            UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
+                                            const FHitResult& SweepResult)
 {
 	AMyCharacter* MyCharacter = Cast<AMyCharacter>(OtherActor);
 	if (IsValid(MyCharacter))
@@ -73,15 +143,15 @@ void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp,
 
 	FHitResult Hit;
 	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(this);     
-	Params.AddIgnoredActor(OtherActor); 
+	Params.AddIgnoredActor(this);
+	Params.AddIgnoredActor(OtherActor);
 	Params.bTraceComplex = true;
 
 	bool bHitWall = GetWorld()->LineTraceSingleByChannel(
 		Hit,
 		MyLocation,
 		OtherLocation,
-		ECC_WorldStatic, 
+		ECC_WorldStatic,
 		Params
 	);
 
@@ -95,7 +165,8 @@ void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp,
 	}
 }
 
-void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+                                          UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	AMyCharacter* MyCharacter = Cast<AMyCharacter>(OtherActor);
 	if (IsValid(MyCharacter))
@@ -254,7 +325,7 @@ void AMyCharacter::TurnToMouse()
 
 	FVector Start = Camera->GetComponentLocation();
 	FVector Direction = WorldLocation - Start;
-	FVector End = Start + Direction * 10000.f; 
+	FVector End = Start + Direction * 10000.f;
 
 	FHitResult Hit;
 	FCollisionQueryParams Params;
@@ -267,8 +338,8 @@ void AMyCharacter::TurnToMouse()
 		UE_LOG(LogTemp, Error, TEXT("Line Trace Error"));
 		return;
 	}
-	FVector TargetPoint = Hit.ImpactPoint; 
-	FRotator TargetRot = { 0.f, (TargetPoint - GetActorLocation()).Rotation().Yaw, 0.f };
+	FVector TargetPoint = Hit.ImpactPoint;
+	FRotator TargetRot = {0.f, (TargetPoint - GetActorLocation()).Rotation().Yaw, 0.f};
 	ServerRPC_TurnToMouse(TargetRot);
 }
 
@@ -293,31 +364,46 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		{
 			if (PlayerController->MoveAction)
 			{
-				EnhancedInput->BindAction(PlayerController->MoveAction,	ETriggerEvent::Triggered, this, &AMyCharacter::MoveAction);
+				EnhancedInput->BindAction(PlayerController->MoveAction, ETriggerEvent::Triggered, this,
+										  &AMyCharacter::MoveAction);
 			}
 			if (PlayerController->SprintAction)
 			{
-				EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Triggered, this, &AMyCharacter::StartSprint);
-				EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Completed, this, &AMyCharacter::StopSprint);
+				EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Triggered, this,
+										  &AMyCharacter::StartSprint);
+				EnhancedInput->BindAction(PlayerController->SprintAction, ETriggerEvent::Completed, this,
+										  &AMyCharacter::StopSprint);
 			}
 			if (PlayerController->CrouchAction)
 			{
-				EnhancedInput->BindAction(PlayerController->CrouchAction, ETriggerEvent::Started, this, &AMyCharacter::StartCrouch);
+				EnhancedInput->BindAction(PlayerController->CrouchAction, ETriggerEvent::Started, this,
+										  &AMyCharacter::StartCrouch);
 			}
 			if (PlayerController->WheelAction)
 			{
-				EnhancedInput->BindAction(PlayerController->WheelAction, ETriggerEvent::Started, this, &AMyCharacter::Wheel);
+				EnhancedInput->BindAction(PlayerController->WheelAction, ETriggerEvent::Started, this,
+										  &AMyCharacter::Wheel);
 			}
 			if (PlayerController->RightClickAction)
 			{
-				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Canceled, this, &AMyCharacter::CanceledRightClick);
-				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Triggered, this, &AMyCharacter::TriggeredRightClick);
-				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Completed, this, &AMyCharacter::CompletedRightClick);
+				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Canceled, this,
+										  &AMyCharacter::CanceledRightClick);
+				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Triggered, this,
+										  &AMyCharacter::TriggeredRightClick);
+				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Completed, this,
+										  &AMyCharacter::CompletedRightClick);
 
-			// 아이템 테스트용
-			if (PlayerController->ItemAction)
-			{
-				EnhancedInput->BindAction(PlayerController->ItemAction, ETriggerEvent::Started, this, &AMyCharacter::SetItem);
+				// 아이템 테스트용
+				if (PlayerController->ItemAction)
+				{
+					EnhancedInput->BindAction(PlayerController->ItemAction, ETriggerEvent::Started, this,
+											  &AMyCharacter::SetItem);
+				}
+				if (PlayerController->InteractAction)
+				{
+					EnhancedInput->BindAction(PlayerController->InteractAction, ETriggerEvent::Started, this,
+											  &AMyCharacter::Interact);
+				}
 			}
 		}
 	}
@@ -351,5 +437,49 @@ void AMyCharacter::SetItem()
 				break;
 			}
 		}
+	}
+}
+
+void AMyCharacter::Interact(const FInputActionValue& Value)
+{
+	if (!IsLocallyControlled() || !IsValid(Camera))
+	{
+		return;
+	}
+
+	const FVector Start = Camera->GetComponentLocation();
+	const FVector End = Start + Camera->GetForwardVector() * 300.f;
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(InteractTrace), false);
+	Params.AddIgnoredActor(this);
+
+	FHitResult Hit;
+	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
+	{
+		if (ADoorActor* Door = Cast<ADoorActor>(Hit.GetActor()))
+		{
+			ServerRPC_ToggleDoor(Door);
+			return;
+		}
+
+		// 태그 기반(기존 배치 액터) 지원: Door 태그 + ToggleDoor 함수가 있으면 실행
+		AActor* HitActor = Hit.GetActor();
+		static const FName DoorTag(TEXT("Door"));
+		static const FName ToggleName(TEXT("ToggleDoor"));
+		if (IsValid(HitActor) && HitActor->ActorHasTag(DoorTag))
+		{
+			if (UFunction* Fn = HitActor->FindFunction(ToggleName))
+			{
+				HitActor->ProcessEvent(Fn, nullptr);
+			}
+		}
+	}
+}
+
+void AMyCharacter::ServerRPC_ToggleDoor_Implementation(ADoorActor* DoorActor)
+{
+	if (IsValid(DoorActor))
+	{
+		DoorActor->ToggleDoor();
 	}
 }
