@@ -13,6 +13,7 @@
 #include "Item/EquipComponent.h"
 #include "Item/ItemInstance.h"
 #include "Framework/DoorActor.h"
+#include "Framework/DoorInteractComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -471,7 +472,9 @@ void AMyCharacter::Interact(const FInputActionValue& Value)
 			if (UFunction* Fn = HitActor->FindFunction(ToggleName))
 			{
 				HitActor->ProcessEvent(Fn, nullptr);
+				return;
 			}
+			ServerRPC_InteractDoorActor(HitActor);
 		}
 	}
 }
@@ -481,5 +484,31 @@ void AMyCharacter::ServerRPC_ToggleDoor_Implementation(ADoorActor* DoorActor)
 	if (IsValid(DoorActor))
 	{
 		DoorActor->ToggleDoor();
+	}
+}
+
+void AMyCharacter::ServerRPC_InteractDoorActor_Implementation(AActor* DoorActor)
+{
+	if (!IsValid(DoorActor))
+	{
+		return;
+	}
+
+	static const FName DoorTag(TEXT("Door"));
+	if (!DoorActor->ActorHasTag(DoorTag))
+	{
+		return;
+	}
+
+	static const FName ToggleName(TEXT("ToggleDoor"));
+	if (UFunction* Fn = DoorActor->FindFunction(ToggleName))
+	{
+		DoorActor->ProcessEvent(Fn, nullptr);
+		return;
+	}
+
+	if (UDoorInteractComponent* DoorComp = DoorActor->FindComponentByClass<UDoorInteractComponent>())
+	{
+		DoorComp->ToggleDoor();
 	}
 }
