@@ -88,7 +88,7 @@ void UUISubsystem::HideUI(EUIType Type)
     }
 }
 
-UUW_Inventory* UUISubsystem::ShowInventoryUI(UInventoryData* InventoryData)
+UUW_InventoryBorder* UUISubsystem::ShowInventoryUI(UInventoryData* InventoryData)
 {
     // UI를 생성해야 하는 경우
     APlayerController* PC = GetLocalPlayer()->GetPlayerController(GetWorld());
@@ -144,9 +144,9 @@ UUW_Inventory* UUISubsystem::ShowInventoryUI(UInventoryData* InventoryData)
     Slot->SetPosition(FVector2D(WidgetInfo.Layout.Position.X + InventoryWidgets.Num() * 10, WidgetInfo.Layout.Position.Y + InventoryWidgets.Num() * 10));
 
     FGuid InventoryID = InventoryData->GetID();
-    InventoryWidgets.Add(InventoryID, InventoryInstance);
+    InventoryWidgets.Add(InventoryID, BorderInstance);
 
-    return InventoryInstance;
+    return BorderInstance;
 }
 
 void UUISubsystem::HideInventoryUI(FGuid InventoryID)
