@@ -20,7 +20,16 @@ void UTCCarCombatComponent::BeginPlay()
 	Super::BeginPlay();
 
 	AActor* Owner = GetOwner();
-	
+
+	if (AWheeledVehiclePawn* Vehicle = Cast<AWheeledVehiclePawn>(Owner))
+	{
+		if (USkeletalMeshComponent* VehicleMesh = Vehicle->GetMesh())
+		{
+			VehicleMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			VehicleMesh->SetNotifyRigidBodyCollision(true);
+		}
+	}
+
 	Owner->GetComponents<UStaticMeshComponent>(Meshes);
 	
 	for (auto Mesh : Meshes)

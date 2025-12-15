@@ -34,7 +34,7 @@ ATCCarBase::ATCCarBase()
 
 
 	GetMesh()->SetSimulatePhysics(true);
-	GetMesh()->SetCollisionProfileName(FName("Vehicle"));
+	GetMesh()->SetCollisionProfileName(FName("CarProfile"));
 
 	Light = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Glass"));
 	Light->SetupAttachment(GetRootComponent());
