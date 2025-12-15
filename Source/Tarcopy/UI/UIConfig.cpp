@@ -3,13 +3,12 @@
 
 #include "UI/UIConfig.h"
 
-#include "Blueprint/UserWidget.h"
-
-TSubclassOf<UUserWidget> UUIConfig::GetWidgetClass(EUIType Type) const
+bool UUIConfig::GetInfo(EUIType Type, FUIInfo& OutInfo) const
 {
-    if (const TSubclassOf<UUserWidget> Found = WidgetClasses.FindChecked(Type))
+    if (const FUIInfo* Found = UIData.Find(Type))
     {
-        return Found;
+        OutInfo = *Found;
+        return true;
     }
-    return nullptr;
+    return false;
 }
