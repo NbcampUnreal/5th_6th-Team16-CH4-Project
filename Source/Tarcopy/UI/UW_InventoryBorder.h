@@ -20,7 +20,7 @@ class TARCOPY_API UUW_InventoryBorder : public UUserWidget
 
 public:
 	void SetContentWidget(UWidget* InWidget);
-	UWidget* GetContentWidget() const { return ContentSlot->GetContent(); };
+	UWidget* GetContentWidget() const;
 	
 private:
 	UPROPERTY(Meta = (BindWidget))

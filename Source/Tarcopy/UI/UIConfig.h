@@ -17,6 +17,8 @@ enum class EUIType : uint8
     Title,
     Inventory,
     InventoryBorder,
+    Player,
+    Nearby,
     Test
 };
 

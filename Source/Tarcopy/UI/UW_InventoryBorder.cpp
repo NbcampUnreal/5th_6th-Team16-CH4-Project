@@ -9,3 +9,8 @@ void UUW_InventoryBorder::SetContentWidget(UWidget* InWidget)
 {
 	ContentSlot->SetContent(InWidget);
 }
+
+UWidget* UUW_InventoryBorder::GetContentWidget() const
+{
+	return ContentSlot->GetContent();
+}
