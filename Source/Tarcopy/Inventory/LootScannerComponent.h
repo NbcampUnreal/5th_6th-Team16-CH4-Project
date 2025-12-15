@@ -29,6 +29,9 @@ protected:
 public:
 	FOnScannedContainersChanged OnScannedContainersChanged;
 
+	UPROPERTY()
+	TSet<TWeakObjectPtr<AContainerActor>> OverlappedContainerActors;
+
 private:
 	UFUNCTION()
 	void OnContainerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -56,9 +59,6 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Loot Scan")
 	FIntPoint GroundGridSize = FIntPoint(10, 10);
-
-	UPROPERTY()
-	TSet<TWeakObjectPtr<AContainerActor>> OverlappedContainerActors;
 
 	UPROPERTY()
 	TSet<TWeakObjectPtr<AWorldSpawnedItem>> OverlappedGroundItems;
