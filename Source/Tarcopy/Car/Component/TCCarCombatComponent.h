@@ -36,6 +36,15 @@ protected:
 	void DestroyDefault(UPrimitiveComponent* DestroyComponent);
 
 	void DisableWheelPhysics(int32 WheelIndex);
+	
+	UFUNCTION()
+	void OnVehiclePartHit(
+		UPrimitiveComponent* HitComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		FVector NormalImpulse,
+		const FHitResult& Hit
+	);
 
 	int32 FindWheelIndexFromComp(UPrimitiveComponent* DestroyComponent);
 	

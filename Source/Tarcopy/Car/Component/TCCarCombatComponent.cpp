@@ -26,6 +26,15 @@ void UTCCarCombatComponent::BeginPlay()
 	for (auto Mesh : Meshes)
 	{
 		ComponentHealth.Add(Mesh, 100);
+
+		Mesh->SetSimulatePhysics(false);
+
+		Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		Mesh->SetNotifyRigidBodyCollision(true);
+
+		Mesh->SetCollisionProfileName(TEXT("CarProfile"));
+
+		Mesh->OnComponentHit.AddDynamic(this, &UTCCarCombatComponent::OnVehiclePartHit);
 	}
 }
 
@@ -121,6 +130,15 @@ void UTCCarCombatComponent::DisableWheelPhysics(int32 WheelIndex)
 
 	Move->SetSuspensionParams(0.f, 0.f, 0.f, 0.f, 0.f, WheelIndex);*///이방법은 너무 연산을 많이먹음 바퀴가 부서지면 차체에서 인풋값을 절반을받거나 하는 방식으로 해야할듯..? 기우는 걸 해결할 방법이 없기는 함.. 이거하니까 차체가 날아감
 
+}
+
+void UTCCarCombatComponent::OnVehiclePartHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	UE_LOG(LogTemp, Error, TEXT("HitActor %s OtherActor %s"), *HitComp->GetName(), *OtherActor->GetName());
+	if (OtherActor == GetOwner()) return;
+	UE_LOG(LogTemp, Error, TEXT("HitActor %s OtherActor %s"),*HitComp->GetName(),*OtherActor->GetName());
+
+	ApplyDamage(HitComp, 100.f);
 }
 
 int32 UTCCarCombatComponent::FindWheelIndexFromComp(UPrimitiveComponent* DestroyComponent)
