@@ -9,6 +9,8 @@
 class UCameraComponent;
 class USpringArmComponent;
 class UStaticMeshComponent;
+class ADoorActor;
+class UDoorInteractComponent;
 struct FInputActionValue;
 
 UCLASS()
@@ -24,6 +26,8 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual void Tick(float DeltaTime) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -57,6 +61,19 @@ protected:
 		AActor* OtherActor,
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
+
+protected:
+	void UpdateCameraObstructionFade();
+
+	UPROPERTY(EditAnywhere, Category = "Vision|Occlusion")
+	float ObstructionTraceInterval = 0.05f;
+
+	UPROPERTY(EditAnywhere, Category = "Vision|Occlusion")
+	float FadeHoldTime = 0.15f;
+
+	float TimeSinceLastObstructionTrace = 0.f;
+
+	TMap<TWeakObjectPtr<UPrimitiveComponent>, float> FadeHoldUntil;
 
 #pragma endregion
 
@@ -119,6 +136,16 @@ protected:
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Attack", meta = (AllowPrivateAccess = "true"))
 	bool bIsAttackMode;
+
+	UFUNCTION()
+	virtual void Interact(const FInputActionValue& Value);
+	UFUNCTION(Server, Reliable)
+	virtual void ServerRPC_ToggleDoor(ADoorActor* DoorActor);
+	UFUNCTION(Server, Reliable)
+	virtual void ServerRPC_InteractDoorActor(AActor* DoorActor);
+	
+#pragma endregion
+	
 #pragma region TestItem
 
 public:
