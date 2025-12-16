@@ -49,6 +49,7 @@ void UTCCarCombatComponent::BeginPlay()
 
 void UTCCarCombatComponent::DestroyPart(UPrimitiveComponent* DestroyComponent)
 {
+	DestroyComponent->OnComponentHit.RemoveDynamic(this, &UTCCarCombatComponent::OnVehiclePartHit);
 	if (DestroyComponent->ComponentHasTag("Window"))
 	{
 		DestroyWindow(DestroyComponent);
@@ -195,12 +196,6 @@ void UTCCarCombatComponent::ApplyDamage(UPrimitiveComponent* HitComp, float Dama
 			DestroyPart(HitComp);
 		}
 	}
-}
-
-void UTCCarCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
 }
 
 UPrimitiveComponent* UTCCarCombatComponent::GetTestMesh()

@@ -12,11 +12,15 @@
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "Components/SpotLightComponent.h"
 #include "Component/TCCarCombatComponent.h"
+#include "Net/UnrealNetwork.h"
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
 
-ATCCarBase::ATCCarBase()
+ATCCarBase::ATCCarBase() :
+	MaxGas(100.f),
+	MoveFactor(0.12)
 {
+	bReplicates = true;
 	// construct the front camera boom
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
 	SpringArm->SetupAttachment(GetMesh());
@@ -55,11 +59,17 @@ ATCCarBase::ATCCarBase()
 	CombatComponent = CreateDefaultSubobject<UTCCarCombatComponent>(TEXT("CombatComponent"));
 
 	ChaosVehicleMovement->SetIsReplicated(true);
+
+
+	//Test
+	CurrentGas = MaxGas;
 }
 
 void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	
 
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
@@ -92,6 +102,30 @@ void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputCom
 void ATCCarBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	TWeakObjectPtr<ATCCarBase> WeakThis(this);
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			GasHandler,
+			FTimerDelegate::CreateLambda([WeakThis]()
+				{
+					if (!WeakThis.IsValid())
+						return;
+					float Consumption = 0.02f;
+					if (WeakThis->bMovingOnGround)
+					{
+						float MaxSpeed = WeakThis->GetChaosVehicleMovement()->GetMaxSpeed();
+						float CurrentSpeed = WeakThis->GetChaosVehicleMovement()->GetForwardSpeed();
+						Consumption += (CurrentSpeed / MaxSpeed) * WeakThis->MoveFactor;
+					}
+					WeakThis->ServerRPCDecreaseGas(Consumption);
+				}),
+			1.f,
+			true
+		);
+	}
 }
 
 void ATCCarBase::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -103,8 +137,15 @@ void ATCCarBase::Tick(float Delta)
 {
 	Super::Tick(Delta);
 
-	bool bMovingOnGround = ChaosVehicleMovement->IsMovingOnGround();
+	bMovingOnGround = ChaosVehicleMovement->IsMovingOnGround();
 	GetMesh()->SetAngularDamping(bMovingOnGround ? 0.0f : 3.0f);
+}
+
+void ATCCarBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, CurrentGas);
 }
 
 void ATCCarBase::Steering(const FInputActionValue& Value)
@@ -212,6 +253,17 @@ void ATCCarBase::DoHandLight()
 void ATCCarBase::DamageOn()
 {
 	CombatComponent->ApplyDamage(CombatComponent->GetTestMesh(), 100.f);
+}
+
+void ATCCarBase::OnRep_UpdateGas()
+{
+	OnFuelChanged.Broadcast(CurrentGas);
+}
+
+
+void ATCCarBase::ServerRPCDecreaseGas_Implementation(float InDecreaseGas)
+{
+	CurrentGas -= InDecreaseGas;
 }
 
 

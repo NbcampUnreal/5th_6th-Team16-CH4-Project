@@ -49,7 +49,6 @@ protected:
 	int32 FindWheelIndexFromComp(UPrimitiveComponent* DestroyComponent);
 	
 public:	
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AActor> WheelActorClass;

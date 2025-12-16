@@ -14,6 +14,8 @@ class USpotLightComponent;
 class UTCCarCombatComponent;
 struct FInputActionValue;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFuelChanged, float, Fuel);
+
 UCLASS(abstract)
 class ATCCarBase : public AWheeledVehiclePawn
 {
@@ -24,6 +26,9 @@ class ATCCarBase : public AWheeledVehiclePawn
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* Camera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UTCCarCombatComponent> CombatComponent;
 
 	UPROPERTY(EditDefaultsOnly)
 	UStaticMeshComponent* Light;
@@ -36,8 +41,7 @@ class ATCCarBase : public AWheeledVehiclePawn
  
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> ChaosVehicleMovement;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UTCCarCombatComponent> CombatComponent;
+	
 
 
 protected:
@@ -67,6 +71,8 @@ public:
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void Tick(float Delta) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 
 protected:
@@ -120,10 +126,31 @@ protected:
 	UFUNCTION()
 	void DamageOn();
 
-	int32 FindWheelIndex(UPrimitiveComponent* Wheel);
+	UFUNCTION(Server,Reliable)
+	void ServerRPCDecreaseGas(float InDecreaseGas);
+
+	UFUNCTION()
+	void OnRep_UpdateGas();
 
 public:
+	UPROPERTY(BlueprintAssignable)
+	FOnFuelChanged OnFuelChanged;
+
+
+	UPROPERTY(Replicated,ReplicatedUsing = OnRep_UpdateGas)
+	float CurrentGas;
+	
+	UPROPERTY()
+	float MaxGas;
+
 	bool bLightOn;
+
+	FTimerHandle GasHandler;
+
+	bool bMovingOnGround;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Gas");
+	float MoveFactor;
 
 public:
 	FORCEINLINE USpringArmComponent* GetFrontSpringArm() const { return SpringArm; }
