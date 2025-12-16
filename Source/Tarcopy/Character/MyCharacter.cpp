@@ -313,7 +313,7 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Canceled, this, &AMyCharacter::CanceledRightClick);
 				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Triggered, this, &AMyCharacter::TriggeredRightClick);
 				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Completed, this, &AMyCharacter::CompletedRightClick);
-
+			}
 			// 아이템 테스트용
 			if (PlayerController->ItemAction)
 			{
