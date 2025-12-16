@@ -143,9 +143,8 @@ void UTCCarCombatComponent::DisableWheelPhysics(int32 WheelIndex)
 
 void UTCCarCombatComponent::OnVehiclePartHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	UE_LOG(LogTemp, Error, TEXT("HitActor %s OtherActor %s"), *HitComp->GetName(), *OtherActor->GetName());
+
 	if (OtherActor == GetOwner()) return;
-	UE_LOG(LogTemp, Error, TEXT("HitActor %s OtherActor %s"),*HitComp->GetName(),*OtherActor->GetName());
 
 	ApplyDamage(HitComp, 100.f);
 }
