@@ -10,8 +10,10 @@
 #include "EnhancedInputComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SphereComponent.h"
 #include "Item/EquipComponent.h"
 #include "Item/ItemInstance.h"
+#include "Framework/DoorInteractComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -52,6 +54,15 @@ AMyCharacter::AMyCharacter() :
 	VisionMesh->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
 	VisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshBeginOverlap);
 	VisionMesh->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshEndOverlap);
+
+	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
+	InteractionSphere->SetupAttachment(RootComponent);
+	InteractionSphere->SetSphereRadius(200.f);
+	InteractionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	InteractionSphere->SetCollisionResponseToAllChannels(ECR_Overlap);
+	InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnInteractionSphereBeginOverlap);
+	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnInteractionSphereEndOverlap);
 }
 
 // Called when the game starts or when spawned
@@ -172,6 +183,25 @@ void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, A
 		return;
 
 	OtherActor->SetActorHiddenInGame(true);
+}
+
+void AMyCharacter::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	static const FName DoorTag(TEXT("Door"));
+	if (IsValid(OtherActor) && OtherActor->ActorHasTag(DoorTag))
+	{
+		AddInteractableDoor(OtherActor);
+	}
+}
+
+void AMyCharacter::OnInteractionSphereEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (IsValid(OtherActor))
+	{
+		RemoveInteractableDoor(OtherActor);
+	}
 }
 
 void AMyCharacter::MoveAction(const FInputActionValue& Value)
@@ -398,6 +428,11 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 					EnhancedInput->BindAction(PlayerController->ItemAction, ETriggerEvent::Started, this,
 											  &AMyCharacter::SetItem);
 				}
+				if (PlayerController->InteractAction)
+				{
+					EnhancedInput->BindAction(PlayerController->InteractAction, ETriggerEvent::Started, this,
+											  &AMyCharacter::Interact);
+				}
 			}
 		}
 	}
@@ -431,5 +466,89 @@ void AMyCharacter::SetItem()
 				break;
 			}
 		}
+	}
+}
+
+void AMyCharacter::AddInteractableDoor(AActor* DoorActor)
+{
+	static const FName DoorTag(TEXT("Door"));
+	if (IsValid(DoorActor) && DoorActor->ActorHasTag(DoorTag))
+	{
+		OverlappingDoors.Add(DoorActor);
+	}
+}
+
+void AMyCharacter::RemoveInteractableDoor(AActor* DoorActor)
+{
+	if (IsValid(DoorActor))
+	{
+		OverlappingDoors.Remove(DoorActor);
+	}
+}
+
+void AMyCharacter::Interact(const FInputActionValue& Value)
+{
+	if (!IsLocallyControlled() || !IsValid(InteractionSphere))
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Interact key pressed. Overlapping door count: %d"), OverlappingDoors.Num());
+
+	float ClosestDistSq = TNumericLimits<float>::Max();
+	AActor* ClosestDoor = nullptr;
+
+	for (const TWeakObjectPtr<AActor>& DoorPtr : OverlappingDoors)
+	{
+		if (!DoorPtr.IsValid())
+		{
+			continue;
+		}
+
+		const float DistSq = FVector::DistSquared(DoorPtr->GetActorLocation(), GetActorLocation());
+		if (DistSq < ClosestDistSq)
+		{
+			ClosestDistSq = DistSq;
+			ClosestDoor = DoorPtr.Get();
+		}
+	}
+
+	if (IsValid(ClosestDoor))
+	{
+		UE_LOG(LogTemp, Log, TEXT("Interact door found: %s"), *ClosestDoor->GetName());
+		ServerRPC_ToggleDoor(ClosestDoor);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Interact failed: no door in range."));
+	}
+}
+
+void AMyCharacter::ServerRPC_ToggleDoor_Implementation(AActor* DoorActor)
+{
+	static const FName DoorTag(TEXT("Door"));
+	if (!IsValid(DoorActor) || !DoorActor->ActorHasTag(DoorTag))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ServerRPC_ToggleDoor aborted: invalid door actor."));
+		return;
+	}
+
+	if (UDoorInteractComponent* DoorComp = DoorActor->FindComponentByClass<UDoorInteractComponent>())
+	{
+		UE_LOG(LogTemp, Log, TEXT("Toggling existing door component on %s"), *DoorActor->GetName());
+		DoorComp->ToggleDoor();
+		return;
+	}
+
+	UDoorInteractComponent* NewComp = NewObject<UDoorInteractComponent>(DoorActor);
+	if (IsValid(NewComp))
+	{
+		NewComp->RegisterComponent();
+		UE_LOG(LogTemp, Log, TEXT("Created door component and toggling %s"), *DoorActor->GetName());
+		NewComp->ToggleDoor();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to create door component on %s"), *DoorActor->GetName());
 	}
 }
