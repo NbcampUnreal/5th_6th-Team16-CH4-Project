@@ -4,14 +4,46 @@
 #include "UI/UW_NearbyPanel.h"
 
 #include "Components/ScrollBox.h"
-#include "Components/Button.h"
-#include "Components/TextBlock.h"
 #include "Inventory/LootScannerComponent.h"
 #include "Inventory/ContainerActor.h"
+#include "UI/UISubsystem.h"
+#include "UI/UW_InventoryBorder.h"
+#include "UI/UW_Inventory.h"
+#include "Components/NamedSlot.h"
+#include "Inventory/UW_ContainerBtn.h"
 
 void UUW_NearbyPanel::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	if (!SelectedContainer)
+	{
+		return;
+	}
+
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC)
+	{
+		return;
+	}
+	
+	if (auto* LP = PC->GetLocalPlayer())
+	{
+		if (auto* UIS = LP->GetSubsystem<UUISubsystem>())
+		{
+			if (auto* Border = UIS->ShowUI(EUIType::InventoryBorder))
+			{
+				if (auto* Inventory = UIS->ShowUI(EUIType::Inventory))
+				{
+					SelectedContainer->SetContent(Border);
+					InventoryBorder = Cast<UUW_InventoryBorder>(Border);
+					InventoryBorder->SetContentWidget(Inventory);
+					InventoryWidget = Cast<UUW_Inventory>(Inventory);
+					SelectedContainer->SetVisibility(ESlateVisibility::Collapsed);
+				}
+			}
+		}
+	}
 }
 
 void UUW_NearbyPanel::BindScanner(ULootScannerComponent* InScanner)
@@ -43,12 +75,16 @@ void UUW_NearbyPanel::RefreshContainerList()
 			continue;
 		}
 
-		UButton* Button = NewObject<UButton>(ContainerScrollBox);
-		UTextBlock* Text = NewObject<UTextBlock>(Button);
-
-		Text->SetText(Container->GetDisplayName());
-		Button->AddChild(Text);
+		UUW_ContainerBtn* Button = CreateWidget<UUW_ContainerBtn>(GetOwningPlayer(), ContainerBtnClass);
+		Button->BindContainer(Container.Get());
+		Button->OnClickedWithContainer.AddUObject(this, &UUW_NearbyPanel::HandleContainerSelected);
 
 		ContainerScrollBox->AddChild(Button);
 	}
+}
+
+void UUW_NearbyPanel::HandleContainerSelected(AContainerActor* Container)
+{
+	SelectedContainer->SetVisibility(ESlateVisibility::Visible);
+	InventoryWidget->BindInventory(Container->GetInventoryData());
 }

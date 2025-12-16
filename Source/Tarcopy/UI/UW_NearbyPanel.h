@@ -7,7 +7,12 @@
 #include "UW_NearbyPanel.generated.h"
 
 class ULootScannerComponent;
+class UNamedSlot;
+class UUW_InventoryBorder;
+class UUW_Inventory;
 class UScrollBox;
+class UUW_ContainerBtn;
+class AContainerActor;
 
 /**
  * 
@@ -25,6 +30,21 @@ public:
 
 private:
 	void RefreshContainerList();
+
+	UFUNCTION()
+	void HandleContainerSelected(AContainerActor* Container);
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UNamedSlot> SelectedContainer;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UUW_ContainerBtn> ContainerBtnClass;
+
+	UPROPERTY()
+	TObjectPtr<UUW_InventoryBorder> InventoryBorder;
+
+	UPROPERTY()
+	TObjectPtr<UUW_Inventory> InventoryWidget;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScrollBox> ContainerScrollBox;
