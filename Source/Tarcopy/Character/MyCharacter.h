@@ -9,8 +9,6 @@
 class UCameraComponent;
 class USpringArmComponent;
 class UStaticMeshComponent;
-class ADoorActor;
-class UDoorInteractComponent;
 struct FInputActionValue;
 
 UCLASS()
@@ -137,13 +135,6 @@ protected:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Attack", meta = (AllowPrivateAccess = "true"))
 	bool bIsAttackMode;
 
-	UFUNCTION()
-	virtual void Interact(const FInputActionValue& Value);
-	UFUNCTION(Server, Reliable)
-	virtual void ServerRPC_ToggleDoor(ADoorActor* DoorActor);
-	UFUNCTION(Server, Reliable)
-	virtual void ServerRPC_InteractDoorActor(AActor* DoorActor);
-	
 #pragma endregion
 	
 #pragma region TestItem

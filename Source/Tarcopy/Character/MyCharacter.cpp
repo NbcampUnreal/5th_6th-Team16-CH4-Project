@@ -12,8 +12,6 @@
 #include "Components/StaticMeshComponent.h"
 #include "Item/EquipComponent.h"
 #include "Item/ItemInstance.h"
-#include "Framework/DoorActor.h"
-#include "Framework/DoorInteractComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -400,11 +398,6 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 					EnhancedInput->BindAction(PlayerController->ItemAction, ETriggerEvent::Started, this,
 											  &AMyCharacter::SetItem);
 				}
-				if (PlayerController->InteractAction)
-				{
-					EnhancedInput->BindAction(PlayerController->InteractAction, ETriggerEvent::Started, this,
-											  &AMyCharacter::Interact);
-				}
 			}
 		}
 	}
@@ -438,77 +431,5 @@ void AMyCharacter::SetItem()
 				break;
 			}
 		}
-	}
-}
-
-void AMyCharacter::Interact(const FInputActionValue& Value)
-{
-	if (!IsLocallyControlled() || !IsValid(Camera))
-	{
-		return;
-	}
-
-	const FVector Start = Camera->GetComponentLocation();
-	const FVector End = Start + Camera->GetForwardVector() * 300.f;
-
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(InteractTrace), false);
-	Params.AddIgnoredActor(this);
-
-	FHitResult Hit;
-	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
-	{
-		if (ADoorActor* Door = Cast<ADoorActor>(Hit.GetActor()))
-		{
-			ServerRPC_ToggleDoor(Door);
-			return;
-		}
-
-		// 태그 기반(기존 배치 액터) 지원: Door 태그 + ToggleDoor 함수가 있으면 실행
-		AActor* HitActor = Hit.GetActor();
-		static const FName DoorTag(TEXT("Door"));
-		static const FName ToggleName(TEXT("ToggleDoor"));
-		if (IsValid(HitActor) && HitActor->ActorHasTag(DoorTag))
-		{
-			if (UFunction* Fn = HitActor->FindFunction(ToggleName))
-			{
-				HitActor->ProcessEvent(Fn, nullptr);
-				return;
-			}
-			ServerRPC_InteractDoorActor(HitActor);
-		}
-	}
-}
-
-void AMyCharacter::ServerRPC_ToggleDoor_Implementation(ADoorActor* DoorActor)
-{
-	if (IsValid(DoorActor))
-	{
-		DoorActor->ToggleDoor();
-	}
-}
-
-void AMyCharacter::ServerRPC_InteractDoorActor_Implementation(AActor* DoorActor)
-{
-	if (!IsValid(DoorActor))
-	{
-		return;
-	}
-
-	static const FName DoorTag(TEXT("Door"));
-	if (!DoorActor->ActorHasTag(DoorTag))
-	{
-		return;
-	}
-
-	static const FName ToggleName(TEXT("ToggleDoor"));
-	if (UFunction* Fn = DoorActor->FindFunction(ToggleName))
-	{
-		DoorActor->ProcessEvent(Fn, nullptr);
-		return;
-	}
-
-	if (UDoorInteractComponent* DoorComp = DoorActor->FindComponentByClass<UDoorInteractComponent>())
-	{
-		DoorComp->ToggleDoor();
 	}
 }
