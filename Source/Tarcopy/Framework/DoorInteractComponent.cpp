@@ -27,7 +27,6 @@ void UDoorInteractComponent::OnRegister()
 {
 	Super::OnRegister();
 
-#if 0 // 상호작용 영역(Visualizer) 표시는 비활성화합니다.
 	if (!InteractionVisualizer)
 	{
 		if (AActor* Owner = GetOwner())
@@ -47,11 +46,11 @@ void UDoorInteractComponent::OnRegister()
 				InteractionVisualizer->SetCollisionResponseToAllChannels(ECR_Ignore);
 				InteractionVisualizer->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 				InteractionVisualizer->SetCanEverAffectNavigation(false);
-				InteractionVisualizer->SetVisibility(true, true);
-				InteractionVisualizer->SetHiddenInGame(false);
+				InteractionVisualizer->SetVisibility(false, true);
+				InteractionVisualizer->SetHiddenInGame(true);
 				InteractionVisualizer->SetCastShadow(false);
 				InteractionVisualizer->bIsEditorOnly = false;
-				InteractionVisualizer->bVisualizeComponent = true;
+				InteractionVisualizer->bVisualizeComponent = false;
 				InteractionVisualizer->ShapeColor = FColor::Red;
 				InteractionVisualizer->SetupAttachment(Owner->GetRootComponent());
 				InteractionVisualizer->OnComponentBeginOverlap.AddDynamic(this, &UDoorInteractComponent::OnVisualizerBeginOverlap);
@@ -63,22 +62,20 @@ void UDoorInteractComponent::OnRegister()
 	else
 	{
 		UpdateInteractionBoxFromOwner();
-		InteractionVisualizer->SetVisibility(true, true);
-		InteractionVisualizer->SetHiddenInGame(false);
+		InteractionVisualizer->SetVisibility(false, true);
+		InteractionVisualizer->SetHiddenInGame(true);
+		InteractionVisualizer->bVisualizeComponent = false;
 	}
-#endif
 }
 
 void UDoorInteractComponent::OnUnregister()
 {
-#if 0 // 상호작용 영역(Visualizer) 표시는 비활성화합니다.
 	if (InteractionVisualizer)
 	{
 		InteractionVisualizer->DestroyComponent();
 		InteractionVisualizer = nullptr;
 		bInteractionVisualizerInitialized = false;
 	}
-#endif
 
 	Super::OnUnregister();
 }
@@ -97,8 +94,8 @@ void UDoorInteractComponent::BeginPlay()
 			MotionType = EDoorMotionType::Slide;
 		}
 
+		UpdateInteractionBoxFromOwner();
 		// 상호작용 영역(Visualizer) 표시는 비활성화합니다.
-		// UpdateInteractionBoxFromOwner();
 		// UpdateVisualizerColor(false);
 
 		InitialLocation = Owner->GetActorLocation();
@@ -214,7 +211,11 @@ void UDoorInteractComponent::RefreshAutoSlideOffsetsFromBounds()
 	const FBox LocalBounds = Owner->GetComponentsBoundingBox(true).TransformBy(OwnerTransform.Inverse());
 	const FVector LocalExtent = LocalBounds.GetExtent(); // owner-local half size
 
-	const int32 ThicknessAxis = LocalExtent.GetMinAxis(); // likely thickness axis for doors
+	// FVector(UE::Math::TVector<double>) does not provide GetMinAxis/GetMaxAxis in UE5,
+	// so we compute the axis manually.
+	const int32 ThicknessAxis =
+		(LocalExtent.X <= LocalExtent.Y && LocalExtent.X <= LocalExtent.Z) ? 0 :
+		((LocalExtent.Y <= LocalExtent.Z) ? 1 : 2);
 
 	// Choose slide axis from the two non-thickness axes, preferring a horizontal axis (X/Y) over vertical (Z).
 	TArray<int32> CandidateAxes;
