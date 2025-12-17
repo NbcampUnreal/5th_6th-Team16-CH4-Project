@@ -6,12 +6,15 @@
 #include "Components/BoxComponent.h"
 #include "GameFramework/Character.h"
 #include "Character/MyCharacter.h"
+#include "Kismet/GameplayStatics.h"
 
 UDoorInteractComponent::UDoorInteractComponent()
 	: OpenYawOffset(90.f)
 	, ClosedYawOffset(0.f)
 	, bStartOpen(false)
 	, bIsOpen(false)
+	, InitialLocation(FVector::ZeroVector)
+	, InitialRotation(FRotator::ZeroRotator)
 	, InitialYaw(0.f)
 	, bInitialized(false)
 	, VisualizerOverlapCount(0)
@@ -24,6 +27,7 @@ void UDoorInteractComponent::OnRegister()
 {
 	Super::OnRegister();
 
+#if 0 // 상호작용 영역(Visualizer) 표시는 비활성화합니다.
 	if (!InteractionVisualizer)
 	{
 		if (AActor* Owner = GetOwner())
@@ -62,16 +66,19 @@ void UDoorInteractComponent::OnRegister()
 		InteractionVisualizer->SetVisibility(true, true);
 		InteractionVisualizer->SetHiddenInGame(false);
 	}
+#endif
 }
 
 void UDoorInteractComponent::OnUnregister()
 {
+#if 0 // 상호작용 영역(Visualizer) 표시는 비활성화합니다.
 	if (InteractionVisualizer)
 	{
 		InteractionVisualizer->DestroyComponent();
 		InteractionVisualizer = nullptr;
 		bInteractionVisualizerInitialized = false;
 	}
+#endif
 
 	Super::OnUnregister();
 }
@@ -84,10 +91,20 @@ void UDoorInteractComponent::BeginPlay()
 	{
 		EnsureMovableMesh();
 
-		UpdateInteractionBoxFromOwner();
-		UpdateVisualizerColor(false);
+		static const FName DoorSlideTag(TEXT("DoorSlide"));
+		if (Owner->ActorHasTag(DoorSlideTag))
+		{
+			MotionType = EDoorMotionType::Slide;
+		}
 
-		InitialYaw = Owner->GetActorRotation().Yaw;
+		// 상호작용 영역(Visualizer) 표시는 비활성화합니다.
+		// UpdateInteractionBoxFromOwner();
+		// UpdateVisualizerColor(false);
+
+		InitialLocation = Owner->GetActorLocation();
+		InitialRotation = Owner->GetActorRotation();
+		InitialYaw = InitialRotation.Yaw;
+		RefreshAutoSlideOffsetsFromBounds();
 		bIsOpen = bStartOpen;
 		bInitialized = true;
 		ApplyDoorState();
@@ -96,28 +113,25 @@ void UDoorInteractComponent::BeginPlay()
 
 void UDoorInteractComponent::ToggleDoor()
 {
-	if (!bInitialized)
-	{
-		if (AActor* Owner = GetOwner())
-		{
-			EnsureMovableMesh();
-			InitialYaw = Owner->GetActorRotation().Yaw;
-			bIsOpen = bStartOpen;
-			bInitialized = true;
-		}
-	}
-
-	bIsOpen = !bIsOpen;
-	ApplyDoorState();
+	ToggleDoorInternal(true);
 }
 
 void UDoorInteractComponent::ApplyDoorState()
 {
 	if (AActor* Owner = GetOwner())
 	{
-		FRotator Rot = Owner->GetActorRotation();
-		Rot.Yaw = InitialYaw + (bIsOpen ? OpenYawOffset : ClosedYawOffset);
-		Owner->SetActorRotation(Rot);
+		if (MotionType == EDoorMotionType::Slide)
+		{
+			const FVector LocalOffset = bIsOpen ? OpenLocalOffset : ClosedLocalOffset;
+			const FVector WorldOffset = InitialRotation.RotateVector(LocalOffset);
+			Owner->SetActorLocation(InitialLocation + WorldOffset);
+		}
+		else
+		{
+			FRotator Rot = InitialRotation;
+			Rot.Yaw = InitialYaw + (bIsOpen ? OpenYawOffset : ClosedYawOffset);
+			Owner->SetActorRotation(Rot);
+		}
 	}
 }
 
@@ -132,6 +146,173 @@ void UDoorInteractComponent::EnsureMovableMesh() const
 				Mesh->SetMobility(EComponentMobility::Movable);
 			}
 		}
+	}
+}
+
+FName UDoorInteractComponent::ResolveDoorGroupTag() const
+{
+	if (DoorGroupTag != NAME_None)
+	{
+		return DoorGroupTag;
+	}
+
+	static const FString DoorGroupPrefix(TEXT("DoorGroup_"));
+	if (const AActor* Owner = GetOwner())
+	{
+		for (const FName& Tag : Owner->Tags)
+		{
+			if (Tag.ToString().StartsWith(DoorGroupPrefix))
+			{
+				return Tag;
+			}
+		}
+	}
+
+	return NAME_None;
+}
+
+void UDoorInteractComponent::InitializeIfNeeded()
+{
+	if (bInitialized)
+	{
+		return;
+	}
+
+	if (AActor* Owner = GetOwner())
+	{
+		EnsureMovableMesh();
+
+		static const FName DoorSlideTag(TEXT("DoorSlide"));
+		if (Owner->ActorHasTag(DoorSlideTag))
+		{
+			MotionType = EDoorMotionType::Slide;
+		}
+
+		InitialLocation = Owner->GetActorLocation();
+		InitialRotation = Owner->GetActorRotation();
+		InitialYaw = InitialRotation.Yaw;
+		RefreshAutoSlideOffsetsFromBounds();
+		bIsOpen = bStartOpen;
+		bInitialized = true;
+	}
+}
+
+void UDoorInteractComponent::RefreshAutoSlideOffsetsFromBounds()
+{
+	if (MotionType != EDoorMotionType::Slide || !bAutoSlideFromBounds)
+	{
+		return;
+	}
+
+	AActor* Owner = GetOwner();
+	if (!IsValid(Owner))
+	{
+		return;
+	}
+
+	const FTransform OwnerTransform = Owner->GetActorTransform();
+	const FBox LocalBounds = Owner->GetComponentsBoundingBox(true).TransformBy(OwnerTransform.Inverse());
+	const FVector LocalExtent = LocalBounds.GetExtent(); // owner-local half size
+
+	const int32 ThicknessAxis = LocalExtent.GetMinAxis(); // likely thickness axis for doors
+
+	// Choose slide axis from the two non-thickness axes, preferring a horizontal axis (X/Y) over vertical (Z).
+	TArray<int32> CandidateAxes;
+	CandidateAxes.Reserve(2);
+	for (int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		if (Axis != ThicknessAxis)
+		{
+			CandidateAxes.Add(Axis);
+		}
+	}
+
+	int32 SlideAxis = CandidateAxes[0];
+	if (CandidateAxes.Contains(2) && SlideAxis == 2)
+	{
+		SlideAxis = CandidateAxes[1];
+	}
+	else if (!CandidateAxes.Contains(2) || CandidateAxes[1] != 2)
+	{
+		SlideAxis = (LocalExtent[CandidateAxes[1]] > LocalExtent[CandidateAxes[0]]) ? CandidateAxes[1] : CandidateAxes[0];
+	}
+
+	FVector LocalDir = FVector::ZeroVector;
+	LocalDir[SlideAxis] = 1.0f;
+
+	static const FName DoorSlideReverseTag(TEXT("DoorSlideReverse"));
+	if (Owner->ActorHasTag(DoorSlideReverseTag))
+	{
+		LocalDir *= -1.0f;
+	}
+
+	const float SlideDistance = LocalExtent[SlideAxis] * 2.0f * AutoSlideDistanceMultiplier;
+
+	ClosedLocalOffset = FVector::ZeroVector;
+	OpenLocalOffset = LocalDir * SlideDistance;
+}
+
+void UDoorInteractComponent::SetDoorOpenInternal(bool bOpen)
+{
+	InitializeIfNeeded();
+	bIsOpen = bOpen;
+	ApplyDoorState();
+}
+
+void UDoorInteractComponent::ToggleDoorInternal(bool bPropagateToGroup)
+{
+	InitializeIfNeeded();
+
+	const bool bNewOpen = !bIsOpen;
+
+	if (!bPropagateToGroup)
+	{
+		SetDoorOpenInternal(bNewOpen);
+		return;
+	}
+
+	static const FName DoorTag(TEXT("Door"));
+	const FName GroupTag = ResolveDoorGroupTag();
+	if (GroupTag == NAME_None)
+	{
+		SetDoorOpenInternal(bNewOpen);
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		SetDoorOpenInternal(bNewOpen);
+		return;
+	}
+
+	TArray<AActor*> GroupActors;
+	UGameplayStatics::GetAllActorsWithTag(World, GroupTag, GroupActors);
+	if (GroupActors.IsEmpty())
+	{
+		SetDoorOpenInternal(bNewOpen);
+		return;
+	}
+
+	for (AActor* DoorActor : GroupActors)
+	{
+		if (!IsValid(DoorActor) || !DoorActor->ActorHasTag(DoorTag))
+		{
+			continue;
+		}
+
+		UDoorInteractComponent* DoorComp = DoorActor->FindComponentByClass<UDoorInteractComponent>();
+		if (!DoorComp)
+		{
+			DoorComp = NewObject<UDoorInteractComponent>(DoorActor);
+			if (!IsValid(DoorComp))
+			{
+				continue;
+			}
+			DoorComp->RegisterComponent();
+		}
+
+		DoorComp->SetDoorOpenInternal(bNewOpen);
 	}
 }
 
