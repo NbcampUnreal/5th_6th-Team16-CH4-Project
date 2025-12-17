@@ -12,6 +12,7 @@ class AWorldSpawnedItem;
 class UInventoryData;
 
 DECLARE_MULTICAST_DELEGATE(FOnScannedContainersChanged);
+DECLARE_MULTICAST_DELEGATE(FOnScannedGroundChanged);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class TARCOPY_API ULootScannerComponent : public USceneComponent
@@ -27,7 +28,13 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	UInventoryData* GetGroundInventoryData() const { return GroundInventoryData; }
+
+	void RebuildGroundInventory();
+
 	FOnScannedContainersChanged OnScannedContainersChanged;
+
+	FOnScannedGroundChanged OnScannedGroundChanged;
 
 	UPROPERTY()
 	TSet<TWeakObjectPtr<AContainerActor>> OverlappedContainerActors;
@@ -55,7 +62,7 @@ private:
 	float ContainerScanRadius = 800.f;
 
 	UPROPERTY(EditAnywhere, Category = "Loot Scan")
-	float GroundScanRadius = 600.f;
+	float GroundScanRadius = 300.f;
 
 	UPROPERTY(EditAnywhere, Category = "Loot Scan")
 	FIntPoint GroundGridSize = FIntPoint(10, 10);

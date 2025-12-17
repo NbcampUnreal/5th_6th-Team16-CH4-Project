@@ -34,8 +34,23 @@ private:
 	UFUNCTION()
 	void HandleContainerSelected(AContainerActor* Container);
 
+	UFUNCTION()
+	void HandleGroundSelected();
+
+	UFUNCTION()
+	void HandleGroundUpdatedWhileOpen();
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UNamedSlot> SelectedContainer;
+
+	UPROPERTY()
+	TWeakObjectPtr<AContainerActor> LastSelectedContainer;
+
+	UPROPERTY()
+	bool bLastSelectedWasGround = false;
+
+	UPROPERTY()
+	bool bInventoryPanelOpen = false;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UUW_ContainerBtn> ContainerBtnClass;

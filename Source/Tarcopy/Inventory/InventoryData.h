@@ -35,8 +35,17 @@ public:
 	FIntPoint GetGridSize() const { return GridSize; }
 	UItemInstance* FindItemByID(FGuid ItemID);
 	FIntPoint GetItemSizeByID(FGuid ItemID, bool bRotated);
+	const TMap<FGuid, FItemPlacement>& GetPlacements() const { return Placements; }
 
 	bool TryAddItem(UItemInstance* NewItem, const FIntPoint& Origin, bool bRotated);
+
+	int32 GetItemCountByItemId(FName InItemId) const;
+
+	bool TryConsumeItemsByItemId(FName InItemId, int32 Count);
+
+	bool RemoveItemByInstanceId(const FGuid& InstanceId);
+
+	void ClearAll();
 
 private:
 	bool CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated) const;

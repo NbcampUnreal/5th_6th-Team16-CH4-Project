@@ -25,8 +25,11 @@ public:
 
 	void AddItemWidget(FGuid NewItemID, const FIntPoint& Origin, bool bRotated);
 
+	void RefreshItems();
+
 private:
 	void BuildGrid(FIntPoint GridSize);
+	void ClearGrid();
 	void BuildItems();
 
 	const int CellSizePx = 100;

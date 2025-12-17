@@ -7,6 +7,7 @@
 #include "Inventory/InventoryData.h"
 #include "Item/WorldSpawnedItem.h"
 #include "Inventory/ContainerActor.h"
+#include "Item/ItemInstance.h"
 
 // Sets default values for this component's properties
 ULootScannerComponent::ULootScannerComponent()
@@ -51,6 +52,46 @@ void ULootScannerComponent::BeginPlay()
 	GroundInventoryData->Init(GroundGridSize);
 }
 
+void ULootScannerComponent::RebuildGroundInventory()
+{
+	if (!GroundInventoryData)
+	{
+		return;
+	}
+
+	GroundInventoryData->ClearAll();
+
+	for (const TWeakObjectPtr<AWorldSpawnedItem>& ItemActorPtr : OverlappedGroundItems)
+	{
+		AWorldSpawnedItem* ItemActor = ItemActorPtr.Get();
+		if (!IsValid(ItemActor))
+		{
+			continue;
+		}
+
+		UItemInstance* ItemInstance = ItemActor->GetItemInstance();
+		if (!IsValid(ItemInstance))
+		{
+			continue;
+		}
+
+		bool bPlaced = false;
+
+		for (int32 Y = 0; Y < GroundGridSize.Y && !bPlaced; ++Y)
+		{
+			for (int32 X = 0; X < GroundGridSize.X && !bPlaced; ++X)
+			{
+				if (GroundInventoryData->TryAddItem(ItemInstance, FIntPoint(X, Y), false))
+				{
+					bPlaced = true;
+				}
+			}
+		}
+	}
+
+	OnScannedGroundChanged.Broadcast();
+}
+
 void ULootScannerComponent::OnContainerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (!OtherActor || OtherActor == GetOwner())
@@ -85,7 +126,9 @@ void ULootScannerComponent::OnGroundBeginOverlap(UPrimitiveComponent* Overlapped
 
 	if (AWorldSpawnedItem* ItemActor = Cast<AWorldSpawnedItem>(OtherActor))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Ground overlap: %s"), *ItemActor->GetName());
 		OverlappedGroundItems.Add(ItemActor);
+		RebuildGroundInventory();
 	}
 }
 
@@ -99,6 +142,7 @@ void ULootScannerComponent::OnGroundEndOverlap(UPrimitiveComponent* OverlappedCo
 	if (AWorldSpawnedItem* ItemActor = Cast<AWorldSpawnedItem>(OtherActor))
 	{
 		OverlappedGroundItems.Remove(ItemActor);
+		RebuildGroundInventory();
 	}
 }
 
