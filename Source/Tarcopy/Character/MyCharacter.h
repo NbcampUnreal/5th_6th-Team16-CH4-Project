@@ -166,9 +166,12 @@ protected:
 	virtual void Interact(const FInputActionValue& Value);
 	UFUNCTION(Server, Reliable)
 	virtual void ServerRPC_ToggleDoor(AActor* DoorActor);
-	
+
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void MulticastRPC_ApplyDoorTransforms(const TArray<AActor*>& DoorActors, const TArray<FTransform>& DoorTransforms);
+ 	
 #pragma endregion
-	
+ 	
 #pragma region TestItem
 
 public:
