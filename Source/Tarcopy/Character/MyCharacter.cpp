@@ -14,6 +14,7 @@
 #include "Item/EquipComponent.h"
 #include "Item/ItemInstance.h"
 #include "Framework/DoorInteractComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -533,22 +534,102 @@ void AMyCharacter::ServerRPC_ToggleDoor_Implementation(AActor* DoorActor)
 		return;
 	}
 
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	TArray<AActor*> AffectedDoors;
+	AffectedDoors.Reserve(2);
+
+	static const FString DoorGroupPrefix(TEXT("DoorGroup_"));
+	FName GroupTag = NAME_None;
+	for (const FName& Tag : DoorActor->Tags)
+	{
+		if (Tag.ToString().StartsWith(DoorGroupPrefix))
+		{
+			GroupTag = Tag;
+			break;
+		}
+	}
+
+	if (GroupTag == NAME_None)
+	{
+		AffectedDoors.Add(DoorActor);
+	}
+	else
+	{
+		TArray<AActor*> GroupActors;
+		UGameplayStatics::GetAllActorsWithTag(World, GroupTag, GroupActors);
+		for (AActor* GroupDoorActor : GroupActors)
+		{
+			if (IsValid(GroupDoorActor) && GroupDoorActor->ActorHasTag(DoorTag))
+			{
+				AffectedDoors.AddUnique(GroupDoorActor);
+			}
+		}
+
+		if (AffectedDoors.IsEmpty())
+		{
+			AffectedDoors.Add(DoorActor);
+		}
+	}
+
 	if (UDoorInteractComponent* DoorComp = DoorActor->FindComponentByClass<UDoorInteractComponent>())
 	{
 		UE_LOG(LogTemp, Log, TEXT("Toggling existing door component on %s"), *DoorActor->GetName());
 		DoorComp->ToggleDoor();
-		return;
-	}
-
-	UDoorInteractComponent* NewComp = NewObject<UDoorInteractComponent>(DoorActor);
-	if (IsValid(NewComp))
-	{
-		NewComp->RegisterComponent();
-		UE_LOG(LogTemp, Log, TEXT("Created door component and toggling %s"), *DoorActor->GetName());
-		NewComp->ToggleDoor();
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to create door component on %s"), *DoorActor->GetName());
+		UDoorInteractComponent* NewComp = NewObject<UDoorInteractComponent>(DoorActor);
+		if (IsValid(NewComp))
+		{
+			NewComp->RegisterComponent();
+			UE_LOG(LogTemp, Log, TEXT("Created door component and toggling %s"), *DoorActor->GetName());
+			NewComp->ToggleDoor();
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Failed to create door component on %s"), *DoorActor->GetName());
+			return;
+		}
+	}
+
+	TArray<FTransform> DoorTransforms;
+	DoorTransforms.Reserve(AffectedDoors.Num());
+	for (AActor* AffectedDoor : AffectedDoors)
+	{
+		if (!IsValid(AffectedDoor))
+		{
+			continue;
+		}
+		DoorTransforms.Add(AffectedDoor->GetActorTransform());
+	}
+
+	MulticastRPC_ApplyDoorTransforms(AffectedDoors, DoorTransforms);
+}
+
+void AMyCharacter::MulticastRPC_ApplyDoorTransforms_Implementation(const TArray<AActor*>& DoorActors, const TArray<FTransform>& DoorTransforms)
+{
+	const int32 Count = FMath::Min(DoorActors.Num(), DoorTransforms.Num());
+	for (int32 i = 0; i < Count; ++i)
+	{
+		AActor* DoorActor = DoorActors[i];
+		if (!IsValid(DoorActor))
+		{
+			continue;
+		}
+
+		if (UStaticMeshComponent* DoorMeshComp = Cast<UStaticMeshComponent>(DoorActor->GetRootComponent()))
+		{
+			if (DoorMeshComp->Mobility != EComponentMobility::Movable)
+			{
+				DoorMeshComp->SetMobility(EComponentMobility::Movable);
+			}
+		}
+
+		DoorActor->SetActorTransform(DoorTransforms[i]);
 	}
 }
