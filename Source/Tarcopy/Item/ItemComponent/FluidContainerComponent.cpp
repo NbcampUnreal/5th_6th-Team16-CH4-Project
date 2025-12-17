@@ -16,12 +16,12 @@ void UFluidContainerComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 	if (IsValid(DataTableSubsystem) == false)
 		return;
 
-	Data = DataTableSubsystem->GetTable(EDataTableType::MeleeWeaponTable)->FindRow<FFluidContainerData>(ItemData->ItemId, FString(""));
+	Data = DataTableSubsystem->GetTable(EDataTableType::FluidContainerTable)->FindRow<FFluidContainerData>(ItemData->ItemId, FString(""));
 	if (Data == nullptr)
 		return;
 
 }
 
-void UFluidContainerComponent::GetInteractionDatas(TArray<struct FItemComponentInteractionData>& OutDatas)
+void UFluidContainerComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
 {
 }

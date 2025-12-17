@@ -2,12 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "Item/ItemComponent/ItemComponentBase.h"
-#include "ClothingComponent.generated.h"
+#include "ContainerComponent.generated.h"
 
-struct FClothData;
+struct FContainerData;
 
 UCLASS()
-class TARCOPY_API UClothingComponent : public UItemComponentBase
+class TARCOPY_API UContainerComponent : public UItemComponentBase
 {
 	GENERATED_BODY()
 
@@ -15,9 +15,6 @@ public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
 
-protected:
-	UPROPERTY()
-	uint8 bIsEquipped : 1 = false;
-
-	const FClothData* Data;
+private:
+	const FContainerData* Data;
 };

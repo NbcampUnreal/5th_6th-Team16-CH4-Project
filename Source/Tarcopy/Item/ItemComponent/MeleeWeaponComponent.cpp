@@ -3,7 +3,6 @@
 #include "Item/Data/MeleeWeaponData.h"
 #include "Item/ItemInstance.h"
 #include "Item/Data/ItemData.h"
-#include "Item/ItemComponent/ItemComponentInteractionData.h"
 
 void UMeleeWeaponComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
@@ -20,10 +19,13 @@ void UMeleeWeaponComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 	Data = DataTableSubsystem->GetTable(EDataTableType::MeleeWeaponTable)->FindRow<FMeleeWeaponData>(ItemData->ItemId, FString(""));
 	if (Data == nullptr)
 		return;
-
-	Condition = Data->MaxCondition;
 }
 
-void UMeleeWeaponComponent::GetInteractionDatas(TArray<struct FItemComponentInteractionData>& OutDatas)
+void UMeleeWeaponComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
+{
+	Super::GetCommands(OutCommands);
+}
+
+void UMeleeWeaponComponent::Attack()
 {
 }

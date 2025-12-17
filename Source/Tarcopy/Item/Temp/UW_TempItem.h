@@ -12,7 +12,9 @@ class TARCOPY_API UUW_TempItem : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void SetItem(UItemInstance* Item);
+	void SetItem(UItemInstance* InItem);
+	// 원래는 아이템 상호작용 리스트 끄고 전체 인벤토리 정보 갱신해야 함 (테스트용 임시)
+	void UpdateTempItem();
 	
 public:
 	UPROPERTY(meta = (BindWidget))
@@ -20,8 +22,6 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class UUW_TempInteract> InteractUIClass;
-	UPROPERTY()
-	TArray<TObjectPtr<UUW_TempInteract>> InteractUIs;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UPanelWidget> PanelInteract;
 
@@ -29,4 +29,7 @@ public:
 	TObjectPtr<UDataTable> ItemTable;
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UDataTable> InteractTable;
+
+	UPROPERTY()
+	TWeakObjectPtr<UItemInstance> Item;
 };

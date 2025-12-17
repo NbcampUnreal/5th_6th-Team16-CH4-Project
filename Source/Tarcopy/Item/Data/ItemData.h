@@ -28,6 +28,6 @@ public:
 	int32 ItemCategory = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float ToolEfficiency = 1.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (DisallowedClasses="/Script/Tarcopy.CraftComponent"))
-	TArray<TSubclassOf<class UItemComponentBase>> ItemComponents;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<class UItemComponentPreset> ItemComponentPreset;
 };

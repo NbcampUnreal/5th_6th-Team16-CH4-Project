@@ -32,6 +32,4 @@ public:
 	float CritMultiplier;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float Knockback;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float MaxCondition;
 };
