@@ -15,6 +15,7 @@ UDoorInteractComponent::UDoorInteractComponent()
 	, InitialYaw(0.f)
 	, bInitialized(false)
 	, VisualizerOverlapCount(0)
+	, bInteractionVisualizerInitialized(false)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
@@ -30,6 +31,12 @@ void UDoorInteractComponent::OnRegister()
 			InteractionVisualizer = NewObject<UBoxComponent>(Owner, TEXT("DoorInteractVisualizer"));
 			if (InteractionVisualizer)
 			{
+				// 절대 트랜스폼을 사용해 문의 회전에 영향을 받지 않고 초기 위치/방향을 유지.
+				InteractionVisualizer->SetUsingAbsoluteLocation(true);
+				InteractionVisualizer->SetUsingAbsoluteRotation(true);
+				InteractionVisualizer->SetUsingAbsoluteScale(true);
+
+				bInteractionVisualizerInitialized = false;
 				UpdateInteractionBoxFromOwner();
 				InteractionVisualizer->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 				InteractionVisualizer->SetGenerateOverlapEvents(true);
@@ -63,6 +70,7 @@ void UDoorInteractComponent::OnUnregister()
 	{
 		InteractionVisualizer->DestroyComponent();
 		InteractionVisualizer = nullptr;
+		bInteractionVisualizerInitialized = false;
 	}
 
 	Super::OnUnregister();
@@ -131,18 +139,25 @@ void UDoorInteractComponent::UpdateInteractionBoxFromOwner()
 {
 	if (AActor* Owner = GetOwner())
 	{
-		const FBox Bounds = Owner->GetComponentsBoundingBox(true);
-		const FTransform InverseOwnerTransform = Owner->GetActorTransform().Inverse();
-		const FBox LocalBounds = Bounds.TransformBy(InverseOwnerTransform);
+		if (bInteractionVisualizerInitialized)
+		{
+			return;
+		}
+
+		const FTransform OwnerTransform = Owner->GetActorTransform();
+		const FBox LocalBounds = Owner->GetComponentsBoundingBox(true).TransformBy(OwnerTransform.Inverse());
 		const FVector LocalExtent = LocalBounds.GetExtent(); // owner-local half size
 		const FVector LocalCenter = LocalBounds.GetCenter(); // owner-local center
+		const FRotator WorldRotation = Owner->GetActorRotation(); // capture initial facing
 
 		if (InteractionVisualizer)
 		{
-			// 폭(X/Y)을 1.2배로 살짝 여유를 두고, 높이(Z)는 원본 유지.
-			const FVector AdjustedExtent(LocalExtent.X * 1.2f, LocalExtent.Y * 1.2f, LocalExtent.Z);
+			// 폭(X/Y)은 1.1배로 약간 크게, 높이(Z)는 동일하게 유지.
+			const FVector AdjustedExtent(LocalExtent.X * 1.1f, LocalExtent.Y * 1.1f, LocalExtent.Z);
 			InteractionVisualizer->SetBoxExtent(AdjustedExtent);
-			InteractionVisualizer->SetRelativeLocation(LocalCenter);
+			InteractionVisualizer->SetWorldLocation(OwnerTransform.TransformPosition(LocalCenter));
+			InteractionVisualizer->SetWorldRotation(WorldRotation);
+			bInteractionVisualizerInitialized = true;
 		}
 	}
 }

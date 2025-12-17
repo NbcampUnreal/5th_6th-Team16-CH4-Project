@@ -39,6 +39,7 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<class UBoxComponent> InteractionVisualizer;
 	int32 VisualizerOverlapCount;
+	bool bInteractionVisualizerInitialized = false;
 
 	void ApplyDoorState();
 	void EnsureMovableMesh() const;
