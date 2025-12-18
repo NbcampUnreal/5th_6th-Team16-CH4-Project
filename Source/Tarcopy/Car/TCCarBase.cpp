@@ -1,8 +1,6 @@
 ﻿//// Copyright Epic Games, Inc. All Rights Reserved.
 //
 #include "TCCarBase.h"
-//#include "VehicleTestWheelFront.h"
-//#include "VehicleTestWheelRear.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -14,6 +12,8 @@
 #include "Component/TCCarCombatComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Car/UI/TCCarWidget.h"
+#include "UI/UISubsystem.h"
+#include "Kismet/GameplayStatics.h"
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
 
@@ -61,9 +61,9 @@ ATCCarBase::ATCCarBase() :
 
 	ChaosVehicleMovement->SetIsReplicated(true);
 
-
+	GetMesh()->SetAngularDamping(3.0f);
 	//Test
-	CurrentFuel = 0.f;
+	CurrentFuel = 100.f;
 
 
 }
@@ -119,13 +119,13 @@ void ATCCarBase::BeginPlay()
 					{
 						if (!WeakThis.IsValid())
 							return;
+						
 						float Consumption = 0.02f;
-						if (WeakThis->bMovingOnGround)
-						{
-							float MaxSpeed = WeakThis->GetChaosVehicleMovement()->GetMaxSpeed();
-							float CurrentSpeed = WeakThis->GetChaosVehicleMovement()->GetForwardSpeed();
-							Consumption += (CurrentSpeed / MaxSpeed) * WeakThis->MoveFactor;
-						}
+
+						float CurrentRPM = WeakThis->ChaosVehicleMovement->GetEngineRotationSpeed();
+						float ClampedRate = FMath::Clamp(CurrentRPM / 6000.f, 0.f, 1.f);
+						Consumption += ClampedRate * WeakThis->MoveFactor;
+
 						WeakThis->DecreaseGas(Consumption * 10);
 					}),
 				1.f,
@@ -133,26 +133,6 @@ void ATCCarBase::BeginPlay()
 			);
 		}
 	}
-
-	//차량 탑승시로 이동예정(UI SubSystem 이용예정)
-	if (IsLocallyControlled())
-	{
-		if (CarWidgetClass)
-		{
-			CarWidgetInstance = CreateWidget<UTCCarWidget>(GetWorld(), CarWidgetClass);
-			if (CarWidgetInstance)
-			{
-				CarWidgetInstance->AddToViewport();
-				CarWidgetInstance->UpdateFuel(CurrentFuel);
-			}
-			else
-			{
-				UE_LOG(LogTemp, Error, TEXT("ATCCarController::BeginPlay Cant spawn Widget"));
-			}
-		}
-	}
-
-
 }
 
 void ATCCarBase::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -163,10 +143,6 @@ void ATCCarBase::EndPlay(EEndPlayReason::Type EndPlayReason)
 void ATCCarBase::Tick(float Delta)
 {
 	Super::Tick(Delta);
-
-	bMovingOnGround = ChaosVehicleMovement->IsMovingOnGround();
-	GetMesh()->SetAngularDamping(bMovingOnGround ? 0.0f : 3.0f);
-
 
 	if (IsLocallyControlled() && IsValid(CarWidgetInstance))
 	{
@@ -180,6 +156,28 @@ void ATCCarBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ThisClass, CurrentFuel);
+}
+
+void ATCCarBase::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+}
+
+void ATCCarBase::OnRep_Controller()
+{
+	Super::OnRep_Controller();
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	checkf(PC, TEXT("ATCCarBase::OnRep_Controller() PC"));
+
+	ULocalPlayer* LP = PC->GetLocalPlayer();
+	checkf(LP, TEXT("ATCCarBase::OnRep_Controller() LP"));
+
+	UISubsystem = LP->GetSubsystem<UUISubsystem>();
+	if (UISubsystem)
+	{
+		CarWidgetInstance = Cast<UTCCarWidget>(UISubsystem->ShowUI(EUIType::Car));
+	}
 }
 
 void ATCCarBase::Steering(const FInputActionValue& Value)
@@ -292,13 +290,11 @@ void ATCCarBase::DamageOn()
 void ATCCarBase::OnRep_UpdateGas()
 {
 	CarWidgetInstance->UpdateFuel(CurrentFuel);
-	UE_LOG(LogTemp, Error, (TEXT("Client Decrease Gas %.0f")), CurrentFuel);
 }
 
 void ATCCarBase::DecreaseGas(float InDecreaseGas)
 {
 	CurrentFuel = FMath::Clamp(CurrentFuel - InDecreaseGas, 0.f, 100.f);
-	UE_LOG(LogTemp, Error, (TEXT("Server Decrease Gas %.0f")), CurrentFuel);
 }
 
 

@@ -13,6 +13,7 @@ class UChaosWheeledVehicleMovementComponent;
 class USpotLightComponent;
 class UTCCarCombatComponent;
 class UTCCarWidget;
+class UUISubsystem;
 struct FInputActionValue;
 
 UCLASS(abstract)
@@ -70,6 +71,10 @@ public:
 	virtual void Tick(float Delta) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual void PossessedBy(AController* NewController) override;
+
+	virtual void OnRep_Controller() override;
 
 
 protected:
@@ -140,8 +145,6 @@ public:
 
 	FTimerHandle GasHandler;
 
-	bool bMovingOnGround;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Gas");
 	float MoveFactor;
 
@@ -150,10 +153,9 @@ public:
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return Camera; }
 	FORCEINLINE const TObjectPtr<UChaosWheeledVehicleMovementComponent>& GetChaosVehicleMovement() const { return ChaosVehicleMovement; }
 
-	//Test
-	UPROPERTY(EditAnywhere, Category = "UI")
-	TSubclassOf<UTCCarWidget> CarWidgetClass;
-
 	UPROPERTY()
 	TObjectPtr<UTCCarWidget> CarWidgetInstance;
+
+	UPROPERTY()
+	TObjectPtr<UUISubsystem> UISubsystem;
 };
