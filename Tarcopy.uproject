@@ -1,4 +1,4 @@
-{
+﻿{
 	"FileVersion": 3,
 	"EngineAssociation": "5.7",
 	"Category": "",
@@ -12,6 +12,8 @@
 				"Engine",
 				"UMG",
 				"ChaosVehicles"
+				"EnhancedInput",
+				"CoreUObject"
 			]
 		}
 	],

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -8,6 +8,9 @@
 
 class UCameraComponent;
 class USpringArmComponent;
+class UStaticMeshComponent;
+class USphereComponent;
+class UDoorInteractComponent;
 struct FInputActionValue;
 
 UCLASS()
@@ -24,6 +27,8 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
+	virtual void Tick(float DeltaTime) override;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -39,21 +44,75 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> SpringArm;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UStaticMeshComponent> VisionMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Interaction", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USphereComponent> InteractionSphere;
+
+	UFUNCTION()
+	virtual void OnInteractionSphereBeginOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
+	UFUNCTION()
+	virtual void OnInteractionSphereEndOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex);
+
+	UFUNCTION()
+	virtual void OnVisionMeshBeginOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
+	UFUNCTION()
+	virtual void OnVisionMeshEndOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex);
+
+protected:
+	void UpdateCameraObstructionFade();
+
+	UPROPERTY(EditAnywhere, Category = "Vision|Occlusion")
+	float ObstructionTraceInterval = 0.05f;
+
+	UPROPERTY(EditAnywhere, Category = "Vision|Occlusion")
+	float FadeHoldTime = 0.15f;
+
+	float TimeSinceLastObstructionTrace = 0.f;
+
+	TMap<TWeakObjectPtr<UPrimitiveComponent>, float> FadeHoldUntil;
+
+public:
+	void AddInteractableDoor(AActor* DoorActor);
+	void RemoveInteractableDoor(AActor* DoorActor);
+
+protected:
+	TSet<TWeakObjectPtr<AActor>> OverlappingDoors;
+
 #pragma endregion
 
-#pragma region Action
-private:
+#pragma region MoveAction
+protected:
 	UFUNCTION()
 	virtual void MoveAction(const FInputActionValue& Value);
 
 	UFUNCTION()
 	virtual void StartSprint(const FInputActionValue& Value);
 	UFUNCTION(Server, Reliable)
-	virtual void ServerRPC_StartSprint();
+	virtual void ServerRPC_SetSpeed(float InSpeed);
 	UFUNCTION()
 	virtual void StopSprint(const FInputActionValue& Value);
-	UFUNCTION(Server, Reliable)
-	virtual void ServerRPC_StopSprint();
 	UFUNCTION()
 	virtual void OnRep_SetSpeed();
 
@@ -64,18 +123,63 @@ private:
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void MulticastRPC_Crouch();
 
-	UFUNCTION()
-	virtual void Wheel(const FInputActionValue& Value);
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
 	float BaseWalkSpeed;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
 	float SprintSpeedMultiplier;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
 	float CrouchSpeedMultiplier;
 
 	UPROPERTY(Replicated, ReplicatedUsing = OnRep_SetSpeed)
 	float CurrentSpeed;
+
+#pragma endregion
+
+#pragma region Mouse Action
+
+protected:
+	UFUNCTION()
+	virtual void Wheel(const FInputActionValue& Value);
+
+	UFUNCTION()
+	virtual void CanceledRightClick(const FInputActionValue& Value);
+	UFUNCTION()
+	virtual void TriggeredRightClick(const FInputActionValue& Value);
+	UFUNCTION()
+	virtual void CompletedRightClick(const FInputActionValue& Value);
+
+	UFUNCTION(Server, Reliable)
+	virtual void ServerRPC_TurnToMouse(const FRotator& TargetRot);
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void MulticastRPC_TurnToMouse(const FRotator& TargetRot);
+	virtual void TurnToMouse();
+
+	UFUNCTION(Server, Reliable)
+	virtual void ServerRPC_StopTurnToMouse();
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void MulticastRPC_StopTurnToMouse();
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Attack", meta = (AllowPrivateAccess = "true"))
+	bool bIsAttackMode;
+
+	UFUNCTION()
+	virtual void Interact(const FInputActionValue& Value);
+	UFUNCTION(Server, Reliable)
+	virtual void ServerRPC_ToggleDoor(AActor* DoorActor);
+
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void MulticastRPC_ApplyDoorTransforms(const TArray<AActor*>& DoorActors, const TArray<FTransform>& DoorTransforms);
+ 	
+#pragma endregion
+ 	
+#pragma region TestItem
+
+public:
+	UPROPERTY(EditAnywhere)
+	FName ItemId;
+
+	UFUNCTION()
+	void SetItem();
 
 #pragma endregion
 
