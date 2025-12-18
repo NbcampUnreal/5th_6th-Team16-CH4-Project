@@ -178,6 +178,9 @@ protected:
 	UFUNCTION()
 	virtual void CompletedRightClick(const FInputActionValue& Value);
 
+	UFUNCTION()
+	virtual void LeftClick(const FInputActionValue& Value);
+
 	UFUNCTION(Server, Reliable)
 	virtual void ServerRPC_TurnToMouse(const FRotator& TargetRot);
 	UFUNCTION(NetMulticast, Reliable)

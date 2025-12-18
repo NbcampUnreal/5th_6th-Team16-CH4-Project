@@ -55,8 +55,11 @@ public:
 	TObjectPtr<UInputAction> RightClickAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
+	TObjectPtr<UInputAction> LeftClickAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
 	TObjectPtr<UInputAction> InteractAction;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInputAction> ItemAction;
 

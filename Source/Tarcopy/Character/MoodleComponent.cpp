@@ -31,6 +31,8 @@ void UMoodleComponent::SetMaxStamina(float InStamina)
 
 void UMoodleComponent::BeginPlay()
 {
+	Super::BeginPlay();
+
 	GetWorld()->GetTimerManager().SetTimer(
 		HungerHandle,
 		[this]()

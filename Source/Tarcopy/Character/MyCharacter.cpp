@@ -314,6 +314,39 @@ void AMyCharacter::Wheel(const FInputActionValue& Value)
 void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
 {
 	bIsAttackMode = false;
+
+	AMyPlayerController* MyPC = GetOwner<AMyPlayerController>();
+	if (!IsValid(MyPC))
+		return;
+
+	FVector WorldLocation, WorldDirection;
+	if (MyPC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection) == false)
+		return;
+
+	FVector Start = Camera->GetComponentLocation();
+	FVector Direction = WorldLocation - Start;
+	FVector End = Start + Direction * 10000.f;
+
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	Params.bTraceComplex = true;
+	Params.AddIgnoredActor(this);
+
+	if (GetWorld()->LineTraceSingleByChannel(
+		Hit, Start, End, ECC_Visibility, Params) == false)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Line Trace Error"));
+		return;
+	}
+
+	if (AActor* HitActor = Hit.GetActor())
+	{
+		if (IActivateInterface* Activatable = Cast<IActivateInterface>(HitActor))
+		{
+			Activatable->Activate(this);  
+			return;
+		}
+	}
 }
 
 void AMyCharacter::TriggeredRightClick(const FInputActionValue& Value)
@@ -337,6 +370,11 @@ void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
 		ServerRPC_SetSpeed(BaseWalkSpeed);
 		bIsAttackMode = false;
 	}
+}
+
+void AMyCharacter::LeftClick(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Left Click"))
 }
 
 void AMyCharacter::ServerRPC_TurnToMouse_Implementation(const FRotator& TargetRot)
@@ -429,18 +467,24 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 										  &AMyCharacter::TriggeredRightClick);
 				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Completed, this,
 										  &AMyCharacter::CompletedRightClick);
+			}
 
-				// 아이템 테스트용
-				if (PlayerController->ItemAction)
-				{
-					EnhancedInput->BindAction(PlayerController->ItemAction, ETriggerEvent::Started, this,
-											  &AMyCharacter::SetItem);
-				}
-				if (PlayerController->InteractAction)
-				{
-					EnhancedInput->BindAction(PlayerController->InteractAction, ETriggerEvent::Started, this,
-											  &AMyCharacter::Interact);
-				}
+			if (PlayerController->LeftClickAction)
+			{
+				EnhancedInput->BindAction(PlayerController->LeftClickAction, ETriggerEvent::Started, this,
+					&AMyCharacter::LeftClick);
+			}
+
+			// 아이템 테스트용
+			if (PlayerController->ItemAction)
+			{
+				EnhancedInput->BindAction(PlayerController->ItemAction, ETriggerEvent::Started, this,
+											&AMyCharacter::SetItem);
+			}
+			if (PlayerController->InteractAction)
+			{
+				EnhancedInput->BindAction(PlayerController->InteractAction, ETriggerEvent::Started, this,
+											&AMyCharacter::Interact);
 			}
 		}
 	}
