@@ -12,6 +12,7 @@ class UStaticMeshComponent;
 class USphereComponent;
 class UDoorInteractComponent;
 struct FInputActionValue;
+class UMoodleComponent;
 
 UCLASS()
 class TARCOPY_API AMyCharacter : public ACharacter
@@ -99,6 +100,35 @@ public:
 
 protected:
 	TSet<TWeakObjectPtr<AActor>> OverlappingDoors;
+
+#pragma endregion
+
+#pragma region State Components
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UMoodleComponent> Moodle;
+
+public:
+	FORCEINLINE UMoodleComponent* GetMoodleComponent() const { return Moodle; }
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE float GetCurrentHunger();
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE float GetCurrentThirst();
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE float GetCurrentStamina();
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE float GetMaxStamina();
+
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE void SetCurrentHunger(float InHunger);
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE void SetCurrentThirst(float InThirst);
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE void SetCurrentStamina(float InStamina);
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE void SetMaxStamina(float InStamina);
 
 #pragma endregion
 
