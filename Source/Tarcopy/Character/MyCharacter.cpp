@@ -15,6 +15,7 @@
 #include "Item/ItemInstance.h"
 #include "Framework/DoorInteractComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Character/MoodleComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -64,6 +65,8 @@ AMyCharacter::AMyCharacter() :
 	InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnInteractionSphereBeginOverlap);
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnInteractionSphereEndOverlap);
+
+	Moodle = CreateDefaultSubobject<UMoodleComponent>(TEXT("Moodle"));
 }
 
 // Called when the game starts or when spawned
@@ -485,6 +488,42 @@ void AMyCharacter::RemoveInteractableDoor(AActor* DoorActor)
 	{
 		OverlappingDoors.Remove(DoorActor);
 	}
+}
+
+float AMyCharacter::GetCurrentHunger() 
+{
+	return  Moodle->GetCurrentHunger(); 
+}
+float AMyCharacter::GetCurrentThirst()
+{
+	return Moodle->GetCurrentThirst();
+}
+float AMyCharacter::GetCurrentStamina()
+{
+	return Moodle->GetCurrentStamina();
+}
+float AMyCharacter::GetMaxStamina()
+{
+	return Moodle->GetMaxStamina();
+}
+
+void AMyCharacter::SetCurrentHunger(float InHunger)
+{
+	Moodle->SetCurrentHunger(InHunger);
+}
+void AMyCharacter::SetCurrentThirst(float InThirst)
+{
+	Moodle->SetCurrentThirst(InThirst);
+}
+
+void AMyCharacter::SetCurrentStamina(float InStamina)
+{
+	Moodle->SetCurrentStamina(InStamina);
+}
+
+void AMyCharacter::SetMaxStamina(float InStamina)
+{
+	Moodle->SetMaxStamina(InStamina);
 }
 
 void AMyCharacter::Interact(const FInputActionValue& Value)
