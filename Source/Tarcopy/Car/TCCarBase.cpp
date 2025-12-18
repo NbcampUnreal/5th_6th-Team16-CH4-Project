@@ -135,12 +135,6 @@ void ATCCarBase::BeginPlay()
 	}
 
 	//차량 탑승시로 이동예정(UI SubSystem 이용예정)
-	auto& Engine = ChaosVehicleMovement->EngineSetup;
-
-	Engine.MaxRPM = 0.1f;
-	Engine.EngineIdleRPM = 0.1f;
-
-	ChaosVehicleMovement->RecreatePhysicsState();
 	if (IsLocallyControlled())
 	{
 		if (CarWidgetClass)

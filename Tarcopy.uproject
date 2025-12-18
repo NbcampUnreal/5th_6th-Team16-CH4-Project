@@ -11,7 +11,7 @@
 			"AdditionalDependencies": [
 				"Engine",
 				"UMG",
-				"ChaosVehicles"
+				"ChaosVehicles",
 				"EnhancedInput",
 				"CoreUObject"
 			]
