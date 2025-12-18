@@ -372,6 +372,11 @@ void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
 	}
 }
 
+void AMyCharacter::LeftClick(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Left Click"))
+}
+
 void AMyCharacter::ServerRPC_TurnToMouse_Implementation(const FRotator& TargetRot)
 {
 	MulticastRPC_TurnToMouse(TargetRot);
@@ -462,18 +467,24 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 										  &AMyCharacter::TriggeredRightClick);
 				EnhancedInput->BindAction(PlayerController->RightClickAction, ETriggerEvent::Completed, this,
 										  &AMyCharacter::CompletedRightClick);
+			}
 
-				// 아이템 테스트용
-				if (PlayerController->ItemAction)
-				{
-					EnhancedInput->BindAction(PlayerController->ItemAction, ETriggerEvent::Started, this,
-											  &AMyCharacter::SetItem);
-				}
-				if (PlayerController->InteractAction)
-				{
-					EnhancedInput->BindAction(PlayerController->InteractAction, ETriggerEvent::Started, this,
-											  &AMyCharacter::Interact);
-				}
+			if (PlayerController->LeftClickAction)
+			{
+				EnhancedInput->BindAction(PlayerController->LeftClickAction, ETriggerEvent::Started, this,
+					&AMyCharacter::LeftClick);
+			}
+
+			// 아이템 테스트용
+			if (PlayerController->ItemAction)
+			{
+				EnhancedInput->BindAction(PlayerController->ItemAction, ETriggerEvent::Started, this,
+											&AMyCharacter::SetItem);
+			}
+			if (PlayerController->InteractAction)
+			{
+				EnhancedInput->BindAction(PlayerController->InteractAction, ETriggerEvent::Started, this,
+											&AMyCharacter::Interact);
 			}
 		}
 	}
