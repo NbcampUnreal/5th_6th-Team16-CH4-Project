@@ -16,6 +16,8 @@
 #include "Framework/DoorInteractComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Character/MoodleComponent.h"
+#include "AI/MyAICharacter.h"
+#include "Character/ActivateInterface.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -146,8 +148,11 @@ void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp,
                                             UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
                                             const FHitResult& SweepResult)
 {
-	AMyCharacter* MyCharacter = Cast<AMyCharacter>(OtherActor);
-	if (IsValid(MyCharacter))
+	if (HasAuthority() == false)
+		return;
+
+	AMyAICharacter* MyAI = Cast<AMyAICharacter>(OtherActor);
+	if (IsValid(MyAI) == false)
 		return;
 
 	UE_LOG(LogTemp, Warning, TEXT("Overlap"));
@@ -171,22 +176,21 @@ void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp,
 
 	if (!bHitWall)
 	{
-		OtherActor->SetActorHiddenInGame(false);
-	}
-	else
-	{
-		OtherActor->SetActorHiddenInGame(true);
+		MyAI->WatchedCountModify(1);
 	}
 }
 
 void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                           UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	AMyCharacter* MyCharacter = Cast<AMyCharacter>(OtherActor);
-	if (IsValid(MyCharacter))
+	if (IsLocallyControlled())
 		return;
 
-	OtherActor->SetActorHiddenInGame(true);
+	AMyAICharacter* MyAI = Cast<AMyAICharacter>(OtherActor);
+	if (IsValid(MyAI) == false)
+		return;
+
+	MyAI->WatchedCountModify(-1);
 }
 
 void AMyCharacter::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
