@@ -64,6 +64,12 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Door")
 	FName DoorGroupTag;
 
+	UPROPERTY(EditAnywhere, Category = "Door|Outline")
+	bool bEnableProximityOutline = true;
+
+	UPROPERTY(EditAnywhere, Category = "Door|Outline", meta = (EditCondition = "bEnableProximityOutline", ClampMin = "0", ClampMax = "255"))
+	int32 OutlineStencilValue = 1;
+
 	bool bIsOpen;
 	FVector InitialLocation;
 	FRotator InitialRotation;
@@ -84,6 +90,7 @@ protected:
 	void RefreshAutoSlideOffsetsFromBounds();
 	void UpdateInteractionBoxFromOwner();
 	void UpdateVisualizerColor(bool bHasCharacterInside);
+	void UpdateDoorOutline(bool bEnable);
 
 	UFUNCTION()
 	void OnVisualizerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
