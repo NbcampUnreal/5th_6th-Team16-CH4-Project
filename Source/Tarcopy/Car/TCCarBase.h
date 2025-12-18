@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "WheeledVehiclePawn.h"
+#include "Character/ActivateInterface.h"
 #include "TCCarBase.generated.h"
 
 class UCameraComponent;
@@ -17,7 +18,7 @@ class UUISubsystem;
 struct FInputActionValue;
 
 UCLASS(abstract)
-class ATCCarBase : public AWheeledVehiclePawn
+class ATCCarBase : public AWheeledVehiclePawn, public IActivateInterface
 {
 	GENERATED_BODY()
 
@@ -40,6 +41,8 @@ class ATCCarBase : public AWheeledVehiclePawn
 	USpotLightComponent* HeadLight_L;
  
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> ChaosVehicleMovement;
+
+	virtual void Activate(AActor* InInstigator) override;
 
 
 protected:

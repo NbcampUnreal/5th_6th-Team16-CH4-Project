@@ -7,6 +7,7 @@
 
 AMyPlayerController::AMyPlayerController() :
 	IMC_Character(nullptr),
+	IMC_Car(nullptr),
 	MoveAction(nullptr),
 	LookAction(nullptr)
 {
@@ -44,6 +45,7 @@ void AMyPlayerController::SetupInputComponent()
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
 			checkf(IMC_Character != nullptr, TEXT("IMC_Character is nullptr"));
+			CurrentIMC = IMC_Character;
 			Subsystem->AddMappingContext(IMC_Character, 0);
 		}
 	}
@@ -55,4 +57,20 @@ void AMyPlayerController::SetItem(UItemInstance* Item)
 		return;
 
 	TempItemInstance->SetItem(Item);
+}
+
+void AMyPlayerController::ChangeIMC(UInputMappingContext* InIMC)
+{
+	if (!IsLocalPlayerController() || !InIMC) return;
+
+	ULocalPlayer* LP = GetLocalPlayer();
+	if (!LP) return;
+
+	auto* Subsystem = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+	if (!Subsystem) return;
+
+	Subsystem->RemoveMappingContext(CurrentIMC);
+
+	Subsystem->AddMappingContext(InIMC, 0);
+	CurrentIMC = InIMC;
 }

@@ -14,6 +14,7 @@
 #include "Car/UI/TCCarWidget.h"
 #include "UI/UISubsystem.h"
 #include "Kismet/GameplayStatics.h"
+#include "Controller/MyPlayerController.h"
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
 
@@ -295,6 +296,18 @@ void ATCCarBase::OnRep_UpdateGas()
 void ATCCarBase::DecreaseGas(float InDecreaseGas)
 {
 	CurrentFuel = FMath::Clamp(CurrentFuel - InDecreaseGas, 0.f, 100.f);
+}
+
+void ATCCarBase::Activate(AActor* InInstigator)
+{
+	APawn* Pawn = Cast<APawn>(InInstigator);
+	if (!Pawn) return;
+
+	AMyPlayerController* PC = Cast<AMyPlayerController>(Pawn->GetController());
+	if (!PC) return;
+
+	PC->ChangeIMC(PC->IMC_Car);
+	PC->Possess(this);
 }
 
 
