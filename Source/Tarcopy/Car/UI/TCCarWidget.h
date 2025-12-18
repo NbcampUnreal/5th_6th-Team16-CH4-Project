@@ -8,6 +8,7 @@
 
 class UImage;
 class UTextBlock;
+class USizeBox;
 class UProgressBar;
 
 UCLASS()
@@ -55,9 +56,10 @@ protected:
 	float CurrentSpeed;
 
 	UPROPERTY(meta = (BindWidget))
-	UProgressBar* FuelBar;
+	UImage* ImageFuel;
 
-
+	UPROPERTY()
+	UMaterialInstanceDynamic* MIDFuel;
 
 
 };

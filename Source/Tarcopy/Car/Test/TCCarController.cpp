@@ -20,42 +20,6 @@ void ATCCarController::SetupInputComponent()
 	}
 }
 
-void ATCCarController::BeginPlay()
-{
-	Super::BeginPlay();
 
-	if (IsLocalPlayerController())
-	{
-		if (CarWidgetClass)
-		{
-			CarWidgetInstance = CreateWidget<UTCCarWidget>(this, CarWidgetClass);
-			if (CarWidgetInstance)
-			{
-				CarWidgetInstance->AddToViewport();
-			}
-			else
-			{
-				UE_LOG(LogTemp, Error, TEXT("ATCCarController::BeginPlay Cant spawn Widget"));
-			}
-		}
-	}
 
-	PossessedCar = Cast<ATCCarBase>(GetPawn());
-	if (PossessedCar)
-	{
-		PossessedCar->OnFuelChanged.AddDynamic(CarWidgetInstance, &UTCCarWidget::UpdateFuel);
-		CarWidgetInstance->UpdateFuel(PossessedCar->CurrentGas);
-	}
 
-}
-
-void ATCCarController::Tick(float Delta)
-{
-	Super::Tick(Delta);
-
-	if (IsValid(PossessedCar) && IsValid(CarWidgetInstance))
-	{
-		CarWidgetInstance->UpdateSpeed(PossessedCar->GetChaosVehicleMovement()->GetForwardSpeed());
-		CarWidgetInstance->UpdateRPM(PossessedCar->GetChaosVehicleMovement()->GetEngineRotationSpeed());
-	}
-}

@@ -15,9 +15,6 @@ class TARCOPY_API ATCCarController : public APlayerController
 {
 	GENERATED_BODY()
 public:
-	virtual void BeginPlay() override;
-
-	virtual void Tick(float Delta) override;
 
 public:
 
@@ -25,16 +22,5 @@ public:
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
 
 	virtual void SetupInputComponent() override;
-
-	UPROPERTY(EditAnywhere, Category = "UI")
-	TSubclassOf<UTCCarWidget> CarWidgetClass;
-
-	UPROPERTY()
-	TObjectPtr<UTCCarWidget> CarWidgetInstance;
-
-	UPROPERTY()
-	ATCCarBase* PossessedCar;
-
-	
 
 };

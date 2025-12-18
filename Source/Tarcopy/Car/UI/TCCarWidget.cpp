@@ -6,7 +6,7 @@
 #include "Components/TextBlock.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
-#include "Components/ProgressBar.h"
+#include "Components/SizeBox.h"
 
 void UTCCarWidget::NativeConstruct()
 {
@@ -38,7 +38,6 @@ void UTCCarWidget::NativeConstruct()
 			true
 		);
 	}
-
 }
 void UTCCarWidget::UpdateSpeed(float InValue)
 {
@@ -66,9 +65,17 @@ void UTCCarWidget::UpdateRPM(float InValue)
 
 void UTCCarWidget::UpdateFuel(float InValue)
 {
-	if (!FuelBar) return;
+	if (!ImageFuel) return;
 
-	float ClampedFuel = FMath::Clamp(InValue, 0.f, 100.f);
-	
-	FuelBar->SetPercent(InValue / 100.f);
+	if (!MIDFuel)
+	{
+		MIDFuel = ImageFuel->GetDynamicMaterial();
+		if (!MIDFuel) return;
+	}
+
+	float Ratio = InValue / 100.f;
+	Ratio = FMath::Clamp(Ratio, 0.f, 1.f);
+
+	MIDFuel->SetScalarParameterValue(TEXT("FillAmount"), Ratio);
+	UE_LOG(LogTemp, Error, TEXT("Update Fuel"));
 }

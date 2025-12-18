@@ -27,6 +27,7 @@ void UTCCarCombatComponent::BeginPlay()
 		{
 			VehicleMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 			VehicleMesh->SetNotifyRigidBodyCollision(true);
+
 		}
 	}
 

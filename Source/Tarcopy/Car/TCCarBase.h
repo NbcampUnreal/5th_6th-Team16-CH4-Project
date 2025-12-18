@@ -12,9 +12,8 @@ class UInputAction;
 class UChaosWheeledVehicleMovementComponent;
 class USpotLightComponent;
 class UTCCarCombatComponent;
+class UTCCarWidget;
 struct FInputActionValue;
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFuelChanged, float, Fuel);
 
 UCLASS(abstract)
 class ATCCarBase : public AWheeledVehiclePawn
@@ -40,8 +39,6 @@ class ATCCarBase : public AWheeledVehiclePawn
 	USpotLightComponent* HeadLight_L;
  
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> ChaosVehicleMovement;
-
-	
 
 
 protected:
@@ -126,22 +123,18 @@ protected:
 	UFUNCTION()
 	void DamageOn();
 
-	UFUNCTION(Server,Reliable)
-	void ServerRPCDecreaseGas(float InDecreaseGas);
+	UFUNCTION()
+	void DecreaseGas(float InDecreaseGas);
 
 	UFUNCTION()
 	void OnRep_UpdateGas();
 
 public:
-	UPROPERTY(BlueprintAssignable)
-	FOnFuelChanged OnFuelChanged;
-
-
-	UPROPERTY(Replicated,ReplicatedUsing = OnRep_UpdateGas)
-	float CurrentGas;
+	UPROPERTY(Replicated, ReplicatedUsing = OnRep_UpdateGas)
+	float CurrentFuel;
 	
 	UPROPERTY()
-	float MaxGas;
+	float MaxFuel;
 
 	bool bLightOn;
 
@@ -156,4 +149,11 @@ public:
 	FORCEINLINE USpringArmComponent* GetFrontSpringArm() const { return SpringArm; }
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return Camera; }
 	FORCEINLINE const TObjectPtr<UChaosWheeledVehicleMovementComponent>& GetChaosVehicleMovement() const { return ChaosVehicleMovement; }
+
+	//Test
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSubclassOf<UTCCarWidget> CarWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UTCCarWidget> CarWidgetInstance;
 };
