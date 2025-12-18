@@ -9,7 +9,7 @@
 class UCameraComponent;
 class USpringArmComponent;
 class UStaticMeshComponent;
-class ADoorActor;
+class USphereComponent;
 class UDoorInteractComponent;
 struct FInputActionValue;
 
@@ -47,6 +47,24 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UStaticMeshComponent> VisionMesh;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Interaction", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USphereComponent> InteractionSphere;
+
+	UFUNCTION()
+	virtual void OnInteractionSphereBeginOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
+	UFUNCTION()
+	virtual void OnInteractionSphereEndOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex);
+
 	UFUNCTION()
 	virtual void OnVisionMeshBeginOverlap(
 		UPrimitiveComponent* OverlappedComp,
@@ -74,6 +92,13 @@ protected:
 	float TimeSinceLastObstructionTrace = 0.f;
 
 	TMap<TWeakObjectPtr<UPrimitiveComponent>, float> FadeHoldUntil;
+
+public:
+	void AddInteractableDoor(AActor* DoorActor);
+	void RemoveInteractableDoor(AActor* DoorActor);
+
+protected:
+	TSet<TWeakObjectPtr<AActor>> OverlappingDoors;
 
 #pragma endregion
 
@@ -140,12 +165,13 @@ protected:
 	UFUNCTION()
 	virtual void Interact(const FInputActionValue& Value);
 	UFUNCTION(Server, Reliable)
-	virtual void ServerRPC_ToggleDoor(ADoorActor* DoorActor);
-	UFUNCTION(Server, Reliable)
-	virtual void ServerRPC_InteractDoorActor(AActor* DoorActor);
-	
+	virtual void ServerRPC_ToggleDoor(AActor* DoorActor);
+
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void MulticastRPC_ApplyDoorTransforms(const TArray<AActor*>& DoorActors, const TArray<FTransform>& DoorTransforms);
+ 	
 #pragma endregion
-	
+ 	
 #pragma region TestItem
 
 public:
