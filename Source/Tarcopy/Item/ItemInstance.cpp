@@ -5,6 +5,7 @@
 #include "Item/DataTableSubsystem.h"
 #include "Item/CraftSubsystem.h"
 #include "Item/ItemComponent/CraftComponent.h"
+#include "Item/ItemComponent/ItemComponentPreset.h"
 
 void UItemInstance::SetData(const FItemData* InData)
 {
@@ -12,15 +13,18 @@ void UItemInstance::SetData(const FItemData* InData)
 		return;
 
 	Data = InData;
-
-	for (const auto& Component : Data->ItemComponents)
+	
+	if (IsValid(Data->ItemComponentPreset) == true)
 	{
-		if (IsValid(Component) == false)
-			continue;
+		for (const auto& Component : Data->ItemComponentPreset->ItemComponentClasses)
+		{
+			if (IsValid(Component) == false)
+				continue;
 
-		UItemComponentBase* NewItemComponent = NewObject<UItemComponentBase>(this, Component);
-		NewItemComponent->SetOwnerItem(this);
-		ItemComponents.Add(NewItemComponent);
+			UItemComponentBase* NewItemComponent = NewObject<UItemComponentBase>(this, Component);
+			NewItemComponent->SetOwnerItem(this);
+			ItemComponents.Add(NewItemComponent);
+		}
 	}
 
 	// CraftTable에서 ItemId가 재료로 사용되면 CraftComponent 자동 생성

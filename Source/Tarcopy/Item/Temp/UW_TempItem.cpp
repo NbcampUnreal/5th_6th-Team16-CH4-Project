@@ -6,66 +6,45 @@
 #include "Item/ItemInstance.h"
 #include "Item/ItemComponent/ItemComponentBase.h"
 #include "Item/ItemComponent/MeleeWeaponComponent.h"
+#include "Item/ItemCommand/ItemCommandBase.h"
 
-void UUW_TempItem::SetItem(UItemInstance* Item)
+void UUW_TempItem::SetItem(UItemInstance* InItem)
 {
-	if (IsValid(Item) == false)
+	if (IsValid(InItem) == false)
 		return;
+
+	Item = InItem;
+
+	UpdateTempItem();
+}
+
+void UUW_TempItem::UpdateTempItem()
+{
+	PanelInteract->ClearChildren();
+
+	if (Item.IsValid() == false)
+	{
+		TextItemId->SetText(FText::GetEmpty());
+		return;
+	}
 
 	TextItemId->SetText(Item->GetData()->TextName);
 
-	//const UMeleeWeaponComponent* WeaponComponent = Item->GetItemComponent<UMeleeWeaponComponent>();
 	const auto& Components = Item->GetItemComponents();
-	TArray<struct FItemComponentInteractionData> InteractionDatas;
+	TArray<TObjectPtr<UItemCommandBase>> Commands;
 	for (const auto& Component : Components)
 	{
-		Component->GetInteractionDatas(InteractionDatas);
+		Component->GetCommands(Commands);
 	}
 
-	for (const auto& InteractionData : InteractionDatas)
+	for (const auto& Command : Commands)
 	{
 		UUW_TempInteract* NewInteractUI = CreateWidget<UUW_TempInteract>(this, InteractUIClass);
 		if (IsValid(NewInteractUI) == false)
 			continue;
 
 		PanelInteract->AddChild(NewInteractUI);
-		NewInteractUI->SetInteract(InteractionData);
-		InteractUIs.Add(NewInteractUI);
+		NewInteractUI->SetCommand(Command);
+		NewInteractUI->OnExecuteCommand.BindUObject(this, &ThisClass::UpdateTempItem);
 	}
-
-	/*
-
-	if (IsValid(InteractUIClass) == false)
-		return;
-
-	const FItemData* ItemData = nullptr;
-	auto& ItemRows = ItemTable->GetRowMap();
-	for (const auto& ItemRow : ItemRows)
-	{
-		FItemData* Data = (FItemData*)ItemRow.Value;
-		if (Data->ItemId == ItemId)
-		{
-			ItemData = Data;
-			break;
-		}
-	}
-
-	if (ItemData == nullptr)
-		return;
-
-	auto& InteractRows = InteractTable->GetRowMap();
-	for (const auto& InteractRow : InteractRows)
-	{
-		FInteractionData* Data = (FInteractionData*)InteractRow.Value;
-		if (Data->IngredientItems.Contains(ItemId) == true)
-		{
-			UUW_TempInteract* NewInteractUI = CreateWidget<UUW_TempInteract>(this, InteractUIClass);
-			if (IsValid(NewInteractUI) == false)
-				continue;
-
-			PanelInteract->AddChild(NewInteractUI);
-			NewInteractUI->SetInteract(*Data);
-			InteractUIs.Add(NewInteractUI);
-		}
-	}*/
 }

@@ -25,13 +25,40 @@ protected:
 
 	virtual void BeginPlay() override;
 
+	void DestroyPart(UPrimitiveComponent* DestroyComponent);
+
+	void DestroyWindow(UPrimitiveComponent* DestroyComponent);
+
+	void DestroyWheel(UPrimitiveComponent* DestroyComponent);
+
+	void DestroyMain(UPrimitiveComponent* DestroyComponent);
+
+	void DestroyDefault(UPrimitiveComponent* DestroyComponent);
+
+	void DisableWheelPhysics(int32 WheelIndex);
+	
+	UFUNCTION()
+	void OnVehiclePartHit(
+		UPrimitiveComponent* HitComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		FVector NormalImpulse,
+		const FHitResult& Hit
+	);
+
+	int32 FindWheelIndexFromComp(UPrimitiveComponent* DestroyComponent);
 	
 public:	
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> WheelActorClass;
 
 	//Test
-	UPrimitiveComponent* GetTestMesh() { return TestMesh; }
+	UPrimitiveComponent* GetTestMesh();
 
 	UPrimitiveComponent* TestMesh;
-		
+
+	TArray<UStaticMeshComponent*> Meshes;
+
+	
 };

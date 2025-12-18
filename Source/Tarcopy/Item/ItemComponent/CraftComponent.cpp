@@ -3,7 +3,6 @@
 #include "Item/CraftSubsystem.h"
 #include "Item/Data/ItemData.h"
 #include "Item/Data/CraftData.h"
-#include "Item/ItemComponent/ItemComponentInteractionData.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 void UCraftComponent::SetOwnerItem(UItemInstance* InOwnerItem)
@@ -11,15 +10,14 @@ void UCraftComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 	Super::SetOwnerItem(InOwnerItem);
 }
 
-void UCraftComponent::GetInteractionDatas(TArray<struct FItemComponentInteractionData>& OutDatas)
+void UCraftComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
 {
 	UCraftSubsystem* CraftSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UCraftSubsystem>();
 	if (IsValid(CraftSubsystem) == false)
 		return;
 
 	const FItemData* OwnerItemData = GetOwnerItemData();
-	if (OwnerItemData == nullptr)
-		return;
+	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
 
 	FName ItemId = OwnerItemData->ItemId;
 	const FCraftRecipe* Recipe = CraftSubsystem->GetCraftRecipe(ItemId);
@@ -48,16 +46,19 @@ void UCraftComponent::GetInteractionDatas(TArray<struct FItemComponentInteractio
 
 			FString JoinedString = FString::Join(GainedItemNames, TEXT(", "));
 
-			FItemComponentInteractionData CraftInteractionData;
-			CraftInteractionData.TextDisplay = FText::Format(FText::FromString(TEXT("Craft {0}")), FText::FromString(JoinedString));
+			//FItemComponentInteractionData CraftInteractionData;
+			//CraftInteractionData.TextDisplay = FText::Format(FText::FromString(TEXT("Craft {0}")), FText::FromString(JoinedString));
 			// CraftInteractionData.bIsInteractable
 			// 인벤토리 및 근처에 재료 충분하고 도구 있는지 제작 가능한지 검사해서 true/false;
-			CraftInteractionData.DelegateInteract.BindLambda(
-				[&]()
+			/*CraftInteractionData.DelegateInteract.BindLambda(
+				[WeakObjectPtr = TWeakObjectPtr<UCraftComponent>(this), CraftId = CraftDataHandle.RowName]()
 				{
-					ExecuteCraft(CraftDataHandle.RowName);
-				});
-			OutDatas.Add(CraftInteractionData);
+					if (WeakObjectPtr.IsValid() == true)
+					{
+						WeakObjectPtr->ExecuteCraft(CraftId);
+					}
+				});*/
+			//OutDatas.Add(CraftInteractionData);
 		}
 	}
 }

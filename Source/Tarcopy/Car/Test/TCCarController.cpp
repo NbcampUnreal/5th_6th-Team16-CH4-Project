@@ -3,6 +3,9 @@
 
 #include "Car/Test/TCCarController.h"
 #include "EnhancedInputSubsystems.h"
+#include "Car/UI/TCCarWidget.h"
+#include "Car/TCCarBase.h"
+#include "ChaosWheeledVehicleMovementComponent.h"
 
 void ATCCarController::SetupInputComponent()
 {
@@ -16,3 +19,7 @@ void ATCCarController::SetupInputComponent()
 		}
 	}
 }
+
+
+
+

@@ -13,7 +13,7 @@ class TARCOPY_API UFluidContainerComponent : public UItemComponentBase
 
 public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
-	virtual void GetInteractionDatas(TArray<struct FItemComponentInteractionData>& OutDatas) override;
+	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

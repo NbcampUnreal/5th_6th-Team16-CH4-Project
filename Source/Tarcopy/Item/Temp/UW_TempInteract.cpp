@@ -1,21 +1,44 @@
 ﻿#include "Item/Temp/UW_TempInteract.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
-#include "Item/ItemComponent/ItemComponentInteractionData.h"
+#include "Item/ItemCommand/ItemCommandBase.h"
+#include "Kismet/KismetSystemLibrary.h"
 
-void UUW_TempInteract::SetInteract(const FItemComponentInteractionData& InData)
+void UUW_TempInteract::SetCommand(UItemCommandBase* InCommand)
 {
-	Data = InData;
+	if (IsValid(InCommand) == false)
+		return;
 
-	TextInteract->SetText(InData.TextDisplay);
+	Command = InCommand;
+
+	TextInteract->SetText(Command->TextDisplay);
+	BtnInteract->SetIsEnabled(Command->bExecutable);
 	BtnInteract->OnClicked.AddDynamic(this, &ThisClass::ExecuteInteract);
-	// bIsInteractable에 따라서 버튼 활성화/비활성화 (색 바뀜 포함)
 }
 
 void UUW_TempInteract::ExecuteInteract()
 {
-	if (Data.DelegateInteract.IsBound() == true)
+	if (IsValid(Command) == false)
+		return;
+
+	if (Command->bExecutable == false)
 	{
-		Data.DelegateInteract.Execute();
+		FString CommandString = Command->TextDisplay.ToString();
+		UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s is not executable"), *CommandString));
+		return;
+	}
+
+	FItemCommandContext CommandContext;
+	CommandContext.InstigatorController = GetOwningPlayer();
+	if (CommandContext.InstigatorController.IsValid() == true)
+	{
+		CommandContext.Instigator = CommandContext.InstigatorController->GetOwner();
+	}
+
+	Command->Execute(CommandContext);
+
+	if (OnExecuteCommand.IsBound())
+	{
+		OnExecuteCommand.Execute();
 	}
 }

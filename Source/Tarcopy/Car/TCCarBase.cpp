@@ -12,11 +12,16 @@
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "Components/SpotLightComponent.h"
 #include "Component/TCCarCombatComponent.h"
+#include "Net/UnrealNetwork.h"
+#include "Car/UI/TCCarWidget.h"
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
 
-ATCCarBase::ATCCarBase()
+ATCCarBase::ATCCarBase() :
+	MaxFuel(100.f),
+	MoveFactor(0.12)
 {
+	bReplicates = true;
 	// construct the front camera boom
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
 	SpringArm->SetupAttachment(GetMesh());
@@ -34,7 +39,7 @@ ATCCarBase::ATCCarBase()
 
 
 	GetMesh()->SetSimulatePhysics(true);
-	GetMesh()->SetCollisionProfileName(FName("Vehicle"));
+	GetMesh()->SetCollisionProfileName(FName("CarProfile"));
 
 	Light = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Glass"));
 	Light->SetupAttachment(GetRootComponent());
@@ -55,6 +60,12 @@ ATCCarBase::ATCCarBase()
 	CombatComponent = CreateDefaultSubobject<UTCCarCombatComponent>(TEXT("CombatComponent"));
 
 	ChaosVehicleMovement->SetIsReplicated(true);
+
+
+	//Test
+	CurrentFuel = 0.f;
+
+
 }
 
 void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -67,6 +78,7 @@ void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(SteeringAction, ETriggerEvent::Triggered, this, &ATCCarBase::Steering);
 		EnhancedInputComponent->BindAction(SteeringAction, ETriggerEvent::Completed, this, &ATCCarBase::Steering);
 
+
 		// throttle 
 		EnhancedInputComponent->BindAction(ThrottleAction, ETriggerEvent::Triggered, this, &ATCCarBase::Throttle);
 		EnhancedInputComponent->BindAction(ThrottleAction, ETriggerEvent::Completed, this, &ATCCarBase::Throttle);
@@ -75,6 +87,7 @@ void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(BrakeAction, ETriggerEvent::Triggered, this, &ATCCarBase::Brake);
 		EnhancedInputComponent->BindAction(BrakeAction, ETriggerEvent::Started, this, &ATCCarBase::StartBrake);
 		EnhancedInputComponent->BindAction(BrakeAction, ETriggerEvent::Completed, this, &ATCCarBase::StopBrake);
+
 
 		// handbrake 
 		EnhancedInputComponent->BindAction(HandbrakeAction, ETriggerEvent::Started, this, &ATCCarBase::StartHandbrake);
@@ -92,6 +105,54 @@ void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputCom
 void ATCCarBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//나중에 시동기능을 넣으면 거기로 이동할 예정
+	TWeakObjectPtr<ATCCarBase> WeakThis(this);
+
+	if (HasAuthority())
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimer(
+				GasHandler,
+				FTimerDelegate::CreateLambda([WeakThis]()
+					{
+						if (!WeakThis.IsValid())
+							return;
+						float Consumption = 0.02f;
+						if (WeakThis->bMovingOnGround)
+						{
+							float MaxSpeed = WeakThis->GetChaosVehicleMovement()->GetMaxSpeed();
+							float CurrentSpeed = WeakThis->GetChaosVehicleMovement()->GetForwardSpeed();
+							Consumption += (CurrentSpeed / MaxSpeed) * WeakThis->MoveFactor;
+						}
+						WeakThis->DecreaseGas(Consumption * 10);
+					}),
+				1.f,
+				true
+			);
+		}
+	}
+
+	//차량 탑승시로 이동예정(UI SubSystem 이용예정)
+	if (IsLocallyControlled())
+	{
+		if (CarWidgetClass)
+		{
+			CarWidgetInstance = CreateWidget<UTCCarWidget>(GetWorld(), CarWidgetClass);
+			if (CarWidgetInstance)
+			{
+				CarWidgetInstance->AddToViewport();
+				CarWidgetInstance->UpdateFuel(CurrentFuel);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("ATCCarController::BeginPlay Cant spawn Widget"));
+			}
+		}
+	}
+
+
 }
 
 void ATCCarBase::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -103,8 +164,22 @@ void ATCCarBase::Tick(float Delta)
 {
 	Super::Tick(Delta);
 
-	bool bMovingOnGround = ChaosVehicleMovement->IsMovingOnGround();
+	bMovingOnGround = ChaosVehicleMovement->IsMovingOnGround();
 	GetMesh()->SetAngularDamping(bMovingOnGround ? 0.0f : 3.0f);
+
+
+	if (IsLocallyControlled() && IsValid(CarWidgetInstance))
+	{
+		CarWidgetInstance->UpdateSpeed(ChaosVehicleMovement->GetForwardSpeed());
+		CarWidgetInstance->UpdateRPM(ChaosVehicleMovement->GetEngineRotationSpeed());
+	}
+}
+
+void ATCCarBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, CurrentFuel);
 }
 
 void ATCCarBase::Steering(const FInputActionValue& Value)
@@ -208,8 +283,23 @@ void ATCCarBase::DoHandLight()
 		bLightOn = true;
 	}
 }
+
 void ATCCarBase::DamageOn()
 {
 	CombatComponent->ApplyDamage(CombatComponent->GetTestMesh(), 100.f);
 }
+
+void ATCCarBase::OnRep_UpdateGas()
+{
+	CarWidgetInstance->UpdateFuel(CurrentFuel);
+	UE_LOG(LogTemp, Error, (TEXT("Client Decrease Gas %.0f")), CurrentFuel);
+}
+
+void ATCCarBase::DecreaseGas(float InDecreaseGas)
+{
+	CurrentFuel = FMath::Clamp(CurrentFuel - InDecreaseGas, 0.f, 100.f);
+	UE_LOG(LogTemp, Error, (TEXT("Server Decrease Gas %.0f")), CurrentFuel);
+}
+
+
 #undef LOCTEXT_NAMESPACE

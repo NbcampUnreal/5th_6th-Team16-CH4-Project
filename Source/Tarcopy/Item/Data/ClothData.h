@@ -11,13 +11,13 @@ struct TARCOPY_API FClothData : public FTableRowBase
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	EBodyLocation BodyLocation;
+	EBodyLocation BodyLocation = EBodyLocation::Shirt;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float MovementSpeed;									// 이동속도 저하
+	float MovementSpeed = 0.0f;									// 이동속도 저하
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float AttackSpeed;										// 공격속도 저하
+	float AttackSpeed = 0.0f;									// 공격속도 저하
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float MaxCondition;
+	float MaxCondition = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float ConditionLoss;									// 데미지 받으면 잃는 내구도
+	float ConditionLoss= 0.0f;									// 데미지 받으면 잃는 내구도
 };

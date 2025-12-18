@@ -10,5 +10,5 @@ struct TARCOPY_API FFluidContainerData : public FTableRowBase
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float Capacity;
+	float Capacity = 0.0f;
 };
