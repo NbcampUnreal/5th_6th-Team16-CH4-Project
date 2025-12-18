@@ -6,12 +6,15 @@
 #include "GameFramework/PlayerController.h"
 #include "TCCarController.generated.h"
 
+class UTCCarWidget;
 class UInputMappingContext;
+class ATCCarBase;
 
 UCLASS()
 class TARCOPY_API ATCCarController : public APlayerController
 {
 	GENERATED_BODY()
+public:
 
 public:
 
@@ -19,4 +22,5 @@ public:
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
 
 	virtual void SetupInputComponent() override;
+
 };

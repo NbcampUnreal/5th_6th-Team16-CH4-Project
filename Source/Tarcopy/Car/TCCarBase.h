@@ -12,6 +12,7 @@ class UInputAction;
 class UChaosWheeledVehicleMovementComponent;
 class USpotLightComponent;
 class UTCCarCombatComponent;
+class UTCCarWidget;
 struct FInputActionValue;
 
 UCLASS(abstract)
@@ -25,6 +26,9 @@ class ATCCarBase : public AWheeledVehiclePawn
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* Camera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UTCCarCombatComponent> CombatComponent;
+
 	UPROPERTY(EditDefaultsOnly)
 	UStaticMeshComponent* Light;
 
@@ -35,9 +39,6 @@ class ATCCarBase : public AWheeledVehiclePawn
 	USpotLightComponent* HeadLight_L;
  
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> ChaosVehicleMovement;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UTCCarCombatComponent> CombatComponent;
 
 
 protected:
@@ -67,6 +68,8 @@ public:
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void Tick(float Delta) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 
 protected:
@@ -120,11 +123,37 @@ protected:
 	UFUNCTION()
 	void DamageOn();
 
+	UFUNCTION()
+	void DecreaseGas(float InDecreaseGas);
+
+	UFUNCTION()
+	void OnRep_UpdateGas();
+
 public:
+	UPROPERTY(Replicated, ReplicatedUsing = OnRep_UpdateGas)
+	float CurrentFuel;
+	
+	UPROPERTY()
+	float MaxFuel;
+
 	bool bLightOn;
+
+	FTimerHandle GasHandler;
+
+	bool bMovingOnGround;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Gas");
+	float MoveFactor;
 
 public:
 	FORCEINLINE USpringArmComponent* GetFrontSpringArm() const { return SpringArm; }
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return Camera; }
 	FORCEINLINE const TObjectPtr<UChaosWheeledVehicleMovementComponent>& GetChaosVehicleMovement() const { return ChaosVehicleMovement; }
+
+	//Test
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSubclassOf<UTCCarWidget> CarWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UTCCarWidget> CarWidgetInstance;
 };
