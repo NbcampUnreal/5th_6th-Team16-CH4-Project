@@ -15,8 +15,9 @@ void UUW_Inventory::BindInventory(UInventoryData* InData)
 {
 	BoundInventory = InData;
 
+	ClearGrid();
 	BuildGrid(BoundInventory->GetGridSize());
-	// BuildItems();
+	BuildItems();
 }
 
 void UUW_Inventory::AddItemWidget(FGuid NewItemID, const FIntPoint& Origin, bool bRotated)
@@ -41,6 +42,22 @@ void UUW_Inventory::AddItemWidget(FGuid NewItemID, const FIntPoint& Origin, bool
 	ItemWidgets.Add(NewItemID, Item);
 }
 
+void UUW_Inventory::RefreshItems()
+{
+	if (!BoundInventory)
+	{
+		return;
+	}
+
+	if (ItemCanvas)
+	{
+		ItemCanvas->ClearChildren();
+	}
+	ItemWidgets.Empty();
+
+	BuildItems();
+}
+
 void UUW_Inventory::BuildGrid(FIntPoint GridSize)
 {
 	for (int32 Y = 0; Y < GridSize.Y; ++Y)
@@ -53,6 +70,39 @@ void UUW_Inventory::BuildGrid(FIntPoint GridSize)
 	}
 }
 
+void UUW_Inventory::ClearGrid()
+{
+	if (GridPanel)
+	{
+		GridPanel->ClearChildren();
+	}
+
+	if (ItemCanvas)
+	{
+		ItemCanvas->ClearChildren();
+	}
+
+	ItemWidgets.Empty();
+}
+
 void UUW_Inventory::BuildItems()
 {
+	if (!BoundInventory || !ItemCanvas)
+	{
+		return;
+	}
+
+	ItemCanvas->ClearChildren();
+	UE_LOG(LogTemp, Warning, TEXT("After Clear: CanvasChildren=%d"), ItemCanvas->GetChildrenCount());
+	ItemWidgets.Empty();
+
+	const TMap<FGuid, FItemPlacement>& Placements = BoundInventory->GetPlacements();
+	for (const TPair<FGuid, FItemPlacement>& Pair : Placements)
+	{
+		const FGuid ItemInstanceId = Pair.Key;
+		const FItemPlacement& Placement = Pair.Value;
+
+		AddItemWidget(ItemInstanceId, Placement.Origin, Placement.bRotated);
+		UE_LOG(LogTemp, Warning, TEXT("After Add: CanvasChildren=%d"), ItemCanvas->GetChildrenCount());
+	}
 }

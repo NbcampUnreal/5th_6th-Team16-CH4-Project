@@ -21,7 +21,11 @@ void UInventoryData::Init(const FIntPoint& InGridSize)
 
 UItemInstance* UInventoryData::FindItemByID(FGuid ItemID)
 {
-	return *Items.Find(ItemID);
+	if (TObjectPtr<UItemInstance>* Found = Items.Find(ItemID))
+	{
+		return Found->Get();
+	}
+	return nullptr;
 }
 
 FIntPoint UInventoryData::GetItemSizeByID(FGuid ItemID, bool bRotated)
@@ -55,6 +59,97 @@ bool UInventoryData::TryAddItem(UItemInstance* NewItem, const FIntPoint& Origin,
 	Items.Add(ItemId, NewItem);
 
 	return true;
+}
+
+int32 UInventoryData::GetItemCountByItemId(FName InItemId) const
+{
+	int32 Count = 0;
+
+	for (const TPair<FGuid, TObjectPtr<UItemInstance>>& Pair : Items)
+	{
+		const UItemInstance* Item = Pair.Value.Get();
+		if (!IsValid(Item) || Item->GetData() == nullptr)
+		{
+			continue;
+		}
+
+		if (Item->GetData()->ItemId == InItemId)
+		{
+			++Count;
+		}
+	}
+
+	return Count;
+}
+
+bool UInventoryData::TryConsumeItemsByItemId(FName InItemId, int32 Count)
+{
+	if (Count <= 0)
+	{
+		return true;
+	}
+
+	TArray<FGuid> Candidates;
+	Candidates.Reserve(Count);
+
+	// 제거 후보 수집
+	for (const TPair<FGuid, TObjectPtr<UItemInstance>>& Pair : Items)
+	{
+		const UItemInstance* Item = Pair.Value.Get();
+		if (!IsValid(Item) || Item->GetData() == nullptr)
+		{
+			continue;
+		}
+
+		if (Item->GetData()->ItemId == InItemId)
+		{
+			Candidates.Add(Pair.Key);
+			if (Candidates.Num() >= Count)
+			{
+				break;
+			}
+		}
+	}
+
+	// 후보가 필요 갯수 이하면 false 반환하며 제거하지 않음
+	if (Candidates.Num() < Count)
+	{
+		return false;
+	}
+
+	// 순회하며 제거
+	for (const FGuid& InstanceId : Candidates)
+	{
+		RemoveItemByInstanceId(InstanceId);
+	}
+
+	return true;
+}
+
+bool UInventoryData::RemoveItemByInstanceId(const FGuid& InstanceId)
+{
+	if (!Placements.Contains(InstanceId))
+	{
+		return false;
+	}
+
+	ClearCells(InstanceId);
+
+	Placements.Remove(InstanceId);
+	Items.Remove(InstanceId);
+
+	return true;
+}
+
+void UInventoryData::ClearAll()
+{
+	for (FGuid& Cell : Cells)
+	{
+		Cell.Invalidate();
+	}
+
+	Placements.Empty();
+	Items.Empty();
 }
 
 bool UInventoryData::CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated) const
