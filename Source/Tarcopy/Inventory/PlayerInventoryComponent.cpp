@@ -1,14 +1,16 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Inventory/PlayerInventoryComponent.h"
+
+#include "Inventory/InventoryData.h"
 
 // Sets default values for this component's properties
 UPlayerInventoryComponent::UPlayerInventoryComponent()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 
 	// ...
 }
@@ -19,16 +21,9 @@ void UPlayerInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ...
-	
-}
+	PlayerInventoryData = NewObject<UInventoryData>(this);
+	PlayerInventoryData->Init(DefaultInventorySize);
 
-
-// Called every frame
-void UPlayerInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
+	OnInventoryReady.Broadcast();
 }
 
