@@ -4,7 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/BoxComponent.h"
-#include "GameFramework/Character.h"
+#include "Components/PrimitiveComponent.h"
 #include "Character/MyCharacter.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -62,6 +62,7 @@ void UDoorInteractComponent::OnRegister()
 	else
 	{
 		UpdateInteractionBoxFromOwner();
+		UpdateDoorOutline(false);
 		InteractionVisualizer->SetVisibility(false, true);
 		InteractionVisualizer->SetHiddenInGame(true);
 		InteractionVisualizer->bVisualizeComponent = false;
@@ -353,32 +354,69 @@ void UDoorInteractComponent::UpdateVisualizerColor(bool bHasCharacterInside)
 	}
 }
 
+void UDoorInteractComponent::UpdateDoorOutline(bool bEnable)
+{
+	if (!bEnableProximityOutline)
+	{
+		return;
+	}
+
+	AActor* Owner = GetOwner();
+	if (!IsValid(Owner))
+	{
+		return;
+	}
+
+	TArray<UPrimitiveComponent*> PrimitiveComponents;
+	Owner->GetComponents(PrimitiveComponents);
+
+	for (UPrimitiveComponent* Comp : PrimitiveComponents)
+	{
+		if (!IsValid(Comp) || Comp == InteractionVisualizer)
+		{
+			continue;
+		}
+
+		Comp->SetRenderCustomDepth(bEnable);
+		if (bEnable)
+		{
+			Comp->SetCustomDepthStencilValue(OutlineStencilValue);
+		}
+	}
+}
+
 void UDoorInteractComponent::OnVisualizerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (IsValid(OtherActor) && OtherActor->IsA<ACharacter>())
+	if (AMyCharacter* MyChar = Cast<AMyCharacter>(OtherActor))
 	{
+		if (!MyChar->IsPlayerControlled())
+		{
+			return;
+		}
+
 		VisualizerOverlapCount++;
 		UpdateVisualizerColor(true);
+		UpdateDoorOutline(true);
 
-		if (AMyCharacter* MyChar = Cast<AMyCharacter>(OtherActor))
-		{
-			MyChar->AddInteractableDoor(GetOwner());
-		}
+		MyChar->AddInteractableDoor(GetOwner());
 	}
 }
 
 void UDoorInteractComponent::OnVisualizerEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (IsValid(OtherActor) && OtherActor->IsA<ACharacter>())
+	if (AMyCharacter* MyChar = Cast<AMyCharacter>(OtherActor))
 	{
+		if (!MyChar->IsPlayerControlled())
+		{
+			return;
+		}
+
 		VisualizerOverlapCount = FMath::Max(0, VisualizerOverlapCount - 1);
 		UpdateVisualizerColor(VisualizerOverlapCount > 0);
+		UpdateDoorOutline(VisualizerOverlapCount > 0);
 
-		if (AMyCharacter* MyChar = Cast<AMyCharacter>(OtherActor))
-		{
-			MyChar->RemoveInteractableDoor(GetOwner());
-		}
+		MyChar->RemoveInteractableDoor(GetOwner());
 	}
 }
