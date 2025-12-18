@@ -10,7 +10,7 @@ struct TARCOPY_API FFoodData : public FTableRowBase
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float Hunger;
+	float Hunger = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float Thirst;
+	float Thirst = 0.0f;
 };

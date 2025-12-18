@@ -13,8 +13,11 @@ class TARCOPY_API UClothingComponent : public UItemComponentBase
 
 public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
-	virtual void GetInteractionDatas(TArray<struct FItemComponentInteractionData>& OutDatas) override;
+	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
 
 protected:
+	UPROPERTY()
+	uint8 bIsEquipped : 1 = false;
+
 	const FClothData* Data;
 };

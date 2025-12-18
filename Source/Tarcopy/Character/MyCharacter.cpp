@@ -15,6 +15,9 @@
 #include "Item/ItemInstance.h"
 #include "Framework/DoorInteractComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Character/MoodleComponent.h"
+#include "AI/MyAICharacter.h"
+#include "Character/ActivateInterface.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -64,6 +67,8 @@ AMyCharacter::AMyCharacter() :
 	InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnInteractionSphereBeginOverlap);
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnInteractionSphereEndOverlap);
+
+	Moodle = CreateDefaultSubobject<UMoodleComponent>(TEXT("Moodle"));
 }
 
 // Called when the game starts or when spawned
@@ -143,8 +148,11 @@ void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp,
                                             UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
                                             const FHitResult& SweepResult)
 {
-	AMyCharacter* MyCharacter = Cast<AMyCharacter>(OtherActor);
-	if (IsValid(MyCharacter))
+	if (HasAuthority() == false)
+		return;
+
+	AMyAICharacter* MyAI = Cast<AMyAICharacter>(OtherActor);
+	if (IsValid(MyAI) == false)
 		return;
 
 	UE_LOG(LogTemp, Warning, TEXT("Overlap"));
@@ -168,22 +176,21 @@ void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp,
 
 	if (!bHitWall)
 	{
-		OtherActor->SetActorHiddenInGame(false);
-	}
-	else
-	{
-		OtherActor->SetActorHiddenInGame(true);
+		MyAI->WatchedCountModify(1);
 	}
 }
 
 void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                           UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	AMyCharacter* MyCharacter = Cast<AMyCharacter>(OtherActor);
-	if (IsValid(MyCharacter))
+	if (IsLocallyControlled())
 		return;
 
-	OtherActor->SetActorHiddenInGame(true);
+	AMyAICharacter* MyAI = Cast<AMyAICharacter>(OtherActor);
+	if (IsValid(MyAI) == false)
+		return;
+
+	MyAI->WatchedCountModify(-1);
 }
 
 void AMyCharacter::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -485,6 +492,42 @@ void AMyCharacter::RemoveInteractableDoor(AActor* DoorActor)
 	{
 		OverlappingDoors.Remove(DoorActor);
 	}
+}
+
+float AMyCharacter::GetCurrentHunger() 
+{
+	return  Moodle->GetCurrentHunger(); 
+}
+float AMyCharacter::GetCurrentThirst()
+{
+	return Moodle->GetCurrentThirst();
+}
+float AMyCharacter::GetCurrentStamina()
+{
+	return Moodle->GetCurrentStamina();
+}
+float AMyCharacter::GetMaxStamina()
+{
+	return Moodle->GetMaxStamina();
+}
+
+void AMyCharacter::SetCurrentHunger(float InHunger)
+{
+	Moodle->SetCurrentHunger(InHunger);
+}
+void AMyCharacter::SetCurrentThirst(float InThirst)
+{
+	Moodle->SetCurrentThirst(InThirst);
+}
+
+void AMyCharacter::SetCurrentStamina(float InStamina)
+{
+	Moodle->SetCurrentStamina(InStamina);
+}
+
+void AMyCharacter::SetMaxStamina(float InStamina)
+{
+	Moodle->SetMaxStamina(InStamina);
 }
 
 void AMyCharacter::Interact(const FInputActionValue& Value)

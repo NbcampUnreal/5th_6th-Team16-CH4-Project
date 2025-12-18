@@ -13,21 +13,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName ItemId;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	EItemType ItemType;										// UI 출력용
+	EItemType ItemType = EItemType::Ammo;										// UI 출력용
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FText TextName;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FText TextDesc;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FIntPoint InventoryBound;
+	FIntPoint InventoryBound = FIntPoint::ZeroValue;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float Weight;
+	float Weight = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<EInteractType> InteractType;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Bitmask, BitmaskEnum = "/Script/Tarcopy.EItemCategory"))
 	int32 ItemCategory = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float ToolEfficiency = 1.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (DisallowedClasses="/Script/Tarcopy.CraftComponent"))
-	TArray<TSubclassOf<class UItemComponentBase>> ItemComponents;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<class UItemComponentPreset> ItemComponentPreset = nullptr;
 };
