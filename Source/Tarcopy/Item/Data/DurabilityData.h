@@ -10,6 +10,6 @@ struct TARCOPY_API FDurabilityData : public FTableRowBase
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float MaxCondition;
+	float MaxCondition = 0.0f;
 	// 수리 도구나 관련 정보 추후 추가
 };

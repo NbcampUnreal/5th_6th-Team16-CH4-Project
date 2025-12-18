@@ -10,7 +10,7 @@ struct TARCOPY_API FContainerData : public FTableRowBase
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FIntPoint ContainerBound;
+	FIntPoint ContainerBound = FIntPoint::ZeroValue;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float WeightMultiplier;
+	float WeightMultiplier = 0.0f;
 };

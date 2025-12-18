@@ -13,23 +13,23 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	EBodyLocation BodyLocation = EBodyLocation::Hands;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float MinDamage;
+	float MinDamage = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float MaxDamage;
+	float MaxDamage = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float DoorDamage;
+	float DoorDamage = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float TreeDamage;
+	float TreeDamage = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float MinRange;												// 무기 공격이 밀치기로 전환되는 최소 거리
+	float MinRange = 0.0f;												// 무기 공격이 밀치기로 전환되는 최소 거리
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float MaxRange;												// 무기 최대 데미지가 적용되는 타점이자 최대 거리
+	float MaxRange = 0.0f;												// 무기 최대 데미지가 적용되는 타점이자 최대 거리
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float AttackSpeed = 1.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float CritChance;
+	float CritChance = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float CritMultiplier;
+	float CritMultiplier = 1.5f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float Knockback;
+	float Knockback = 0.0f;
 };
