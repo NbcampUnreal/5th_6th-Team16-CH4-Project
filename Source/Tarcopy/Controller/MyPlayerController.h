@@ -54,6 +54,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
 	TObjectPtr<UInputAction> InteractAction;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInputAction> ItemAction;
 
 #pragma endregion
