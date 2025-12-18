@@ -22,5 +22,5 @@ class TARCOPY_API IActivateInterface
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual void Activate(AActor* Instigator) = 0;
+	virtual void Activate(AActor* InInstigator) = 0;
 };

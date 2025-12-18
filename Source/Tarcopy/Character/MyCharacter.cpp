@@ -314,6 +314,39 @@ void AMyCharacter::Wheel(const FInputActionValue& Value)
 void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
 {
 	bIsAttackMode = false;
+
+	AMyPlayerController* MyPC = GetOwner<AMyPlayerController>();
+	if (!IsValid(MyPC))
+		return;
+
+	FVector WorldLocation, WorldDirection;
+	if (MyPC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection) == false)
+		return;
+
+	FVector Start = Camera->GetComponentLocation();
+	FVector Direction = WorldLocation - Start;
+	FVector End = Start + Direction * 10000.f;
+
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	Params.bTraceComplex = true;
+	Params.AddIgnoredActor(this);
+
+	if (GetWorld()->LineTraceSingleByChannel(
+		Hit, Start, End, ECC_Visibility, Params) == false)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Line Trace Error"));
+		return;
+	}
+
+	if (AActor* HitActor = Hit.GetActor())
+	{
+		if (IActivateInterface* Activatable = Cast<IActivateInterface>(HitActor))
+		{
+			Activatable->Activate(this);  
+			return;
+		}
+	}
 }
 
 void AMyCharacter::TriggeredRightClick(const FInputActionValue& Value)
