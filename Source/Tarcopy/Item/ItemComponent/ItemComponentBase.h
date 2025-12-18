@@ -13,7 +13,7 @@ class TARCOPY_API UItemComponentBase : public UObject
 	
 public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem);
-	virtual void GetInteractionDatas(TArray<struct FItemComponentInteractionData>& OutDatas) {}
+	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) {}
 
 protected:
 	const struct FItemData* GetOwnerItemData() const;

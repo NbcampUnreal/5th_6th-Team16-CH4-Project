@@ -16,11 +16,25 @@ void UClothingComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 	if (IsValid(DataTableSubsystem) == false)
 		return;
 
-	Data = DataTableSubsystem->GetTable(EDataTableType::MeleeWeaponTable)->FindRow<FClothData>(ItemData->ItemId, FString(""));
+	Data = DataTableSubsystem->GetTable(EDataTableType::ClothTable)->FindRow<FClothData>(ItemData->ItemId, FString(""));
 	if (Data == nullptr)
 		return;
 }
 
-void UClothingComponent::GetInteractionDatas(TArray<struct FItemComponentInteractionData>& OutDatas)
+void UClothingComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
 {
+	const FItemData* OwnerItemData = GetOwnerItemData();
+	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
+	FText TextItemName = OwnerItemData->TextName;
+
+	ensureMsgf(Data != nullptr, TEXT("No ClothData"));
+
+	const UEnum* ENumTypeBL = StaticEnum<EBodyLocation>();
+	FText TextBodyLocation = ENumTypeBL->GetDisplayNameTextByValue((int64)Data->BodyLocation);
+
+	/*FItemComponentInteractionData EquipClothData;
+	EquipClothData.TextDisplay = FText::Format(FText::FromString(TEXT("Equip {0} on {1}")), TextItemName, TextBodyLocation);
+	EquipClothData.bIsInteractable = true;
+	EquipClothData.DelegateInteract.BindUObject(this, &ThisClass::EquipCloth);
+	OutDatas.Add(EquipClothData);*/
 }

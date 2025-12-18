@@ -2,8 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Item/ItemComponent/ItemComponentInteractionData.h"
 #include "UW_TempInteract.generated.h"
+
+class UItemCommandBase;
+
+DECLARE_DELEGATE(FOnExecuteCommand);
 
 UCLASS()
 class TARCOPY_API UUW_TempInteract : public UUserWidget
@@ -11,7 +14,7 @@ class TARCOPY_API UUW_TempInteract : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void SetInteract(const FItemComponentInteractionData& InData);
+	void SetCommand(UItemCommandBase* InCommand);
 
 private:
 	UFUNCTION()
@@ -23,5 +26,8 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UButton> BtnInteract;
 
-	FItemComponentInteractionData Data;
+	UPROPERTY()
+	TObjectPtr<UItemCommandBase> Command;
+
+	FOnExecuteCommand OnExecuteCommand;
 };
