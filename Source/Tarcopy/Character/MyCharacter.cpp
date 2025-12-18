@@ -17,6 +17,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Character/MoodleComponent.h"
 #include "AI/MyAICharacter.h"
+#include "Character/ActivateInterface.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
