@@ -61,6 +61,55 @@ bool UInventoryData::TryAddItem(UItemInstance* NewItem, const FIntPoint& Origin,
 	return true;
 }
 
+bool UInventoryData::TryRelocateItem(const FGuid& ItemId, UInventoryData* Dest, const FIntPoint& NewOrigin, bool bRotated)
+{
+	if (!Dest) 
+	{
+		return false;
+	}
+
+	UItemInstance* Item = FindItemByID(ItemId);
+	if (!IsValid(Item))
+	{
+		return false;
+	}
+
+	FItemPlacement* Placement = Placements.Find(ItemId);
+	if (!Placement) 
+	{
+		return false;
+	}
+
+	if (Dest == this)
+	{
+		// 같은 인벤토리에서 이동 할 경우 체크에서 본인 제외
+		if (!CheckCanPlace(Item, NewOrigin, bRotated, &ItemId))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		if (!Dest->CheckCanPlace(Item, NewOrigin, bRotated))
+		{
+			return false;
+		}
+	}
+
+	// 소스에서 제거
+	ClearCells(ItemId);
+	Placements.Remove(ItemId);
+	Items.Remove(ItemId);
+
+	// 목적지에 추가
+	const FIntPoint Size = GetItemSize(Item, bRotated);
+	Dest->FillCells(ItemId, NewOrigin, Size);
+	Dest->Placements.Add(ItemId, { NewOrigin, bRotated });
+	Dest->Items.Add(ItemId, Item);
+
+	return true;
+}
+
 int32 UInventoryData::GetItemCountByItemId(FName InItemId) const
 {
 	int32 Count = 0;
@@ -152,7 +201,7 @@ void UInventoryData::ClearAll()
 	Items.Empty();
 }
 
-bool UInventoryData::CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated) const
+bool UInventoryData::CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated, const FGuid* IgnoreId) const
 {
 	const FIntPoint Size = GetItemSize(InItem, bRotated);
 
@@ -171,6 +220,10 @@ bool UInventoryData::CheckCanPlace(const UItemInstance* InItem, const FIntPoint&
 			const int32 Index = ToIndex(CellX, CellY);
 			if (Cells[Index].IsValid())
 			{
+				if (IgnoreId && Cells[Index] == *IgnoreId)
+				{
+					continue;
+				}
 				return false;
 			}
 		}

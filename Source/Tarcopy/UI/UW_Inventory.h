@@ -20,6 +20,9 @@ class TARCOPY_API UUW_Inventory : public UUserWidget
 {
 	GENERATED_BODY()
 	
+protected:
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+
 public:
 	void BindInventory(UInventoryData* InData);
 
