@@ -39,6 +39,8 @@ void AMyAICharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 
 void AMyAICharacter::WatchedCountModify(int32 InIncrement)
 {
+	if (!HasAuthority()) return;
+
 	WatchedCount = FMath::Clamp(WatchedCount + InIncrement, 0, std::numeric_limits<int32>::max());
 	if (WatchedCount > 0)
 	{
