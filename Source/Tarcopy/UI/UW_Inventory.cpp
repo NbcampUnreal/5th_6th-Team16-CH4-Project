@@ -10,6 +10,44 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Item/ItemInstance.h"
+#include "UI/InventoryDragDropOp.h"
+
+bool UUW_Inventory::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	if (!BoundInventory || !InOperation)
+	{
+		return false;
+	}
+
+	UInventoryDragDropOp* Op = Cast<UInventoryDragDropOp>(InOperation);
+	if (!Op || !IsValid(Op->SourceInventory))
+	{
+		return false;
+	}
+
+	const FVector2D LocalPos = InGeometry.AbsoluteToLocal(InDragDropEvent.GetScreenSpacePosition());
+
+	const FVector2D TopLeftPx = LocalPos - Op->GrabOffsetPx;
+
+	const int32 NewX = FMath::FloorToInt(TopLeftPx.X / CellSizePx);
+	const int32 NewY = FMath::FloorToInt(TopLeftPx.Y / CellSizePx);
+	const FIntPoint NewOrigin(NewX, NewY);
+
+	const bool bOk = Op->SourceInventory->TryRelocateItem(Op->ItemId, BoundInventory, NewOrigin, Op->bRotated);
+	if (!bOk)
+	{
+		return false;
+	}
+
+	RefreshItems();
+
+	if (IsValid(Op->SourceInventoryWidget) && Op->SourceInventoryWidget.Get() != this)
+	{
+		Op->SourceInventoryWidget->RefreshItems();
+	}
+
+	return true;
+}
 
 void UUW_Inventory::BindInventory(UInventoryData* InData)
 {
@@ -39,6 +77,7 @@ void UUW_Inventory::AddItemWidget(FGuid NewItemID, const FIntPoint& Origin, bool
 	CanvasSlot->SetPosition(PosPx);
 	CanvasSlot->SetSize(SizePx);
 
+	Item->InitItem(NewItemID, BoundInventory, this, bRotated);
 	ItemWidgets.Add(NewItemID, Item);
 }
 
