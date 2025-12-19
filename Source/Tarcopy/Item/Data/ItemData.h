@@ -19,6 +19,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FText TextDesc;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UStaticMesh> DefaultMesh;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FIntPoint InventoryBound = FIntPoint::ZeroValue;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float Weight = 0.0f;

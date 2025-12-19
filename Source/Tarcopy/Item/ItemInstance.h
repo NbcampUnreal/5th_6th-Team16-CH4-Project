@@ -22,7 +22,7 @@ public:
 	const FItemData* GetData() const { return Data; }
 
 	template <typename T>
-	const T* GetItemComponent() const
+	T* GetItemComponent() const
 	{
 		static_assert(TIsDerivedFrom<T, UItemComponentBase>::IsDerived, "T must be derived from UItemComponentBase");
 

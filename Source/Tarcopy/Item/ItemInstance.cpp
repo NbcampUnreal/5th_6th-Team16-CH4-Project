@@ -6,6 +6,7 @@
 #include "Item/CraftSubsystem.h"
 #include "Item/ItemComponent/CraftComponent.h"
 #include "Item/ItemComponent/ItemComponentPreset.h"
+#include "Item/ItemComponent/DefaultItemComponent.h"
 
 void UItemInstance::SetData(const FItemData* InData)
 {
@@ -13,7 +14,7 @@ void UItemInstance::SetData(const FItemData* InData)
 		return;
 
 	Data = InData;
-	
+
 	if (IsValid(Data->ItemComponentPreset) == true)
 	{
 		for (const auto& Component : Data->ItemComponentPreset->ItemComponentClasses)
@@ -38,6 +39,10 @@ void UItemInstance::SetData(const FItemData* InData)
 			ItemComponents.Add(CraftComponent);
 		}
 	}
+
+	UItemComponentBase* NewItemComponent = NewObject<UDefaultItemComponent>(this);
+	NewItemComponent->SetOwnerItem(this);
+	ItemComponents.Add(NewItemComponent);
 
 	// test
 	InstanceID = FGuid::NewGuid();
