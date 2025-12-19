@@ -20,12 +20,15 @@ protected:
 
 public:
 	FORCEINLINE float GetWeight() const { return TotalWeight; }
-	const TMap<EBodyLocation, TObjectPtr<UItemInstance>>& GetEquippedItems() const { return EquippedItems; }
+	FORCEINLINE const TMap<EBodyLocation, TObjectPtr<UItemInstance>>& GetEquippedItems() const { return EquippedItems; }
+	UItemInstance* GetEquippedItem(EBodyLocation Bodylocation) const;
 
 protected:
 	void EquipItem(EBodyLocation BodyLocation, UItemInstance* Item);
 	void RemoveItem(UItemInstance* Item);
 	//void UseTool(ToolType);
+
+	void ExecuteAttack();
 	
 private:
 	const struct FItemData* GetItemData(const FName& InItemId) const;
