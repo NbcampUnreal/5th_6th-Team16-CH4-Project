@@ -6,6 +6,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Inventory/ContainerActor.h"
+#include "Inventory/InventoryData.h"
 
 void UUW_ContainerBtn::NativeConstruct()
 {
@@ -14,9 +15,10 @@ void UUW_ContainerBtn::NativeConstruct()
 	RefreshVisual();
 }
 
-void UUW_ContainerBtn::BindContainer(AContainerActor* InContainer)
+void UUW_ContainerBtn::BindInventory(UInventoryData* InInventory, const FText& InDisplayName)
 {
-	Container = InContainer;
+	Inventory = InInventory;
+	DisplayName = InDisplayName;
 	RefreshVisual();
 }
 
@@ -27,19 +29,19 @@ void UUW_ContainerBtn::RefreshVisual()
 		return;
 	}
 
-	if (!Container.IsValid())
+	if (!IsValid(Inventory))
 	{
 		ContainerName->SetText(FText::GetEmpty());
 		return;
 	}
-	ContainerName->SetText(Container->GetDisplayName());
+	ContainerName->SetText(DisplayName);
 }
 
 void UUW_ContainerBtn::HandleClicked()
 {
-	if (!Container.IsValid())
+	if (!IsValid(Inventory))
 	{
 		return;
 	}
-	OnClickedWithContainer.Broadcast(Container.Get());
+	OnClickedWithInventory.Broadcast(Inventory);
 }
