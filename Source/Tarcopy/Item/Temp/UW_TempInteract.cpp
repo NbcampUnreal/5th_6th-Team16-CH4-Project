@@ -32,7 +32,7 @@ void UUW_TempInteract::ExecuteInteract()
 	CommandContext.InstigatorController = GetOwningPlayer();
 	if (CommandContext.InstigatorController.IsValid() == true)
 	{
-		CommandContext.Instigator = CommandContext.InstigatorController->GetOwner();
+		CommandContext.Instigator = Cast<AActor>(CommandContext.InstigatorController->GetPawn());
 	}
 
 	Command->Execute(CommandContext);
