@@ -4,15 +4,23 @@
 #include "AI/MyAICharacter.h"
 #include "Net/UnrealNetwork.h"
 #include <limits>
+#include "AI/ZombieController.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
 	WatchedCount(0)
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 
+	AIControllerClass = AZombieController::StaticClass();
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	Movement->bOrientRotationToMovement = true;
+	Movement->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
+	Movement->MaxWalkSpeed = 650.f;
 }
 
 void AMyAICharacter::BeginPlay()
@@ -57,11 +65,9 @@ void AMyAICharacter::OnRep_SetVisible()
 	if (bIsVisible)
 	{
 		SetActorHiddenInGame(false);
-		UE_LOG(LogTemp, Error, TEXT("false"))
 	}
 	else
 	{
 		SetActorHiddenInGame(true);
-		UE_LOG(LogTemp, Error, TEXT("true"))
 	}
 }

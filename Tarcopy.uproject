@@ -13,7 +13,8 @@
 				"UMG",
 				"ChaosVehicles",
 				"EnhancedInput",
-				"CoreUObject"
+				"CoreUObject",
+				"AIModule"
 			]
 		}
 	],
