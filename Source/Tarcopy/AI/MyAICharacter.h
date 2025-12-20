@@ -11,13 +11,17 @@ class TARCOPY_API AMyAICharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+#pragma region Character Override
 public:
 	// Sets default values for this character's properties
 	AMyAICharacter();
 	virtual void BeginPlay() override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+#pragma endregion
 
+#pragma region Vision
+public:
 	void WatchedCountModify(int32 InIncrement);
 
 protected:
@@ -29,4 +33,7 @@ protected:
 
 	UFUNCTION()
 	void OnRep_SetVisible();
+#pragma endregion
+
+
 };
