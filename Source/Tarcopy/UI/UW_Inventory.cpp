@@ -68,6 +68,9 @@ bool UUW_Inventory::NativeOnDragOver(const FGeometry& InGeometry, const FDragDro
 		return false;
 	}
 
+	Op->HoveredInventoryWidget = this;
+	Op->LastScreenPos = InDragDropEvent.GetScreenSpacePosition();
+
 	const FVector2D LocalPos = InGeometry.AbsoluteToLocal(InDragDropEvent.GetScreenSpacePosition());
 	const FVector2D TopLeftPx = LocalPos - Op->GrabOffsetPx;
 
@@ -101,6 +104,15 @@ bool UUW_Inventory::NativeOnDragOver(const FGeometry& InGeometry, const FDragDro
 void UUW_Inventory::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	Super::NativeOnDragLeave(InDragDropEvent, InOperation);
+
+	if (UInventoryDragDropOp* Op = Cast<UInventoryDragDropOp>(InOperation))
+	{
+		if (Op->HoveredInventoryWidget.Get() == this)
+		{
+			Op->HoveredInventoryWidget = nullptr;
+		}
+	}
+
 	ClearCellPreview();
 }
 
@@ -150,6 +162,41 @@ void UUW_Inventory::RefreshItems()
 	ItemWidgets.Empty();
 
 	BuildItems();
+}
+
+void UUW_Inventory::ForceUpdatePreviewFromOp(UInventoryDragDropOp* Op)
+{
+	if (!BoundInventory || !Op || !IsValid(Op->SourceInventory))
+	{
+		ClearCellPreview();
+		return;
+	}
+	const FVector2D LocalPos = GetCachedGeometry().AbsoluteToLocal(Op->LastScreenPos);
+	const FVector2D TopLeftPx = LocalPos - Op->GrabOffsetPx;
+
+	const int32 NewX = FMath::FloorToInt(TopLeftPx.X / CellSizePx);
+	const int32 NewY = FMath::FloorToInt(TopLeftPx.Y / CellSizePx);
+	const FIntPoint Origin(NewX, NewY);
+
+	ClearCellPreview();
+	const FIntPoint ItemSize = Op->SourceInventory->GetItemSizeByID(Op->ItemId, Op->bRotated);
+	if (ItemSize == FIntPoint::ZeroValue)
+	{
+		return;
+	}
+
+	const bool bCanPlace = BoundInventory->CanPlaceItemPreview(
+		Op->ItemId,
+		Op->SourceInventory,
+		Origin,
+		Op->bRotated
+	);
+
+	const FLinearColor Color = bCanPlace
+		? FLinearColor(0.f, 1.f, 0.f, 0.35f)
+		: FLinearColor(1.f, 0.f, 0.f, 0.35f);
+
+	ApplyCellPreview(Origin, ItemSize, Color);
 }
 
 void UUW_Inventory::BuildGrid(FIntPoint GridSize)

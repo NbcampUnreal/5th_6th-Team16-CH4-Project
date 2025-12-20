@@ -11,6 +11,7 @@ class UUW_InventoryItem;
 class UUW_InventoryCell;
 class UUniformGridPanel;
 class UCanvasPanel;
+class UInventoryDragDropOp;
 
 /**
  * 
@@ -33,6 +34,8 @@ public:
 	void RefreshItems();
 
 	int32 GetCellSizePx() const { return CellSizePx; }
+
+	void ForceUpdatePreviewFromOp(UInventoryDragDropOp* Op);
 
 private:
 	void BuildGrid(FIntPoint GridSize);

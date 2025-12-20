@@ -39,6 +39,7 @@ void UUW_InventoryItem::NativeOnDragDetected(const FGeometry& InGeometry, const 
 		const FVector2D SizePx = GetItemPixelSize();
 
 		USizeBox* Box = NewObject<USizeBox>(this);
+		Op->DragBox = Box;
 		Box->SetWidthOverride(SizePx.X);
 		Box->SetHeightOverride(SizePx.Y);
 		Box->AddChild(Proxy);
