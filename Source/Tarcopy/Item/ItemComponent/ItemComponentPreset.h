@@ -10,6 +10,6 @@ class TARCOPY_API UItemComponentPreset : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, meta = (DisallowedClasses = "/Script/Tarcopy.CraftComponent"))
+	UPROPERTY(EditAnywhere, meta = (DisallowedClasses = "/Script/Tarcopy.CraftComponent, /Script/Tarcopy.DefaultItemComponent"))
 	TArray<TSubclassOf<class UItemComponentBase>> ItemComponentClasses;
 };
