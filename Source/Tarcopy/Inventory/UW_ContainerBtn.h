@@ -8,9 +8,9 @@
 
 class UButton;
 class UTextBlock;
-class AContainerActor;
+class UWorldContainerComponent;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnClickedWithContainer, AContainerActor*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnClickedWithContainer, UWorldContainerComponent*);
 
 /**
  * 
@@ -27,7 +27,7 @@ protected:
     virtual void NativeConstruct() override;
 
 public:
-    void BindContainer(AContainerActor* InContainer);
+    void BindContainer(UWorldContainerComponent* InContainer);
 
 private:
     void RefreshVisual();
@@ -45,5 +45,5 @@ private:
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UTextBlock> ContainerName;
 
-    TWeakObjectPtr<AContainerActor> Container;
+    TWeakObjectPtr<UWorldContainerComponent> Container;
 };

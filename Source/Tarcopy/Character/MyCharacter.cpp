@@ -15,39 +15,11 @@
 #include "Item/EquipComponent.h"
 #include "Item/ItemInstance.h"
 #include "Framework/DoorInteractComponent.h"
+#include "Framework/DoorTagUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "Character/MoodleComponent.h"
 #include "AI/MyAICharacter.h"
 #include "Character/ActivateInterface.h"
-
-namespace
-{
-	const FName DoorTag(TEXT("Door"));
-
-	bool ActorHasDoorTagOrDoorMesh(const AActor* Actor)
-	{
-		if (!IsValid(Actor))
-		{
-			return false;
-		}
-
-		if (Actor->ActorHasTag(DoorTag))
-		{
-			return true;
-		}
-
-		TInlineComponentArray<UStaticMeshComponent*> MeshComponents(Actor);
-		for (const UStaticMeshComponent* MeshComp : MeshComponents)
-		{
-			if (IsValid(MeshComp) && MeshComp->ComponentHasTag(DoorTag))
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-}
 
 // Sets default values
 AMyCharacter::AMyCharacter() :

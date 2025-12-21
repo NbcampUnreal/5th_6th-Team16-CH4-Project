@@ -5,6 +5,7 @@
 #include "Engine/Engine.h"
 #include "GameFramework/GameUserSettings.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Sound/SoundClass.h"
 #include "Sound/SoundMix.h"
 
@@ -81,7 +82,7 @@ TArray<FIntPoint> UTarcopySettingsSubsystem::GetSupportedResolutions() const
 
 	if (UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr)
 	{
-		Settings->GetSupportedFullscreenResolutions(Resolutions);
+		UKismetSystemLibrary::GetSupportedFullscreenResolutions(Resolutions);
 	}
 
 	if (Resolutions.Num() == 0)

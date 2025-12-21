@@ -12,7 +12,7 @@ class UUW_InventoryBorder;
 class UUW_Inventory;
 class UScrollBox;
 class UUW_ContainerBtn;
-class AContainerActor;
+class UWorldContainerComponent;
 
 /**
  * 
@@ -32,7 +32,7 @@ private:
 	void RefreshContainerList();
 
 	UFUNCTION()
-	void HandleContainerSelected(AContainerActor* Container);
+	void HandleContainerSelected(UWorldContainerComponent* Container);
 
 	UFUNCTION()
 	void HandleGroundSelected();
@@ -44,7 +44,7 @@ private:
 	TObjectPtr<UNamedSlot> SelectedContainer;
 
 	UPROPERTY()
-	TWeakObjectPtr<AContainerActor> LastSelectedContainer;
+	TWeakObjectPtr<UWorldContainerComponent> LastSelectedContainer;
 
 	UPROPERTY()
 	bool bLastSelectedWasGround = false;

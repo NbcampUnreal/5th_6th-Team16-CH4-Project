@@ -7,36 +7,8 @@
 #include "Components/BoxComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Character/MyCharacter.h"
+#include "Framework/DoorTagUtils.h"
 #include "Kismet/GameplayStatics.h"
-
-namespace
-{
-	const FName DoorTag(TEXT("Door"));
-
-	bool ActorHasDoorTagOrDoorMesh(const AActor* Actor)
-	{
-		if (!IsValid(Actor))
-		{
-			return false;
-		}
-
-		if (Actor->ActorHasTag(DoorTag))
-		{
-			return true;
-		}
-
-		TInlineComponentArray<UStaticMeshComponent*> MeshComponents(Actor);
-		for (const UStaticMeshComponent* MeshComp : MeshComponents)
-		{
-			if (IsValid(MeshComp) && MeshComp->ComponentHasTag(DoorTag))
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-}
 
 UDoorInteractComponent::UDoorInteractComponent()
 	: OpenYawOffset(90.f)
@@ -289,7 +261,7 @@ void UDoorInteractComponent::CacheDoorMeshes()
 	TInlineComponentArray<UStaticMeshComponent*> MeshComponents(Owner);
 	for (UStaticMeshComponent* MeshComp : MeshComponents)
 	{
-		if (IsValid(MeshComp) && MeshComp->ComponentHasTag(DoorTag))
+		if (IsValid(MeshComp) && MeshComp->ComponentHasTag(GetDoorTagName()))
 		{
 			DoorMeshComponents.Add(MeshComp);
 			DoorMeshInitialRelativeTransforms.Add(MeshComp->GetRelativeTransform());

@@ -5,7 +5,7 @@
 
 #include "Components/ScrollBox.h"
 #include "Inventory/LootScannerComponent.h"
-#include "Inventory/ContainerActor.h"
+#include "Inventory/WorldContainerComponent.h"
 #include "UI/UISubsystem.h"
 #include "UI/UW_InventoryBorder.h"
 #include "UI/UW_Inventory.h"
@@ -71,12 +71,12 @@ void UUW_NearbyPanel::RefreshContainerList()
 
 	if (bInventoryPanelOpen && !bLastSelectedWasGround)
 	{
-		AContainerActor* Selected = LastSelectedContainer.Get();
+		UWorldContainerComponent* Selected = LastSelectedContainer.Get();
 		bool bStillOverlapped = false;
 
 		if (IsValid(Selected))
 		{
-			for (const TWeakObjectPtr<AContainerActor>& C : BoundScanner->OverlappedContainerActors)
+			for (const TWeakObjectPtr<UWorldContainerComponent>& C : BoundScanner->OverlappedContainers)
 			{
 				if (C.Get() == Selected)
 				{
@@ -96,7 +96,7 @@ void UUW_NearbyPanel::RefreshContainerList()
 
 	ContainerScrollBox->ClearChildren();
 
-	for (const TWeakObjectPtr<AContainerActor>& Container : BoundScanner->OverlappedContainerActors)
+	for (const TWeakObjectPtr<UWorldContainerComponent>& Container : BoundScanner->OverlappedContainers)
 	{
 		if (!IsValid(Container.Get()))
 		{
@@ -116,7 +116,7 @@ void UUW_NearbyPanel::RefreshContainerList()
 	ContainerScrollBox->AddChild(GroundBtn);
 }
 
-void UUW_NearbyPanel::HandleContainerSelected(AContainerActor* Container)
+void UUW_NearbyPanel::HandleContainerSelected(UWorldContainerComponent* Container)
 {
 	if (!IsValid(Container) || !InventoryWidget)
 	{

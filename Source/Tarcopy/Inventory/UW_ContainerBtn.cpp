@@ -5,7 +5,7 @@
 
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
-#include "Inventory/ContainerActor.h"
+#include "Inventory/WorldContainerComponent.h"
 
 void UUW_ContainerBtn::NativeConstruct()
 {
@@ -14,7 +14,7 @@ void UUW_ContainerBtn::NativeConstruct()
 	RefreshVisual();
 }
 
-void UUW_ContainerBtn::BindContainer(AContainerActor* InContainer)
+void UUW_ContainerBtn::BindContainer(UWorldContainerComponent* InContainer)
 {
 	Container = InContainer;
 	RefreshVisual();
