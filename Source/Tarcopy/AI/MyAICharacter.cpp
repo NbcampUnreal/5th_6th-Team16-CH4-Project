@@ -20,7 +20,11 @@ AMyAICharacter::AMyAICharacter() :
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	Movement->bOrientRotationToMovement = true;
 	Movement->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
-	Movement->MaxWalkSpeed = 650.f;
+	Movement->MaxWalkSpeed = 300.f;
+
+	VisionMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisionMesh"));
+	VisionMesh->SetupAttachment(RootComponent);
+	VisionMesh->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
 }
 
 void AMyAICharacter::BeginPlay()

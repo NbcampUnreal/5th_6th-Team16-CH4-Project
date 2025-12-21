@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "MyAICharacter.generated.h"
 
+class UStaticMeshComponent;
+
 UCLASS()
 class TARCOPY_API AMyAICharacter : public ACharacter
 {
@@ -21,6 +23,10 @@ public:
 #pragma endregion
 
 #pragma region Vision
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UStaticMeshComponent> VisionMesh;
+
 public:
 	void WatchedCountModify(int32 InIncrement);
 
