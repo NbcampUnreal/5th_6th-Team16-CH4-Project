@@ -42,7 +42,7 @@ class ATCCarBase : public AWheeledVehiclePawn, public IActivateInterface
  
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> ChaosVehicleMovement;
 
-	virtual void Activate(AActor* InInstigator) override;
+
 
 
 protected:
@@ -62,6 +62,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* LightAction;
 
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* InterAction;
+
 public:
 	ATCCarBase();
 
@@ -75,9 +78,7 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	virtual void PossessedBy(AController* NewController) override;
-
-	virtual void OnRep_Controller() override;
+	virtual void UnPossessed() override;
 
 
 protected:
@@ -95,6 +96,8 @@ protected:
 	void StopHandbrake(const FInputActionValue& Value);
 
 	void ToggleLight(const FInputActionValue& Value);
+
+	void StartInterAction(const FInputActionValue& Value);
 
 
 public:
@@ -161,4 +164,42 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<UUISubsystem> UISubsystem;
+
+#pragma region Possess
+public:
+
+	virtual void PossessedBy(AController* NewController) override;
+
+	virtual void OnRep_Controller() override;
+
+	UFUNCTION()
+	void OnRep_bPossessed();
+
+	UFUNCTION()
+	void EnterVehicle(APawn* InPawn, APlayerController* InPC);
+
+	UFUNCTION()
+	void ExitVehicle(APawn* InPawn, APlayerController* InPC);
+
+	virtual void Activate(AActor* InInstigator) override;
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCHideCharacter(ACharacter* InCharacter);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCShowCharacter();
+
+	UFUNCTION()
+	bool FindDismountLocation(FVector& OutLocation) const;
+
+	UPROPERTY(Replicated)
+	APawn* RidePawn;
+
+	UPROPERTY()
+	TEnumAsByte<ECollisionEnabled::Type> TempSaveCollision;
+
+	UPROPERTY(ReplicatedUsing = OnRep_bPossessed)
+	uint8 bPossessed : 1;
+
+	
 };

@@ -74,3 +74,8 @@ void AMyPlayerController::ChangeIMC(UInputMappingContext* InIMC)
 	Subsystem->AddMappingContext(InIMC, 0);
 	CurrentIMC = InIMC;
 }
+
+void AMyPlayerController::ServerRPCChangePossess_Implementation(APawn* NewPawn)
+{
+	OnPossess(NewPawn);
+}

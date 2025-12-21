@@ -77,4 +77,7 @@ public:
 	void ChangeIMC(UInputMappingContext* InIMC);
 
 	TObjectPtr<UInputMappingContext> CurrentIMC;
+
+	UFUNCTION(Server,Reliable)
+	void ServerRPCChangePossess(APawn* NewPawn);
 };
