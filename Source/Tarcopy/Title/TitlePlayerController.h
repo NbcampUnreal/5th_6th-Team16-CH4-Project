@@ -27,11 +27,20 @@ private:
 	UFUNCTION()
 	void HandleJoinRequested(const FText& InIpPort);
 
+	UFUNCTION()
+	void HandleOptionRequested();
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Title", Meta = (AllowPrivateAccess))
 	TSubclassOf<UUserWidget> TitleWidgetClass;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Title", Meta = (AllowPrivateAccess))
 	TObjectPtr<UUserWidget> TitleWidgetInstance;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Title", Meta = (AllowPrivateAccess))
+	TSubclassOf<UUserWidget> OptionsWidgetClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Title", Meta = (AllowPrivateAccess))
+	TObjectPtr<UUserWidget> OptionsWidgetInstance;
 	
 	UPROPERTY()
 	TObjectPtr<UUW_TitleScreen> TitleWidget;
