@@ -39,6 +39,8 @@ public:
 
 	bool TryAddItem(UItemInstance* NewItem, const FIntPoint& Origin, bool bRotated);
 
+	bool TryRelocateItem(const FGuid& ItemId, UInventoryData* Dest, const FIntPoint& NewOrigin, bool bRotated);
+
 	int32 GetItemCountByItemId(FName InItemId) const;
 
 	bool TryConsumeItemsByItemId(FName InItemId, int32 Count);
@@ -47,8 +49,10 @@ public:
 
 	void ClearAll();
 
+	bool CanPlaceItemPreview(const FGuid& ItemId, UInventoryData* Source, const FIntPoint& NewOrigin, bool bRotated) const;
+
 private:
-	bool CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated) const;
+	bool CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated, const FGuid* IgnoreId = nullptr) const;
 
 	FIntPoint GetItemSize(const UItemInstance* InItem, bool bRotated) const;
 	bool IsInBounds(int32 X, int32 Y) const;

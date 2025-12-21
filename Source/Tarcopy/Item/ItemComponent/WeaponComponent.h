@@ -12,5 +12,5 @@ class TARCOPY_API UWeaponComponent : public UItemComponentBase
 public:
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
 	
-	virtual void Attack() PURE_VIRTUAL(UWeaponComponent::Attack, );
+	virtual void ExecuteAttack(ACharacter* OwnerCharacter) PURE_VIRTUAL(UWeaponComponent::Attack, );
 };

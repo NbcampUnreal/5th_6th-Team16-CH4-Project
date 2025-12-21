@@ -8,6 +8,7 @@
 #include "Item/WorldSpawnedItem.h"
 #include "Inventory/ContainerActor.h"
 #include "Item/ItemInstance.h"
+#include "Item/ItemComponent/ContainerComponent.h"
 
 // Sets default values for this component's properties
 ULootScannerComponent::ULootScannerComponent()
@@ -126,7 +127,12 @@ void ULootScannerComponent::OnGroundBeginOverlap(UPrimitiveComponent* Overlapped
 
 	if (AWorldSpawnedItem* ItemActor = Cast<AWorldSpawnedItem>(OtherActor))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Ground overlap: %s"), *ItemActor->GetName());
+		const UContainerComponent* ContainerComp = ItemActor->GetItemInstance()->GetItemComponent<UContainerComponent>();
+		if (ContainerComp)
+		{
+			OverlappedContainerItems.Add(ItemActor);
+			OnScannedContainersChanged.Broadcast();
+		}
 		OverlappedGroundItems.Add(ItemActor);
 		RebuildGroundInventory();
 	}
@@ -141,6 +147,12 @@ void ULootScannerComponent::OnGroundEndOverlap(UPrimitiveComponent* OverlappedCo
 
 	if (AWorldSpawnedItem* ItemActor = Cast<AWorldSpawnedItem>(OtherActor))
 	{
+		const UContainerComponent* ContainerComp = ItemActor->GetItemInstance()->GetItemComponent<UContainerComponent>();
+		if (ContainerComp)
+		{
+			OverlappedContainerItems.Remove(ItemActor);
+			OnScannedContainersChanged.Broadcast();
+		}
 		OverlappedGroundItems.Remove(ItemActor);
 		RebuildGroundInventory();
 	}

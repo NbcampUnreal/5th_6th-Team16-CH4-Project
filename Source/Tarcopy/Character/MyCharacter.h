@@ -202,9 +202,9 @@ protected:
 
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void MulticastRPC_ApplyDoorTransforms(const TArray<AActor*>& DoorActors, const TArray<FTransform>& DoorTransforms);
- 	
+
 #pragma endregion
- 	
+
 #pragma region TestItem
 
 public:

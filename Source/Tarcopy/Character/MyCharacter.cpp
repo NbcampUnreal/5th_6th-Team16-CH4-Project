@@ -183,7 +183,7 @@ void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp,
 void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                           UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (IsLocallyControlled())
+	if (HasAuthority() == false)
 		return;
 
 	AMyAICharacter* MyAI = Cast<AMyAICharacter>(OtherActor);

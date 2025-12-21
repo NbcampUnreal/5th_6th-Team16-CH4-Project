@@ -1,6 +1,8 @@
 ﻿#include "Item/EquipComponent.h"
 #include "Item/Data/ItemData.h"
 #include "Item/ItemInstance.h"
+#include "Item/ItemComponent/WeaponComponent.h"
+#include "GameFramework/Character.h"
 
 const float UEquipComponent::WeightMultiplier = 0.3f;
 
@@ -22,7 +24,13 @@ void UEquipComponent::BeginPlay()
 	// 인벤토리 없어서 임시 테스트용으로 부위 아무데나 정해서 Equip에 넣고 캐릭터에서 Equip에 장착된 아이템 표시되게 해서 테스트 중
 	UItemInstance* NewItem = NewObject<UItemInstance>(this);
 	NewItem->SetData(GetItemData(TEXT("Axe1")));
-	EquipItem(EBodyLocation::Ear, NewItem);
+	EquipItem(EBodyLocation::RightHand, NewItem);
+}
+
+UItemInstance* UEquipComponent::GetEquippedItem(EBodyLocation Bodylocation) const
+{
+	auto* EquippedItemPtr = EquippedItems.Find(Bodylocation);
+	return EquippedItemPtr != nullptr ? *EquippedItemPtr : nullptr;
 }
 
 void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item)
@@ -69,6 +77,24 @@ void UEquipComponent::RemoveItem(UItemInstance* Item)
 	}
 
 	TotalWeight -= ItemData->Weight * WeightMultiplier;
+}
+
+void UEquipComponent::ExecuteAttack()
+{
+	UItemInstance* ItemOnHand = GetEquippedItem(EBodyLocation::RightHand);
+	if (IsValid(ItemOnHand) == false)
+	{
+		ItemOnHand = GetEquippedItem(EBodyLocation::LeftHand);
+	}
+
+	if (IsValid(ItemOnHand) == false)
+		return;
+
+	UWeaponComponent* WeaponComponent = ItemOnHand->GetItemComponent<UWeaponComponent>();
+	if (IsValid(WeaponComponent) == false)
+		return;
+
+	WeaponComponent->ExecuteAttack(Cast<ACharacter>(GetOwner()));
 }
 
 const FItemData* UEquipComponent::GetItemData(const FName& InItemId) const
