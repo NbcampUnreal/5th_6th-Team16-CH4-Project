@@ -13,6 +13,10 @@
 #include "Components/Button.h"
 #include "Blueprint/WidgetTree.h"
 #include "Inventory/UW_ContainerBtn.h"
+#include "Inventory/InventoryData.h"
+#include "Item/WorldSpawnedItem.h"
+#include "Item/ItemInstance.h"
+#include "Item/ItemComponent/ContainerComponent.h"
 
 void UUW_NearbyPanel::NativeConstruct()
 {
@@ -69,74 +73,92 @@ void UUW_NearbyPanel::RefreshContainerList()
 		return;
 	}
 
-	if (bInventoryPanelOpen && !bLastSelectedWasGround)
-	{
-		AContainerActor* Selected = LastSelectedContainer.Get();
-		bool bStillOverlapped = false;
+	TSet<UInventoryData*> AvailableInv;
 
-		if (IsValid(Selected))
+	for (const TWeakObjectPtr<AContainerActor>& C : BoundScanner->OverlappedContainerActors)
+	{
+		if (!IsValid(C.Get()))
 		{
-			for (const TWeakObjectPtr<AContainerActor>& C : BoundScanner->OverlappedContainerActors)
-			{
-				if (C.Get() == Selected)
-				{
-					bStillOverlapped = true;
-					break;
-				}
-			}
+			continue;
+		}
+		if (UInventoryData* Inv = C->GetInventoryData())
+		{
+			AvailableInv.Add(Inv);
+		}
+	}
+
+	for (const TWeakObjectPtr<AWorldSpawnedItem>& W : BoundScanner->OverlappedContainerItems)
+	{
+		AWorldSpawnedItem* ItemActor = W.Get();
+		if (!IsValid(ItemActor))
+		{
+			continue;
 		}
 
-		if (!bStillOverlapped)
+		UItemInstance* Inst = ItemActor->GetItemInstance();
+		if (!IsValid(Inst) || !Inst->GetData())
+		{
+			continue;
+		}
+
+		const UContainerComponent* ContainerComp = Inst->GetItemComponent<UContainerComponent>();
+		if (ContainerComp)
+		{
+			if (UInventoryData* Inv = ContainerComp->GetInventoryData())
+			{
+				AvailableInv.Add(Inv);
+			}
+		}
+	}
+
+	if (bInventoryPanelOpen && !bLastSelectedWasGround)
+	{
+		if (!AvailableInv.Contains(LastSelectedInventory))
 		{
 			SelectedContainer->SetVisibility(ESlateVisibility::Collapsed);
 			bInventoryPanelOpen = false;
-			LastSelectedContainer = nullptr;
+			LastSelectedInventory = nullptr;
 		}
 	}
 
 	ContainerScrollBox->ClearChildren();
 
-	for (const TWeakObjectPtr<AContainerActor>& Container : BoundScanner->OverlappedContainerActors)
+	for (UInventoryData* Inv : AvailableInv)
 	{
-		if (!IsValid(Container.Get()))
-		{
-			continue;
-		}
-
 		UUW_ContainerBtn* Button = CreateWidget<UUW_ContainerBtn>(GetOwningPlayer(), ContainerBtnClass);
-		Button->BindContainer(Container.Get());
-		Button->OnClickedWithContainer.AddUObject(this, &UUW_NearbyPanel::HandleContainerSelected);
-
+		FText NameText = FText::FromString(Inv->GetID().ToString());
+		Button->BindInventory(Inv, NameText);
+		Button->OnClickedWithInventory.AddUObject(this, &UUW_NearbyPanel::HandleContainerSelected);
 		ContainerScrollBox->AddChild(Button);
 	}
 
 	UButton* GroundBtn = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
 	GroundBtn->OnClicked.AddDynamic(this, &UUW_NearbyPanel::HandleGroundSelected);
-
 	ContainerScrollBox->AddChild(GroundBtn);
 }
 
-void UUW_NearbyPanel::HandleContainerSelected(AContainerActor* Container)
+void UUW_NearbyPanel::HandleContainerSelected(UInventoryData* Inventory)
 {
-	if (!IsValid(Container) || !InventoryWidget)
+	if (!IsValid(Inventory) || !InventoryWidget)
 	{
 		return;
 	}
 
-	const bool bSameAsLast = bInventoryPanelOpen &&	!bLastSelectedWasGround && LastSelectedContainer.Get() == Container;
+	const bool bSameAsLast = bInventoryPanelOpen && !bLastSelectedWasGround && LastSelectedInventory == Inventory;
 	if (bSameAsLast)
 	{
 		SelectedContainer->SetVisibility(ESlateVisibility::Collapsed);
 		bInventoryPanelOpen = false;
+		LastSelectedInventory = nullptr;
 		return;
 	}
 
 	SelectedContainer->SetVisibility(ESlateVisibility::Visible);
-	InventoryWidget->BindInventory(Container->GetInventoryData());
+	InventoryWidget->BindInventory(Inventory);
 
 	bInventoryPanelOpen = true;
 	bLastSelectedWasGround = false;
-	LastSelectedContainer = Container;
+	LastSelectedInventory = Inventory;
 }
 
 void UUW_NearbyPanel::HandleGroundSelected()
@@ -159,7 +181,7 @@ void UUW_NearbyPanel::HandleGroundSelected()
 
 	bInventoryPanelOpen = true;
 	bLastSelectedWasGround = true;
-	LastSelectedContainer = nullptr;
+	LastSelectedInventory = nullptr;
 }
 
 void UUW_NearbyPanel::HandleGroundUpdatedWhileOpen()

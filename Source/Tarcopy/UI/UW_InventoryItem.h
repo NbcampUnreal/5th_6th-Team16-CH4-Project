@@ -10,6 +10,7 @@
 
 class UInventoryData;
 class UUW_Inventory;
+class UBorder;
 
 /**
  * 
@@ -27,8 +28,24 @@ public:
 	void InitItem(const FGuid& InItemId, UInventoryData* InSourceInventory, UUW_Inventory* InSourceWidget, bool bInRotated);
 
 private:
-	UPROPERTY() FGuid ItemId;
-	UPROPERTY() TObjectPtr<UInventoryData> SourceInventory;
-	UPROPERTY() TObjectPtr<UUW_Inventory> SourceInventoryWidget;
-	UPROPERTY() bool bRotated = false;
+	void ApplyProxyVisual();
+	FVector2D GetItemPixelSize() const;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UBorder> ItemBorder;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UBorder> ItemBG;
+
+	UPROPERTY()
+	FGuid ItemId;
+
+	UPROPERTY()
+	TObjectPtr<UInventoryData> SourceInventory;
+
+	UPROPERTY()
+	TObjectPtr<UUW_Inventory> SourceInventoryWidget;
+
+	UPROPERTY()
+	bool bRotated = false;	
 };

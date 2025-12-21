@@ -8,6 +8,7 @@
 
 class UInventoryData;
 class UUW_Inventory;
+class USizeBox;
 
 /**
  * 
@@ -31,5 +32,14 @@ public:
 	FVector2D GrabOffsetPx = FVector2D::ZeroVector;
 
 	UPROPERTY()
-	bool bRotated = false;
+	TObjectPtr<USizeBox> DragBox;
+
+	UPROPERTY()
+	TWeakObjectPtr<UUW_Inventory> HoveredInventoryWidget;
+
+	UPROPERTY()
+	FVector2D LastScreenPos;
+
+	UPROPERTY()
+	uint8 bRotated : 1 = false;
 };

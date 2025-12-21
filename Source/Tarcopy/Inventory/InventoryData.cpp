@@ -201,6 +201,28 @@ void UInventoryData::ClearAll()
 	Items.Empty();
 }
 
+bool UInventoryData::CanPlaceItemPreview(const FGuid& ItemId, UInventoryData* Source, const FIntPoint& NewOrigin, bool bRotated) const
+{
+	if (!IsValid(Source))
+	{
+		return false;
+	}
+
+	const UItemInstance* Item = Source->FindItemByID(ItemId);
+	if (!IsValid(Item) || Item->GetData() == nullptr)
+	{
+		return false;
+	}
+
+	const FGuid* Ignore = nullptr;
+	if (Source == this)
+	{
+		Ignore = &ItemId;
+	}
+
+	return CheckCanPlace(Item, NewOrigin, bRotated, Ignore);
+}
+
 bool UInventoryData::CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated, const FGuid* IgnoreId) const
 {
 	const FIntPoint Size = GetItemSize(InItem, bRotated);
