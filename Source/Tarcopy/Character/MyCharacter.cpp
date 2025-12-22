@@ -83,7 +83,10 @@ AMyCharacter::AMyCharacter() :
 	EquipComponent = CreateDefaultSubobject<UEquipComponent>(TEXT("EquipComponent"));
 
 	Moodle = CreateDefaultSubobject<UMoodleComponent>(TEXT("Moodle"));
-	CameraObstructionFade = CreateDefaultSubobject<UCameraObstructionFadeComponent>(TEXT("CameraObstructionFade"));
+
+	CameraObstruction = CreateDefaultSubobject<UCameraObstructionComponent>(TEXT("CameraObstruction"));
+	CameraObstruction->SetCamera(Camera);
+	CameraObstruction->SetCapsule(GetCapsuleComponent());
 }
 
 // Called when the game starts or when spawned

@@ -11,9 +11,9 @@ class USpringArmComponent;
 class UStaticMeshComponent;
 class USphereComponent;
 class UDoorInteractComponent;
-class UCameraObstructionFadeComponent;
 struct FInputActionValue;
 class UMoodleComponent;
+class UCameraObstructionComponent;
 
 UCLASS()
 class TARCOPY_API AMyCharacter : public ACharacter
@@ -87,7 +87,7 @@ protected:
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UCameraObstructionFadeComponent> CameraObstructionFade;
+	TObjectPtr<UCameraObstructionComponent> CameraObstruction;
 
 public:
 	void AddInteractableDoor(AActor* DoorActor);
