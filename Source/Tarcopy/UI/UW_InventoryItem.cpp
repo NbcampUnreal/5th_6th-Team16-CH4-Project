@@ -6,6 +6,9 @@
 #include "UI/UW_Inventory.h"
 #include "UI/InventoryDragDropOp.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Inventory/InventoryData.h"
+#include "Components/SizeBox.h"
+#include "Components/Border.h"
 
 FReply UUW_InventoryItem::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
@@ -26,7 +29,28 @@ void UUW_InventoryItem::NativeOnDragDetected(const FGeometry& InGeometry, const 
 
 	Op->GrabOffsetPx = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
 
-	Op->DefaultDragVisual = this;
+	UUW_InventoryItem* Proxy = CreateWidget<UUW_InventoryItem>(GetOwningPlayer(), GetClass());
+	if (Proxy)
+	{
+		Proxy->InitItem(ItemId, SourceInventory, SourceInventoryWidget, bRotated);
+		Proxy->ApplyProxyVisual();
+		Proxy->SetRenderOpacity(0.4f);
+
+		const FVector2D SizePx = GetItemPixelSize();
+
+		USizeBox* Box = NewObject<USizeBox>(this);
+		Op->DragBox = Box;
+		Box->SetWidthOverride(SizePx.X);
+		Box->SetHeightOverride(SizePx.Y);
+		Box->AddChild(Proxy);
+
+		Op->DefaultDragVisual = Box;
+	}
+	else
+	{
+		Op->DefaultDragVisual = this;
+	}
+
 	Op->Pivot = EDragPivot::MouseDown;
 
 	OutOperation = Op;
@@ -38,4 +62,29 @@ void UUW_InventoryItem::InitItem(const FGuid& InItemId, UInventoryData* InSource
 	SourceInventory = InSourceInventory;
 	SourceInventoryWidget = InSourceWidget;
 	bRotated = bInRotated;
+}
+
+void UUW_InventoryItem::ApplyProxyVisual()
+{
+	if (ItemBorder)
+	{
+		ItemBorder->SetBrushColor(FLinearColor(0, 0, 0, 0));
+	}
+	if (ItemBG)
+	{
+		ItemBG->SetBrushColor(FLinearColor(0, 0, 0, 0));
+	}
+}
+
+FVector2D UUW_InventoryItem::GetItemPixelSize() const
+{
+	if (!IsValid(SourceInventory) || !IsValid(SourceInventoryWidget))
+	{
+		return FVector2D::ZeroVector;
+	}
+
+	const int32 CellPx = SourceInventoryWidget->GetCellSizePx();
+	const FIntPoint SizeCells = SourceInventory->GetItemSizeByID(ItemId, bRotated);
+
+	return FVector2D(SizeCells.X * CellPx, SizeCells.Y * CellPx);
 }

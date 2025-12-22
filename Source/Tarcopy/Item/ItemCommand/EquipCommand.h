@@ -2,17 +2,17 @@
 
 #include "CoreMinimal.h"
 #include "Item/ItemCommand/ItemCommandBase.h"
-#include "CraftCommand.generated.h"
+#include "EquipCommand.generated.h"
 
 UCLASS()
-class TARCOPY_API UCraftCommand : public UItemCommandBase
+class TARCOPY_API UEquipCommand : public UItemCommandBase
 {
 	GENERATED_BODY()
-	
+
 protected:
 	virtual void OnExecute(const FItemCommandContext& Context) override;
 
 public:
 	UPROPERTY()
-	FName CraftTargetId;
+	TWeakObjectPtr<class UItemInstance> TargetItem;
 };

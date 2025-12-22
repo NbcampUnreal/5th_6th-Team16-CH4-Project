@@ -11,6 +11,7 @@ class USpringArmComponent;
 class UStaticMeshComponent;
 class USphereComponent;
 class UDoorInteractComponent;
+class UCameraObstructionFadeComponent;
 struct FInputActionValue;
 class UMoodleComponent;
 
@@ -82,17 +83,8 @@ protected:
 		int32 OtherBodyIndex);
 
 protected:
-	void UpdateCameraObstructionFade();
-
-	UPROPERTY(EditAnywhere, Category = "Vision|Occlusion")
-	float ObstructionTraceInterval = 0.05f;
-
-	UPROPERTY(EditAnywhere, Category = "Vision|Occlusion")
-	float FadeHoldTime = 0.15f;
-
-	float TimeSinceLastObstructionTrace = 0.f;
-
-	TMap<TWeakObjectPtr<UPrimitiveComponent>, float> FadeHoldUntil;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UCameraObstructionFadeComponent> CameraObstructionFade;
 
 public:
 	void AddInteractableDoor(AActor* DoorActor);

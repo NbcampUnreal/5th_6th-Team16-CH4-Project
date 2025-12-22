@@ -3,6 +3,11 @@
 #include "Item/Data/MeleeWeaponData.h"
 #include "Item/ItemInstance.h"
 #include "Item/Data/ItemData.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
+
+const float UMeleeWeaponComponent::DamageDelay = 0.6f;
 
 void UMeleeWeaponComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
@@ -26,6 +31,33 @@ void UMeleeWeaponComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase
 	Super::GetCommands(OutCommands);
 }
 
-void UMeleeWeaponComponent::Attack()
+void UMeleeWeaponComponent::ExecuteAttack(ACharacter* OwnerCharacter)
 {
+	if (IsValid(OwnerCharacter) == false)
+		return;
+
+	UCharacterMovementComponent* CharacterMovement = OwnerCharacter->GetCharacterMovement();
+	if (IsValid(CharacterMovement) == false)
+		return;
+
+	CharacterMovement->DisableMovement();
+	OwnerCharacter->GetWorldTimerManager().SetTimer(
+		DamageTimerHandle,
+		[WeakThis = TWeakObjectPtr(this), OwnerCharacter]
+		{
+			if (WeakThis.IsValid() == false)
+				return;
+
+			WeakThis->CheckHit(OwnerCharacter);
+		},
+		DamageDelay,
+		false);
+}
+
+void UMeleeWeaponComponent::CheckHit(ACharacter* OwnerCharacter)
+{
+	if (IsValid(OwnerCharacter) == false)
+		return;
+
+	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Check Hit"));
 }

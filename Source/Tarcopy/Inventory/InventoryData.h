@@ -49,6 +49,8 @@ public:
 
 	void ClearAll();
 
+	bool CanPlaceItemPreview(const FGuid& ItemId, UInventoryData* Source, const FIntPoint& NewOrigin, bool bRotated) const;
+
 private:
 	bool CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated, const FGuid* IgnoreId = nullptr) const;
 

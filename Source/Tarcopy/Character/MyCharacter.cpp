@@ -20,6 +20,7 @@
 #include "Character/MoodleComponent.h"
 #include "AI/MyAICharacter.h"
 #include "Character/ActivateInterface.h"
+#include "Character/CameraObstructionFadeComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -71,6 +72,7 @@ AMyCharacter::AMyCharacter() :
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnInteractionSphereEndOverlap);
 
 	Moodle = CreateDefaultSubobject<UMoodleComponent>(TEXT("Moodle"));
+	CameraObstructionFade = CreateDefaultSubobject<UCameraObstructionFadeComponent>(TEXT("CameraObstructionFade"));
 }
 
 // Called when the game starts or when spawned
@@ -82,68 +84,6 @@ void AMyCharacter::BeginPlay()
 void AMyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	TimeSinceLastObstructionTrace += DeltaTime;
-	if (TimeSinceLastObstructionTrace >= ObstructionTraceInterval)
-	{
-		TimeSinceLastObstructionTrace = 0.f;
-		UpdateCameraObstructionFade();
-	}
-}
-
-void AMyCharacter::UpdateCameraObstructionFade()
-{
-	if (!IsValid(Camera) || !IsValid(GetWorld()))
-	{
-		return;
-	}
-
-	const float Now = GetWorld()->GetTimeSeconds();
-
-	// Unhide components whose hold time expired.
-	for (auto It = FadeHoldUntil.CreateIterator(); It; ++It)
-	{
-		if (!It.Key().IsValid() || Now > It.Value())
-		{
-			if (It.Key().IsValid())
-			{
-				It.Key()->SetVisibility(true, true);
-			}
-			It.RemoveCurrent();
-		}
-	}
-
-	const FVector Start = Camera->GetComponentLocation();
-	const FVector End = GetActorLocation() + FVector(0.f, 0.f, GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
-
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(CameraOcclusion), /*bTraceComplex=*/ false);
-	Params.AddIgnoredActor(this);
-
-	TArray<FHitResult> Hits;
-	if (GetWorld()->LineTraceMultiByChannel(Hits, Start, End, ECC_Visibility, Params))
-	{
-		for (const FHitResult& Hit : Hits)
-		{
-			UPrimitiveComponent* HitComp = Hit.GetComponent();
-			if (!IsValid(HitComp))
-			{
-				continue;
-			}
-
-			// Skip overlaps with our own components.
-			if (HitComp->GetOwner() == this)
-			{
-				continue;
-			}
-
-			// Refresh hold time and hide if not already hidden.
-			FadeHoldUntil.FindOrAdd(HitComp) = Now + FadeHoldTime;
-			if (HitComp->IsVisible())
-			{
-				HitComp->SetVisibility(false, true);
-			}
-		}
-	}
 }
 
 void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,

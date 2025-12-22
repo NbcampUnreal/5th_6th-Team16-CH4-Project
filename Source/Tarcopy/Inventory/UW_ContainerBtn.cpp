@@ -16,7 +16,8 @@ void UUW_ContainerBtn::NativeConstruct()
 
 void UUW_ContainerBtn::BindContainer(UWorldContainerComponent* InContainer)
 {
-	Container = InContainer;
+	Inventory = InInventory;
+	DisplayName = InDisplayName;
 	RefreshVisual();
 }
 
@@ -27,19 +28,19 @@ void UUW_ContainerBtn::RefreshVisual()
 		return;
 	}
 
-	if (!Container.IsValid())
+	if (!IsValid(Inventory))
 	{
 		ContainerName->SetText(FText::GetEmpty());
 		return;
 	}
-	ContainerName->SetText(Container->GetDisplayName());
+	ContainerName->SetText(DisplayName);
 }
 
 void UUW_ContainerBtn::HandleClicked()
 {
-	if (!Container.IsValid())
+	if (!IsValid(Inventory))
 	{
 		return;
 	}
-	OnClickedWithContainer.Broadcast(Container.Get());
+	OnClickedWithInventory.Broadcast(Inventory);
 }
