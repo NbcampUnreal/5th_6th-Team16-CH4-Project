@@ -17,6 +17,8 @@ public:
 
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) {}
 
+	virtual void CancelAction() {}
+
 protected:
 	const struct FItemData* GetOwnerItemData() const;
 

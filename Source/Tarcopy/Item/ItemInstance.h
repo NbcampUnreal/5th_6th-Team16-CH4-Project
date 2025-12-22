@@ -39,6 +39,8 @@ public:
 
 	const TArray<TObjectPtr<UItemComponentBase>> GetItemComponents() const;
 
+	void CancelAllComponentActions();
+
 protected:
 	UPROPERTY(VisibleAnywhere)
 	TArray<TObjectPtr<UItemComponentBase>> ItemComponents;

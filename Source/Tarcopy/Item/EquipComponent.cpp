@@ -3,6 +3,7 @@
 #include "Item/ItemInstance.h"
 #include "Item/ItemComponent/WeaponComponent.h"
 #include "GameFramework/Character.h"
+#include "Item/DataTableSubsystem.h"
 
 const float UEquipComponent::WeightMultiplier = 0.3f;
 
@@ -97,8 +98,27 @@ void UEquipComponent::ExecuteAttack()
 	WeaponComponent->ExecuteAttack(Cast<ACharacter>(GetOwner()));
 }
 
+void UEquipComponent::CancelActions()
+{
+	UItemInstance* ItemOnHand = GetEquippedItem(EBodyLocation::RightHand);
+	if (IsValid(ItemOnHand) == false)
+	{
+		ItemOnHand = GetEquippedItem(EBodyLocation::LeftHand);
+	}
+
+	if (IsValid(ItemOnHand) == false)
+		return;
+
+	ItemOnHand->CancelAllComponentActions();
+}
+
 const FItemData* UEquipComponent::GetItemData(const FName& InItemId) const
 {
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return nullptr;
+
+	const UDataTable* ItemTable = DataTableSubsystem->GetTable(EDataTableType::ItemTable);
 	if (IsValid(ItemTable) == false)
 		return nullptr;
 
