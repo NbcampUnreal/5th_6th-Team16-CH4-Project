@@ -52,3 +52,14 @@ const TArray<TObjectPtr<UItemComponentBase>> UItemInstance::GetItemComponents() 
 {
 	return ItemComponents;
 }
+
+void UItemInstance::CancelAllComponentActions()
+{
+	for (const auto& Component : ItemComponents)
+	{
+		if (IsValid(Component) == false)
+			continue;
+
+		Component->CancelAction();
+	}
+}
