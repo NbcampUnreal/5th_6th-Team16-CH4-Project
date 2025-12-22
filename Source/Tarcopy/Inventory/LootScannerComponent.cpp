@@ -6,7 +6,7 @@
 #include "Components/SphereComponent.h"
 #include "Inventory/InventoryData.h"
 #include "Item/WorldSpawnedItem.h"
-#include "Inventory/ContainerActor.h"
+#include "Inventory/WorldContainerComponent.h"
 #include "Item/ItemInstance.h"
 #include "Item/ItemComponent/ContainerComponent.h"
 
@@ -100,9 +100,9 @@ void ULootScannerComponent::OnContainerBeginOverlap(UPrimitiveComponent* Overlap
 		return;
 	}
 
-	if (AContainerActor* Container = Cast<AContainerActor>(OtherActor))
+	if (UWorldContainerComponent* Container = OtherActor->FindComponentByClass<UWorldContainerComponent>())
 	{
-		OverlappedContainerActors.Add(Container);
+		OverlappedContainers.Add(Container);
 		OnScannedContainersChanged.Broadcast();
 	}
 }
@@ -114,9 +114,9 @@ void ULootScannerComponent::OnContainerEndOverlap(UPrimitiveComponent* Overlappe
 		return;
 	}
 
-	if (AContainerActor* Container = Cast<AContainerActor>(OtherActor))
+	if (UWorldContainerComponent* Container = OtherActor->FindComponentByClass<UWorldContainerComponent>())
 	{
-		OverlappedContainerActors.Remove(Container);
+		OverlappedContainers.Remove(Container);
 		OnScannedContainersChanged.Broadcast();
 	}
 }

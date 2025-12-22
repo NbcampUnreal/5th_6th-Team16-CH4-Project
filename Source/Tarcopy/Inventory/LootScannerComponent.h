@@ -7,7 +7,7 @@
 #include "LootScannerComponent.generated.h"
 
 class USphereComponent;
-class AContainerActor;
+class UWorldContainerComponent;
 class AWorldSpawnedItem;
 class UInventoryData;
 
@@ -37,7 +37,7 @@ public:
 	FOnScannedGroundChanged OnScannedGroundChanged;
 
 	UPROPERTY()
-	TSet<TWeakObjectPtr<AContainerActor>> OverlappedContainerActors;
+	TSet<TWeakObjectPtr<UWorldContainerComponent>> OverlappedContainers;
 
 	UPROPERTY()
 	TSet<TWeakObjectPtr<AWorldSpawnedItem>> OverlappedContainerItems;
