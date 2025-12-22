@@ -1,15 +1,16 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
 #include "WorldContainerComponent.generated.h"
 
 class UInventoryData;
+class UBoxComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class TARCOPY_API UWorldContainerComponent : public UActorComponent
+class TARCOPY_API UWorldContainerComponent : public USceneComponent
 {
 	GENERATED_BODY()
 
@@ -36,4 +37,7 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UInventoryData> InventoryData;
+
+	UPROPERTY()
+	TObjectPtr<UBoxComponent> SenseBox;
 };

@@ -21,7 +21,7 @@ FReply UUW_InventoryItem::NativeOnMouseButtonDown(const FGeometry& InGeometry, c
 
 void UUW_InventoryItem::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)
 {
-	UInventoryDragDropOp* Op = NewObject<UInventoryDragDropOp>();
+	UInventoryDragDropOp* Op = NewObject<UInventoryDragDropOp>(GetOwningPlayer());
 	Op->ItemId = ItemId;
 	Op->SourceInventory = SourceInventory;
 	Op->SourceInventoryWidget = SourceInventoryWidget;

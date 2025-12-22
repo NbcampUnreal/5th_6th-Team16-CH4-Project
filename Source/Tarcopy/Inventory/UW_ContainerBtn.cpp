@@ -5,7 +5,7 @@
 
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
-#include "Inventory/WorldContainerComponent.h"
+#include "Inventory/InventoryData.h"
 
 void UUW_ContainerBtn::NativeConstruct()
 {
@@ -17,7 +17,7 @@ void UUW_ContainerBtn::NativeConstruct()
 	RefreshVisual();
 }
 
-void UUW_ContainerBtn::BindContainer(UWorldContainerComponent* InContainer)
+void UUW_ContainerBtn::BindInventory(UInventoryData* InInventory, const FText& InDisplayName)
 {
 	Container = InContainer;
 	RefreshVisual();

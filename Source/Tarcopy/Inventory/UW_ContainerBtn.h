@@ -8,9 +8,9 @@
 
 class UButton;
 class UTextBlock;
-class UWorldContainerComponent;
+class UInventoryData;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnClickedWithContainer, UWorldContainerComponent*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnClickedWithInventory, UInventoryData* /*Inventory*/);
 
 /**
  * 
@@ -27,7 +27,7 @@ protected:
     virtual void NativeConstruct() override;
 
 public:
-    void BindContainer(UWorldContainerComponent* InContainer);
+    void BindInventory(UInventoryData* InInventory, const FText& InDisplayName);
 
 private:
     void RefreshVisual();
@@ -45,5 +45,9 @@ private:
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UTextBlock> ContainerName;
 
-    TWeakObjectPtr<UWorldContainerComponent> Container;
+    UPROPERTY()
+    FText DisplayName;
+
+    UPROPERTY()
+    TObjectPtr<UInventoryData> Inventory;
 };

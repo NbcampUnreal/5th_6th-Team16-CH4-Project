@@ -73,7 +73,43 @@ void UUW_NearbyPanel::RefreshContainerList()
 		return;
 	}
 
-	TSet<TWeakObjectPtr<UWorldContainerComponent>> AvailableContainers = BoundScanner->OverlappedContainers;
+	TSet<UInventoryData*> AvailableInv;
+
+	for (const TWeakObjectPtr<UWorldContainerComponent>& C : BoundScanner->OverlappedContainers)
+	{
+		if (!IsValid(C.Get()))
+		{
+			continue;
+		}
+		if (UInventoryData* Inv = C->GetInventoryData())
+		{
+			AvailableInv.Add(Inv);
+		}
+	}
+
+	for (const TWeakObjectPtr<AWorldSpawnedItem>& W : BoundScanner->OverlappedContainerItems)
+	{
+		AWorldSpawnedItem* ItemActor = W.Get();
+		if (!IsValid(ItemActor))
+		{
+			continue;
+		}
+
+		UItemInstance* Inst = ItemActor->GetItemInstance();
+		if (!IsValid(Inst) || !Inst->GetData())
+		{
+			continue;
+		}
+
+		const UContainerComponent* ContainerComp = Inst->GetItemComponent<UContainerComponent>();
+		if (ContainerComp)
+		{
+			if (UInventoryData* Inv = ContainerComp->GetInventoryData())
+			{
+				AvailableInv.Add(Inv);
+			}
+		}
+	}
 
 	if (bInventoryPanelOpen && !bLastSelectedWasGround)
 	{
@@ -87,7 +123,7 @@ void UUW_NearbyPanel::RefreshContainerList()
 
 	ContainerScrollBox->ClearChildren();
 
-	for (const TWeakObjectPtr<UWorldContainerComponent>& Container : BoundScanner->OverlappedContainers)
+	for (UInventoryData* Inv : AvailableInv)
 	{
 		if (!Container.IsValid())
 		{
@@ -105,7 +141,7 @@ void UUW_NearbyPanel::RefreshContainerList()
 	ContainerScrollBox->AddChild(GroundBtn);
 }
 
-void UUW_NearbyPanel::HandleContainerSelected(UWorldContainerComponent* Container)
+void UUW_NearbyPanel::HandleContainerSelected(UInventoryData* Inventory)
 {
 	if (!IsValid(Container) || !InventoryWidget)
 	{

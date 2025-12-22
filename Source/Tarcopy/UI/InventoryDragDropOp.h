@@ -19,6 +19,9 @@ class TARCOPY_API UInventoryDragDropOp : public UDragDropOperation
 	GENERATED_BODY()
 
 public:
+	virtual void DragCancelled_Implementation(const FPointerEvent& PointerEvent) override;
+
+public:
 	UPROPERTY()
 	FGuid ItemId;
 

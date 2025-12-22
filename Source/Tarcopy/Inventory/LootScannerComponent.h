@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
+#include "Misc/Guid.h"
 #include "LootScannerComponent.generated.h"
 
 class USphereComponent;
@@ -31,6 +32,8 @@ public:
 	UInventoryData* GetGroundInventoryData() const { return GroundInventoryData; }
 
 	void RebuildGroundInventory();
+
+	bool ConsumeGroundWorldItemByInstanceId(const FGuid& InstanceId);
 
 	FOnScannedContainersChanged OnScannedContainersChanged;
 

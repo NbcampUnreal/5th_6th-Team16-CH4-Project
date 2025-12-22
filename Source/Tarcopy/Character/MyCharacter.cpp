@@ -20,7 +20,16 @@
 #include "Character/MoodleComponent.h"
 #include "AI/MyAICharacter.h"
 #include "Character/ActivateInterface.h"
-#include "Character/CameraObstructionComponent.h"
+#include "Character/CameraObstructionFadeComponent.h"
+#include "Item/WorldSpawnedItem.h"
+#include "Item/Data/ItemData.h"
+#include "Misc/Guid.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "UI/InventoryDragDropOp.h"
+#include "Components/SizeBox.h"
+#include "Inventory/InventoryData.h"
+#include "UI/UW_Inventory.h"
+#include "Tarcopy.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -70,6 +79,8 @@ AMyCharacter::AMyCharacter() :
 	InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnInteractionSphereBeginOverlap);
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnInteractionSphereEndOverlap);
+
+	EquipComponent = CreateDefaultSubobject<UEquipComponent>(TEXT("EquipComponent"));
 
 	Moodle = CreateDefaultSubobject<UMoodleComponent>(TEXT("Moodle"));
 
@@ -328,7 +339,12 @@ void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
 
 void AMyCharacter::LeftClick(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Left Click"))
+	UE_LOG(LogTemp, Warning, TEXT("Left Click"));
+
+	if (IsValid(EquipComponent) == false)
+		return;
+
+	EquipComponent->ExecuteAttack();
 }
 
 void AMyCharacter::ServerRPC_TurnToMouse_Implementation(const FRotator& TargetRot)
@@ -440,6 +456,13 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 				EnhancedInput->BindAction(PlayerController->InteractAction, ETriggerEvent::Started, this,
 											&AMyCharacter::Interact);
 			}
+
+			// Item Rotation
+			if (PlayerController->RotateAction)
+			{
+				EnhancedInput->BindAction(PlayerController->RotateAction, ETriggerEvent::Started, this,
+					&AMyCharacter::OnRotateInventoryItem);
+			}
 		}
 	}
 }
@@ -459,7 +482,6 @@ void AMyCharacter::SetItem()
 {
 	if (AMyPlayerController* PlayerController = Cast<AMyPlayerController>(GetController()))
 	{
-		UEquipComponent* EquipComponent = FindComponentByClass<UEquipComponent>();
 		if (IsValid(EquipComponent) == false)
 			return;
 
@@ -473,6 +495,32 @@ void AMyCharacter::SetItem()
 			}
 		}
 	}
+}
+
+bool AMyCharacter::GetAimTarget(AActor*& OutTargetActor, FName& OutBone)
+{
+	AMyPlayerController* PC = Cast<AMyPlayerController>(GetController());
+	if (IsValid(PC) == false)
+		return false;
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Enemy));
+
+	FHitResult HitResult;
+	if (PC->GetHitResultUnderCursorForObjects(ObjectTypes, true, HitResult))
+	{
+		AActor* HitActor = HitResult.GetActor();
+		if (IsValid(HitActor) == true)
+		{
+			OutTargetActor = HitActor;
+			OutBone = HitResult.BoneName;
+			return true;
+		}
+	}
+
+	OutTargetActor = nullptr;
+	OutBone = NAME_None;
+	return false;
 }
 
 void AMyCharacter::AddInteractableDoor(AActor* DoorActor)
@@ -674,5 +722,34 @@ void AMyCharacter::MulticastRPC_ApplyDoorTransforms_Implementation(const TArray<
 		}
 
 		DoorActor->SetActorTransform(DoorTransforms[i]);
+	}
+}
+
+void AMyCharacter::OnRotateInventoryItem()
+{
+	UDragDropOperation* BaseOp = UWidgetBlueprintLibrary::GetDragDroppingContent();
+	UInventoryDragDropOp* Op = Cast<UInventoryDragDropOp>(BaseOp);
+	if (!Op || !IsValid(Op->SourceInventory))
+	{
+		return;
+	}
+
+	Op->bRotated = !Op->bRotated;
+
+	if (IsValid(Op->DragBox) && IsValid(Op->SourceInventoryWidget))
+	{
+		const int32 CellPx = Op->SourceInventoryWidget->GetCellSizePx();
+		const FIntPoint SizeCells = Op->SourceInventory->GetItemSizeByID(Op->ItemId, Op->bRotated);
+
+		if (SizeCells != FIntPoint::ZeroValue)
+		{
+			Op->DragBox->SetWidthOverride(SizeCells.X * CellPx);
+			Op->DragBox->SetHeightOverride(SizeCells.Y * CellPx);
+		}
+	}
+
+	if (Op->HoveredInventoryWidget.IsValid())
+	{
+		Op->HoveredInventoryWidget->ForceUpdatePreviewFromOp(Op);
 	}
 }
