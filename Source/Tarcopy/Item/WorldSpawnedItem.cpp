@@ -11,6 +11,9 @@ AWorldSpawnedItem::AWorldSpawnedItem()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	//bReplicates = true;
+	//SetReplicateMovement(false);
+
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
 
