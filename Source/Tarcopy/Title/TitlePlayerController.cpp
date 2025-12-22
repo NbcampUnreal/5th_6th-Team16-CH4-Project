@@ -41,6 +41,7 @@ void ATitlePlayerController::BeginPlay()
 				if (IsValid(TitleScreenWidget))
 				{
 					TitleScreenWidget->OnJoinButtonClicked.AddDynamic(this, &ThisClass::HandleJoinRequested);
+					TitleScreenWidget->OnOptionButtonClicked.AddDynamic(this, &ThisClass::HandleOptionRequested);
 				}
 			}
 			else
@@ -66,6 +67,7 @@ void ATitlePlayerController::BeginPlay()
 			if (IsValid(TitleScreenWidget))
 			{
 				TitleScreenWidget->OnJoinButtonClicked.AddDynamic(this, &ThisClass::HandleJoinRequested);
+				TitleScreenWidget->OnOptionButtonClicked.AddDynamic(this, &ThisClass::HandleOptionRequested);
 			}
 		}
 		else
@@ -102,4 +104,38 @@ void ATitlePlayerController::JoinServer(const FString& InIPAddress)
 void ATitlePlayerController::HandleJoinRequested(const FText& InIpPort)
 {
 	JoinServer(InIpPort.ToString());
+}
+
+void ATitlePlayerController::HandleOptionRequested()
+{
+	if (!OptionsWidgetInstance && IsValid(OptionsWidgetClass))
+	{
+		OptionsWidgetInstance = CreateWidget<UUserWidget>(this, OptionsWidgetClass);
+		if (IsValid(OptionsWidgetInstance))
+		{
+			OptionsWidgetInstance->AddToViewport();
+		}
+	}
+
+	if (!IsValid(OptionsWidgetInstance))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ATitlePlayerController: OptionsWidgetClass is not set or failed to create."));
+		return;
+	}
+
+	const bool bShow = !OptionsWidgetInstance->IsVisible();
+	OptionsWidgetInstance->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+
+	FInputModeUIOnly Mode;
+	if (bShow)
+	{
+		Mode.SetWidgetToFocus(OptionsWidgetInstance->GetCachedWidget());
+	}
+	else if (IsValid(TitleWidgetInstance))
+	{
+		Mode.SetWidgetToFocus(TitleWidgetInstance->GetCachedWidget());
+	}
+
+	SetInputMode(Mode);
+	bShowMouseCursor = true;
 }

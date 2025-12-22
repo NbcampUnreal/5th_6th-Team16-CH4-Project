@@ -9,15 +9,18 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Components/ActorComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "Item/EquipComponent.h"
 #include "Item/ItemInstance.h"
 #include "Framework/DoorInteractComponent.h"
+#include "Framework/DoorTagUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "Character/MoodleComponent.h"
 #include "AI/MyAICharacter.h"
 #include "Character/ActivateInterface.h"
+#include "Character/CameraObstructionFadeComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -69,6 +72,7 @@ AMyCharacter::AMyCharacter() :
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnInteractionSphereEndOverlap);
 
 	Moodle = CreateDefaultSubobject<UMoodleComponent>(TEXT("Moodle"));
+	CameraObstructionFade = CreateDefaultSubobject<UCameraObstructionFadeComponent>(TEXT("CameraObstructionFade"));
 }
 
 // Called when the game starts or when spawned
@@ -80,68 +84,6 @@ void AMyCharacter::BeginPlay()
 void AMyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	TimeSinceLastObstructionTrace += DeltaTime;
-	if (TimeSinceLastObstructionTrace >= ObstructionTraceInterval)
-	{
-		TimeSinceLastObstructionTrace = 0.f;
-		UpdateCameraObstructionFade();
-	}
-}
-
-void AMyCharacter::UpdateCameraObstructionFade()
-{
-	if (!IsValid(Camera) || !IsValid(GetWorld()))
-	{
-		return;
-	}
-
-	const float Now = GetWorld()->GetTimeSeconds();
-
-	// Unhide components whose hold time expired.
-	for (auto It = FadeHoldUntil.CreateIterator(); It; ++It)
-	{
-		if (!It.Key().IsValid() || Now > It.Value())
-		{
-			if (It.Key().IsValid())
-			{
-				It.Key()->SetVisibility(true, true);
-			}
-			It.RemoveCurrent();
-		}
-	}
-
-	const FVector Start = Camera->GetComponentLocation();
-	const FVector End = GetActorLocation() + FVector(0.f, 0.f, GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
-
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(CameraOcclusion), /*bTraceComplex=*/ false);
-	Params.AddIgnoredActor(this);
-
-	TArray<FHitResult> Hits;
-	if (GetWorld()->LineTraceMultiByChannel(Hits, Start, End, ECC_Visibility, Params))
-	{
-		for (const FHitResult& Hit : Hits)
-		{
-			UPrimitiveComponent* HitComp = Hit.GetComponent();
-			if (!IsValid(HitComp))
-			{
-				continue;
-			}
-
-			// Skip overlaps with our own components.
-			if (HitComp->GetOwner() == this)
-			{
-				continue;
-			}
-
-			// Refresh hold time and hide if not already hidden.
-			FadeHoldUntil.FindOrAdd(HitComp) = Now + FadeHoldTime;
-			if (HitComp->IsVisible())
-			{
-				HitComp->SetVisibility(false, true);
-			}
-		}
-	}
 }
 
 void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -196,8 +138,7 @@ void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, A
 void AMyCharacter::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	static const FName DoorTag(TEXT("Door"));
-	if (IsValid(OtherActor) && OtherActor->ActorHasTag(DoorTag))
+	if (ActorHasDoorTagOrDoorMesh(OtherActor))
 	{
 		AddInteractableDoor(OtherActor);
 	}
@@ -345,6 +286,16 @@ void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
 		{
 			Activatable->Activate(this);  
 			return;
+		}
+
+		TInlineComponentArray<UActorComponent*> Components(HitActor);
+		for (UActorComponent* Component : Components)
+		{
+			if (IActivateInterface* ActivatableComponent = Cast<IActivateInterface>(Component))
+			{
+				ActivatableComponent->Activate(this);
+				return;
+			}
 		}
 	}
 }
@@ -523,8 +474,7 @@ void AMyCharacter::SetItem()
 
 void AMyCharacter::AddInteractableDoor(AActor* DoorActor)
 {
-	static const FName DoorTag(TEXT("Door"));
-	if (IsValid(DoorActor) && DoorActor->ActorHasTag(DoorTag))
+	if (ActorHasDoorTagOrDoorMesh(DoorActor))
 	{
 		OverlappingDoors.Add(DoorActor);
 	}
@@ -614,8 +564,7 @@ void AMyCharacter::Interact(const FInputActionValue& Value)
 
 void AMyCharacter::ServerRPC_ToggleDoor_Implementation(AActor* DoorActor)
 {
-	static const FName DoorTag(TEXT("Door"));
-	if (!IsValid(DoorActor) || !DoorActor->ActorHasTag(DoorTag))
+	if (!ActorHasDoorTagOrDoorMesh(DoorActor))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ServerRPC_ToggleDoor aborted: invalid door actor."));
 		return;
@@ -651,7 +600,7 @@ void AMyCharacter::ServerRPC_ToggleDoor_Implementation(AActor* DoorActor)
 		UGameplayStatics::GetAllActorsWithTag(World, GroupTag, GroupActors);
 		for (AActor* GroupDoorActor : GroupActors)
 		{
-			if (IsValid(GroupDoorActor) && GroupDoorActor->ActorHasTag(DoorTag))
+			if (ActorHasDoorTagOrDoorMesh(GroupDoorActor))
 			{
 				AffectedDoors.AddUnique(GroupDoorActor);
 			}
@@ -663,10 +612,14 @@ void AMyCharacter::ServerRPC_ToggleDoor_Implementation(AActor* DoorActor)
 		}
 	}
 
-	if (UDoorInteractComponent* DoorComp = DoorActor->FindComponentByClass<UDoorInteractComponent>())
+	if (IActivateInterface* Activatable = Cast<IActivateInterface>(DoorActor))
 	{
-		UE_LOG(LogTemp, Log, TEXT("Toggling existing door component on %s"), *DoorActor->GetName());
-		DoorComp->ToggleDoor();
+		Activatable->Activate(this);
+	}
+	else if (UDoorInteractComponent* DoorComp = DoorActor->FindComponentByClass<UDoorInteractComponent>())
+	{
+		UE_LOG(LogTemp, Log, TEXT("Activating existing door component on %s"), *DoorActor->GetName());
+		DoorComp->Activate(this);
 	}
 	else
 	{
@@ -674,8 +627,8 @@ void AMyCharacter::ServerRPC_ToggleDoor_Implementation(AActor* DoorActor)
 		if (IsValid(NewComp))
 		{
 			NewComp->RegisterComponent();
-			UE_LOG(LogTemp, Log, TEXT("Created door component and toggling %s"), *DoorActor->GetName());
-			NewComp->ToggleDoor();
+			UE_LOG(LogTemp, Log, TEXT("Created door component and activating %s"), *DoorActor->GetName());
+			NewComp->Activate(this);
 		}
 		else
 		{

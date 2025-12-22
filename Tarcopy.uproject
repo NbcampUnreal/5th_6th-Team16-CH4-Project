@@ -1,4 +1,4 @@
-﻿{
+{
 	"FileVersion": 3,
 	"EngineAssociation": "5.7",
 	"Category": "",
@@ -13,7 +13,8 @@
 				"UMG",
 				"ChaosVehicles",
 				"EnhancedInput",
-				"CoreUObject"
+				"CoreUObject",
+				"AIModule"
 			]
 		}
 	],
@@ -27,6 +28,10 @@
 		},
 		{
 			"Name": "ChaosVehiclesPlugin",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayStateTree",
 			"Enabled": true
 		}
 	]
