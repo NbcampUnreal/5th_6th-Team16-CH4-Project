@@ -27,16 +27,18 @@ void UWorldContainerComponent::BeginPlay()
         SenseBox = NewObject<UBoxComponent>(Owner, TEXT("SenseBox"));
         if (!SenseBox) return;
 
+        SenseBox->SetupAttachment(this);
+        SenseBox->SetRelativeLocation(FVector::ZeroVector);
+        SenseBox->SetRelativeRotation(FRotator::ZeroRotator);
+        SenseBox->SetRelativeScale3D(FVector::OneVector);
+
         Owner->AddInstanceComponent(SenseBox);
         SenseBox->RegisterComponent();
-        SenseBox->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 
         SenseBox->SetBoxExtent(FVector(50.f, 50.f, 50.f));
-        SenseBox->SetRelativeLocation(FVector::ZeroVector);
 
         SenseBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
         SenseBox->SetGenerateOverlapEvents(true);
-
         SenseBox->SetCollisionObjectType(ECC_GameTraceChannel1);
 
         SenseBox->SetCollisionResponseToAllChannels(ECR_Ignore);
