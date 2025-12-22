@@ -21,7 +21,7 @@ ULootScannerComponent::ULootScannerComponent()
 	ContainerSense->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	ContainerSense->SetCollisionObjectType(ECC_WorldDynamic);
 	ContainerSense->SetCollisionResponseToAllChannels(ECR_Ignore);
-	ContainerSense->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	ContainerSense->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
 	ContainerSense->SetGenerateOverlapEvents(true);
 
 	GroundSense = CreateDefaultSubobject<USphereComponent>(TEXT("GroundSense"));
