@@ -56,7 +56,7 @@ void UMoodleComponent::BeginPlay()
 	);
 
 	GetWorld()->GetTimerManager().SetTimer(
-		ThirstHandle,
+		MaxStaminaHandle,
 		[this]()
 		{
 			if (IsValid(this))

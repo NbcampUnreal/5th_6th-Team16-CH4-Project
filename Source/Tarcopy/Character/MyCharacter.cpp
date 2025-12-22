@@ -90,6 +90,13 @@ AMyCharacter::AMyCharacter() :
 void AMyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Tags.Add(FName("InVisible"));
+	if (GetNetMode() == ENetMode::NM_DedicatedServer || IsLocallyControlled() == false)
+	{
+		SetActorHiddenInGame(true);
+		VisionMesh->SetVisibility(false);
+	}
 }
 
 void AMyCharacter::Tick(float DeltaTime)
@@ -101,14 +108,8 @@ void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp,
                                             UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
                                             const FHitResult& SweepResult)
 {
-	if (HasAuthority() == false)
-		return;
-
-	AMyAICharacter* MyAI = Cast<AMyAICharacter>(OtherActor);
-	if (IsValid(MyAI) == false)
-		return;
-
-	UE_LOG(LogTemp, Warning, TEXT("Overlap"));
+	if (!IsLocallyControlled()) return;
+	if (ActorHasTag("InVisible") == false) return;
 
 	FVector MyLocation = GetActorLocation();
 	FVector OtherLocation = OtherActor->GetActorLocation();
@@ -123,27 +124,36 @@ void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp,
 		Hit,
 		MyLocation,
 		OtherLocation,
-		ECC_WorldStatic,
+		ECC_Visibility,
 		Params
 	);
 
+	/*DrawDebugLine(GetWorld(), MyLocation, OtherLocation, FColor::Red, false, 1.0f);
+	UKismetSystemLibrary::LineTraceSingle(
+		GetWorld(),
+		MyLocation,
+		OtherLocation,
+		UEngineTypes::ConvertToTraceType(ECC_Visibility),
+		false,
+		{ this },
+		EDrawDebugTrace::ForDuration,
+		Hit,
+		true
+	);*/
+
 	if (!bHitWall)
 	{
-		MyAI->WatchedCountModify(1);
+		OtherActor->SetActorHiddenInGame(false);
 	}
 }
 
 void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                           UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (HasAuthority() == false)
-		return;
+	if (!IsLocallyControlled()) return;
+	if (ActorHasTag("InVisible") == false) return;
 
-	AMyAICharacter* MyAI = Cast<AMyAICharacter>(OtherActor);
-	if (IsValid(MyAI) == false)
-		return;
-
-	MyAI->WatchedCountModify(-1);
+	OtherActor->SetActorHiddenInGame(true);
 }
 
 void AMyCharacter::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -336,8 +346,6 @@ void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
 
 void AMyCharacter::LeftClick(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Left Click"));
-
 	if (IsValid(EquipComponent) == false)
 		return;
 
