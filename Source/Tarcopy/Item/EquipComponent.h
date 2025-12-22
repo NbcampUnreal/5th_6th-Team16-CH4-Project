@@ -23,20 +23,18 @@ public:
 	FORCEINLINE const TMap<EBodyLocation, TObjectPtr<UItemInstance>>& GetEquippedItems() const { return EquippedItems; }
 	UItemInstance* GetEquippedItem(EBodyLocation Bodylocation) const;
 
-protected:
+public:
 	void EquipItem(EBodyLocation BodyLocation, UItemInstance* Item);
 	void RemoveItem(UItemInstance* Item);
 	//void UseTool(ToolType);
 
 	void ExecuteAttack();
+	void CancelActions();
 	
 private:
 	const struct FItemData* GetItemData(const FName& InItemId) const;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TObjectPtr<UDataTable> ItemTable;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TMap<EBodyLocation, TObjectPtr<UItemInstance>> EquippedItems;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)

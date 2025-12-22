@@ -51,6 +51,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Interaction", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USphereComponent> InteractionSphere;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Equip", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UEquipComponent> EquipComponent;
+
 	UFUNCTION()
 	virtual void OnInteractionSphereBeginOverlap(
 		UPrimitiveComponent* OverlappedComp,
@@ -213,6 +216,9 @@ public:
 
 	UFUNCTION()
 	void SetItem();
+
+	UFUNCTION()
+	bool GetAimTarget(AActor*& OutTargetActor, FName& OutBone);
 
 #pragma endregion
 
