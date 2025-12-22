@@ -22,6 +22,16 @@
 #include "Character/ActivateInterface.h"
 #include "Character/CameraObstructionFadeComponent.h"
 
+// test
+#include "Item/WorldSpawnedItem.h"
+#include "Item/Data/ItemData.h"
+#include "Misc/Guid.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "UI/InventoryDragDropOp.h"
+#include "Components/SizeBox.h"
+#include "Inventory/InventoryData.h"
+#include "UI/UW_Inventory.h"
+
 // Sets default values
 AMyCharacter::AMyCharacter() :
 	BaseWalkSpeed(600.f),
@@ -79,6 +89,69 @@ AMyCharacter::AMyCharacter() :
 void AMyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// test
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	static FItemData Data_1x1;
+	static FItemData Data_1x2;
+	static FItemData Data_2x1;
+	static FItemData Data_2x2;
+	static bool bInit = false;
+
+	if (!bInit)
+	{
+		bInit = true;
+
+		Data_1x1.ItemId = FName(TEXT("Test_1x1"));
+		Data_1x1.InventoryBound = FIntPoint(1, 1);
+
+		Data_1x2.ItemId = FName(TEXT("Test_1x2"));
+		Data_1x2.InventoryBound = FIntPoint(1, 2);
+
+		Data_2x1.ItemId = FName(TEXT("Test_2x1"));
+		Data_2x1.InventoryBound = FIntPoint(2, 1);
+
+		Data_2x2.ItemId = FName(TEXT("Test_2x2"));
+		Data_2x2.InventoryBound = FIntPoint(2, 2);
+	}
+
+	struct FSpawnSpec
+	{
+		const FItemData* Data;
+		float SideOffset;
+	};
+
+	const FSpawnSpec Specs[] =
+	{
+		{ &Data_1x1, 0.f   },
+		{ &Data_1x2, 80.f  },
+		{ &Data_2x1, 160.f },
+		{ &Data_2x2, 240.f },
+	};
+
+	const FVector Forward = GetActorForwardVector();
+	const FVector Right = GetActorRightVector();
+
+	for (const FSpawnSpec& Spec : Specs)
+	{
+		const FVector SpawnLoc = GetActorLocation() + Forward * 500.f + Right * Spec.SideOffset;
+		const FRotator SpawnRot = FRotator::ZeroRotator;
+
+		AWorldSpawnedItem* ItemActor = GetWorld()->SpawnActor<AWorldSpawnedItem>(SpawnLoc, SpawnRot);
+		if (!ItemActor)
+		{
+			continue;
+		}
+
+		UItemInstance* NewInst = NewObject<UItemInstance>(this);
+		NewInst->SetData(Spec.Data);
+
+		ItemActor->SetItemInstance(NewInst);
+	}
 }
 
 void AMyCharacter::Tick(float DeltaTime)
@@ -437,6 +510,13 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 				EnhancedInput->BindAction(PlayerController->InteractAction, ETriggerEvent::Started, this,
 											&AMyCharacter::Interact);
 			}
+
+			// test
+			if (PlayerController->RotateAction)
+			{
+				EnhancedInput->BindAction(PlayerController->RotateAction, ETriggerEvent::Started, this,
+					&AMyCharacter::OnRotateInventoryItem);
+			}
 		}
 	}
 }
@@ -671,5 +751,35 @@ void AMyCharacter::MulticastRPC_ApplyDoorTransforms_Implementation(const TArray<
 		}
 
 		DoorActor->SetActorTransform(DoorTransforms[i]);
+	}
+}
+
+//test
+void AMyCharacter::OnRotateInventoryItem()
+{
+	UDragDropOperation* BaseOp = UWidgetBlueprintLibrary::GetDragDroppingContent();
+	UInventoryDragDropOp* Op = Cast<UInventoryDragDropOp>(BaseOp);
+	if (!Op || !IsValid(Op->SourceInventory))
+	{
+		return;
+	}
+
+	Op->bRotated = !Op->bRotated;
+
+	if (IsValid(Op->DragBox) && IsValid(Op->SourceInventoryWidget))
+	{
+		const int32 CellPx = Op->SourceInventoryWidget->GetCellSizePx();
+		const FIntPoint SizeCells = Op->SourceInventory->GetItemSizeByID(Op->ItemId, Op->bRotated);
+
+		if (SizeCells != FIntPoint::ZeroValue)
+		{
+			Op->DragBox->SetWidthOverride(SizeCells.X * CellPx);
+			Op->DragBox->SetHeightOverride(SizeCells.Y * CellPx);
+		}
+	}
+
+	if (Op->HoveredInventoryWidget.IsValid())
+	{
+		Op->HoveredInventoryWidget->ForceUpdatePreviewFromOp(Op);
 	}
 }

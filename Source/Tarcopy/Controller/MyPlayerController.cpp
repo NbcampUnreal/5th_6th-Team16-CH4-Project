@@ -5,6 +5,21 @@
 #include <EnhancedInputSubsystems.h>
 #include "Item/Temp/UW_TempItem.h"
 
+// test
+#include "Inventory/InventoryData.h"
+#include "Item/ItemInstance.h"
+#include "Item/Data/ItemData.h"
+#include "UI/UW_Inventory.h"
+#include "UI/UW_InventoryBorder.h"
+#include "UI/UISubsystem.h"
+#include "UI/UW_NearbyPanel.h"
+#include "Inventory/LootScannerComponent.h"
+#include "UI/UW_PlayerPanel.h"
+#include "Inventory/PlayerInventoryComponent.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "UI/InventoryDragDropOp.h"
+#include "Components/SizeBox.h"
+
 AMyPlayerController::AMyPlayerController() :
 	IMC_Character(nullptr),
 	MoveAction(nullptr),
@@ -25,12 +40,38 @@ void AMyPlayerController::BeginPlay()
 	SetInputMode(GameAndUI);
 	bShowMouseCursor = true;
 
-	if (IsValid(TempItemClass) == true)
+	//if (IsValid(TempItemClass) == true)
+	//{
+	//	TempItemInstance = CreateWidget<UUW_TempItem>(this, TempItemClass);
+	//	if (IsValid(TempItemInstance) == true)
+	//	{
+	//		TempItemInstance->AddToViewport(0);
+	//	}
+	//}
+
+	//test 
+	if (auto* LP = GetLocalPlayer())
 	{
-		TempItemInstance = CreateWidget<UUW_TempItem>(this, TempItemClass);
-		if (IsValid(TempItemInstance) == true)
+		if (auto* UIS = LP->GetSubsystem<UUISubsystem>())
 		{
-			TempItemInstance->AddToViewport(0);
+			if (auto* Widget = UIS->ShowUI(EUIType::Nearby))
+			{
+				UUW_NearbyPanel* NearbyPanel = Cast<UUW_NearbyPanel>(Widget);
+
+				APawn* P = GetLocalPlayer()->GetPlayerController(GetWorld())->GetPawn();
+				ULootScannerComponent* Scanner = P->FindComponentByClass<ULootScannerComponent>();
+
+				NearbyPanel->BindScanner(Scanner);
+			}
+			if (auto* Widget = UIS->ShowUI(EUIType::Player))
+			{
+				UUW_PlayerPanel* PlayerPanel = Cast<UUW_PlayerPanel>(Widget);
+
+				APawn* P = GetLocalPlayer()->GetPlayerController(GetWorld())->GetPawn();
+				UPlayerInventoryComponent* InvComp = P->FindComponentByClass<UPlayerInventoryComponent>();
+
+				PlayerPanel->BindPlayerInventory(InvComp);
+			}
 		}
 	}
 }

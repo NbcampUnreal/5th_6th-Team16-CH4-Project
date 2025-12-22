@@ -208,4 +208,6 @@ public:
 
 #pragma endregion
 
+	//test
+	void OnRotateInventoryItem();
 };
