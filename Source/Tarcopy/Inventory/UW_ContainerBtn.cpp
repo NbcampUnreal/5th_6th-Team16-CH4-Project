@@ -10,14 +10,16 @@
 void UUW_ContainerBtn::NativeConstruct()
 {
 	Super::NativeConstruct();
-	ContainerBtn->OnClicked.AddDynamic(this, &UUW_ContainerBtn::HandleClicked);
+	if (ContainerBtn)
+	{
+		ContainerBtn->OnClicked.AddDynamic(this, &UUW_ContainerBtn::HandleClicked);
+	}
 	RefreshVisual();
 }
 
 void UUW_ContainerBtn::BindContainer(UWorldContainerComponent* InContainer)
 {
-	Inventory = InInventory;
-	DisplayName = InDisplayName;
+	Container = InContainer;
 	RefreshVisual();
 }
 
@@ -28,19 +30,19 @@ void UUW_ContainerBtn::RefreshVisual()
 		return;
 	}
 
-	if (!IsValid(Inventory))
+	if (!Container.IsValid())
 	{
 		ContainerName->SetText(FText::GetEmpty());
 		return;
 	}
-	ContainerName->SetText(DisplayName);
+	ContainerName->SetText(Container->GetDisplayName());
 }
 
 void UUW_ContainerBtn::HandleClicked()
 {
-	if (!IsValid(Inventory))
+	if (!Container.IsValid())
 	{
 		return;
 	}
-	OnClickedWithInventory.Broadcast(Inventory);
+	OnClickedWithContainer.Broadcast(Container.Get());
 }

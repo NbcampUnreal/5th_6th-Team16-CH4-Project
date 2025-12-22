@@ -36,7 +36,7 @@ private:
     void HandleClicked();
 
 public:
-    FOnClickedWithInventory OnClickedWithInventory;
+    FOnClickedWithContainer OnClickedWithContainer;
 
 private:
     UPROPERTY(meta = (BindWidget))

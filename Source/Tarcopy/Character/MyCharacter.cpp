@@ -20,7 +20,7 @@
 #include "Character/MoodleComponent.h"
 #include "AI/MyAICharacter.h"
 #include "Character/ActivateInterface.h"
-#include "Character/CameraObstructionFadeComponent.h"
+#include "Character/CameraObstructionComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -72,7 +72,10 @@ AMyCharacter::AMyCharacter() :
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnInteractionSphereEndOverlap);
 
 	Moodle = CreateDefaultSubobject<UMoodleComponent>(TEXT("Moodle"));
-	CameraObstructionFade = CreateDefaultSubobject<UCameraObstructionFadeComponent>(TEXT("CameraObstructionFade"));
+
+	CameraObstruction = CreateDefaultSubobject<UCameraObstructionComponent>(TEXT("CameraObstruction"));
+	CameraObstruction->SetCamera(Camera);
+	CameraObstruction->SetCapsule(GetCapsuleComponent());
 }
 
 // Called when the game starts or when spawned
