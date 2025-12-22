@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "Item/ItemEnums.h"
-#include "MeleeWeaponData.generated.h"
+#include "FirearmData.generated.h"
 
 USTRUCT()
-struct TARCOPY_API FMeleeWeaponData : public FTableRowBase
+struct TARCOPY_API FFirearmData : public FTableRowBase
 {
 	GENERATED_BODY()
 
@@ -15,6 +15,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<class UAnimMontage> Montage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FName AmmunitionId;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FName MagazineId;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float MinDamage = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float MaxDamage = 0.0f;
@@ -23,7 +27,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float MaxRange = 0.0f;												// 무기 최대 데미지가 적용되는 타점이자 최대 거리
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float AttackSpeed = 1.0f;
+	float Accurancy = 0.5f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float CritChance = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

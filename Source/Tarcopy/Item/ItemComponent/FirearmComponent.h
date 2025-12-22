@@ -2,15 +2,15 @@
 
 #include "CoreMinimal.h"
 #include "Item/ItemComponent/WeaponComponent.h"
-#include "MeleeWeaponComponent.generated.h"
+#include "FirearmComponent.generated.h"
 
-struct FMeleeWeaponData;
+struct FFirearmData;
 
 UCLASS()
-class TARCOPY_API UMeleeWeaponComponent : public UWeaponComponent
+class TARCOPY_API UFirearmComponent : public UWeaponComponent
 {
 	GENERATED_BODY()
-	
+
 public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
@@ -20,18 +20,10 @@ public:
 	virtual void CancelAction() override;
 
 private:
-	void CheckHit();
-	bool CheckIsAttackableTarget(AActor* TargetActor);
+	void CheckHit(const FVector& StartLocation, const FVector& EndLocation);
 
 	void EnableOwnerMovement();
 
 protected:
-	UPROPERTY()
-	TSet<AActor*> HitActors;
-
-	FTimerHandle CheckHitTimerHandle;
-
-	const static float CheckHitDelay;						// default: 근접 공격 애니메이션 시간 = 1초, 공격 시점 = 0.6초
-
-	const FMeleeWeaponData* Data;
+	const FFirearmData* Data;
 };
