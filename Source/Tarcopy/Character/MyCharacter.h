@@ -208,4 +208,8 @@ public:
 
 #pragma endregion
 
+
+#pragma region Inventory
+	void OnRotateInventoryItem();
+#pragma endregion
 };

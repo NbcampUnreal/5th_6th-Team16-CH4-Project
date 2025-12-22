@@ -21,6 +21,14 @@
 #include "AI/MyAICharacter.h"
 #include "Character/ActivateInterface.h"
 #include "Character/CameraObstructionFadeComponent.h"
+#include "Item/WorldSpawnedItem.h"
+#include "Item/Data/ItemData.h"
+#include "Misc/Guid.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "UI/InventoryDragDropOp.h"
+#include "Components/SizeBox.h"
+#include "Inventory/InventoryData.h"
+#include "UI/UW_Inventory.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -437,6 +445,13 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 				EnhancedInput->BindAction(PlayerController->InteractAction, ETriggerEvent::Started, this,
 											&AMyCharacter::Interact);
 			}
+
+			// Item Rotation
+			if (PlayerController->RotateAction)
+			{
+				EnhancedInput->BindAction(PlayerController->RotateAction, ETriggerEvent::Started, this,
+					&AMyCharacter::OnRotateInventoryItem);
+			}
 		}
 	}
 }
@@ -671,5 +686,34 @@ void AMyCharacter::MulticastRPC_ApplyDoorTransforms_Implementation(const TArray<
 		}
 
 		DoorActor->SetActorTransform(DoorTransforms[i]);
+	}
+}
+
+void AMyCharacter::OnRotateInventoryItem()
+{
+	UDragDropOperation* BaseOp = UWidgetBlueprintLibrary::GetDragDroppingContent();
+	UInventoryDragDropOp* Op = Cast<UInventoryDragDropOp>(BaseOp);
+	if (!Op || !IsValid(Op->SourceInventory))
+	{
+		return;
+	}
+
+	Op->bRotated = !Op->bRotated;
+
+	if (IsValid(Op->DragBox) && IsValid(Op->SourceInventoryWidget))
+	{
+		const int32 CellPx = Op->SourceInventoryWidget->GetCellSizePx();
+		const FIntPoint SizeCells = Op->SourceInventory->GetItemSizeByID(Op->ItemId, Op->bRotated);
+
+		if (SizeCells != FIntPoint::ZeroValue)
+		{
+			Op->DragBox->SetWidthOverride(SizeCells.X * CellPx);
+			Op->DragBox->SetHeightOverride(SizeCells.Y * CellPx);
+		}
+	}
+
+	if (Op->HoveredInventoryWidget.IsValid())
+	{
+		Op->HoveredInventoryWidget->ForceUpdatePreviewFromOp(Op);
 	}
 }
