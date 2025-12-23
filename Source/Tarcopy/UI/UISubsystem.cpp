@@ -29,6 +29,7 @@ void UUISubsystem::PlayerControllerChanged(APlayerController* NewPlayerControlle
 {
     Super::PlayerControllerChanged(NewPlayerController);
 
+    ResetAllUI();
     InitRootHUD();
 }
 
@@ -155,17 +156,49 @@ void UUISubsystem::HideInventoryUI(FGuid InventoryID)
     InventoryWidgets.Remove(InventoryID);
 }
 
+void UUISubsystem::ResetAllUI()
+{
+    for (auto& Pair : SingleWidgets)
+    {
+        if (IsValid(Pair.Value))
+        {
+            Pair.Value->RemoveFromParent();
+        }
+    }
+    SingleWidgets.Empty();
+
+    for (auto& Pair : InventoryWidgets)
+    {
+        if (IsValid(Pair.Value))
+        {
+            Pair.Value->RemoveFromParent();
+        }
+    }
+    InventoryWidgets.Empty();
+
+    if (IsValid(RootHUD))
+    {
+        RootHUD->RemoveFromParent();
+        RootHUD = nullptr;
+    }
+}
+
 void UUISubsystem::InitRootHUD()
 {
-    if (RootHUD)
-    {
-        return;
-    }
-
     APlayerController* PC = GetLocalPlayer()->GetPlayerController(GetWorld());
     if (!PC)
     {
         UE_LOG(LogTemp, Error, TEXT("UUISubsystem::InitRootHUD: PC is null!"));
+        return;
+    }
+
+    if (IsValid(RootHUD))
+    {
+        if (!RootHUD->IsInViewport())
+        {
+            RootHUD->AddToViewport();
+            UE_LOG(LogTemp, Warning, TEXT("InitRootHUD: Re-AddToViewport RootHUD"));
+        }
         return;
     }
 
