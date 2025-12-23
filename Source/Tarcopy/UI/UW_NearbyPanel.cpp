@@ -113,11 +113,11 @@ void UUW_NearbyPanel::RefreshContainerList()
 
 	if (bInventoryPanelOpen && !bLastSelectedWasGround)
 	{
-		if (!AvailableContainers.Contains(LastSelectedContainer))
+		if (!AvailableInv.Contains(LastSelectedInventory))
 		{
 			SelectedContainer->SetVisibility(ESlateVisibility::Collapsed);
 			bInventoryPanelOpen = false;
-			LastSelectedContainer = nullptr;
+			LastSelectedInventory = nullptr;
 		}
 	}
 
@@ -125,14 +125,10 @@ void UUW_NearbyPanel::RefreshContainerList()
 
 	for (UInventoryData* Inv : AvailableInv)
 	{
-		if (!Container.IsValid())
-		{
-			continue;
-		}
-
 		UUW_ContainerBtn* Button = CreateWidget<UUW_ContainerBtn>(GetOwningPlayer(), ContainerBtnClass);
-		Button->BindContainer(Container.Get());
-		Button->OnClickedWithContainer.AddUObject(this, &UUW_NearbyPanel::HandleContainerSelected);
+		FText NameText = FText::FromString(Inv->GetID().ToString());
+		Button->BindInventory(Inv, NameText);
+		Button->OnClickedWithInventory.AddUObject(this, &UUW_NearbyPanel::HandleContainerSelected);
 		ContainerScrollBox->AddChild(Button);
 	}
 
@@ -143,23 +139,17 @@ void UUW_NearbyPanel::RefreshContainerList()
 
 void UUW_NearbyPanel::HandleContainerSelected(UInventoryData* Inventory)
 {
-	if (!IsValid(Container) || !InventoryWidget)
+	if (!IsValid(Inventory) || !InventoryWidget)
 	{
 		return;
 	}
 
-	UInventoryData* Inventory = Container->GetInventoryData();
-	if (!IsValid(Inventory))
-	{
-		return;
-	}
-
-	const bool bSameAsLast = bInventoryPanelOpen && !bLastSelectedWasGround && LastSelectedContainer == Container;
+	const bool bSameAsLast = bInventoryPanelOpen && !bLastSelectedWasGround && LastSelectedInventory == Inventory;
 	if (bSameAsLast)
 	{
 		SelectedContainer->SetVisibility(ESlateVisibility::Collapsed);
 		bInventoryPanelOpen = false;
-		LastSelectedContainer = nullptr;
+		LastSelectedInventory = nullptr;
 		return;
 	}
 
@@ -168,7 +158,7 @@ void UUW_NearbyPanel::HandleContainerSelected(UInventoryData* Inventory)
 
 	bInventoryPanelOpen = true;
 	bLastSelectedWasGround = false;
-	LastSelectedContainer = Container;
+	LastSelectedInventory = Inventory;
 }
 
 void UUW_NearbyPanel::HandleGroundSelected()
@@ -191,7 +181,7 @@ void UUW_NearbyPanel::HandleGroundSelected()
 
 	bInventoryPanelOpen = true;
 	bLastSelectedWasGround = true;
-	LastSelectedContainer = nullptr;
+	LastSelectedInventory = nullptr;
 }
 
 void UUW_NearbyPanel::HandleGroundUpdatedWhileOpen()
