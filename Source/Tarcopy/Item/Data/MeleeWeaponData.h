@@ -13,13 +13,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	EBodyLocation BodyLocation = EBodyLocation::Hands;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<class UAnimMontage> Montage;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float MinDamage = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float MaxDamage = 0.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float DoorDamage = 0.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float TreeDamage = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float MinRange = 0.0f;												// 무기 공격이 밀치기로 전환되는 최소 거리
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

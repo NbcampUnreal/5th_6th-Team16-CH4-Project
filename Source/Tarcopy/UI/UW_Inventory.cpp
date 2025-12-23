@@ -11,6 +11,11 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Item/ItemInstance.h"
 #include "UI/InventoryDragDropOp.h"
+#include "Inventory/PlayerInventoryComponent.h"
+#include "Inventory/LootScannerComponent.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
+
 
 bool UUW_Inventory::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
@@ -35,10 +40,36 @@ bool UUW_Inventory::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEve
 	const int32 NewY = FMath::FloorToInt(TopLeftPx.Y / CellSizePx);
 	const FIntPoint NewOrigin(NewX, NewY);
 
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		if (APawn* P = PC->GetPawn())
+		{
+			if (ULootScannerComponent* Scanner = P->FindComponentByClass<ULootScannerComponent>())
+			{
+				const UInventoryData* Ground = Scanner->GetGroundInventoryData();
+				if (Ground && Op->SourceInventory == Ground && BoundInventory == Ground)
+				{
+					return false;
+				}
+			}
+		}
+	}
+
 	const bool bOk = Op->SourceInventory->TryRelocateItem(Op->ItemId, BoundInventory, NewOrigin, Op->bRotated);
 	if (!bOk)
 	{
 		return false;
+	}
+
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		if (APawn* P = PC->GetPawn())
+		{
+			if (UPlayerInventoryComponent* InvComp = P->FindComponentByClass<UPlayerInventoryComponent>())
+			{
+				InvComp->HandleRelocatePostProcess(Op->SourceInventory, Op->ItemId);
+			}
+		}
 	}
 
 	RefreshItems();

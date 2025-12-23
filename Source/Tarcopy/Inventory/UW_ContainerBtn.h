@@ -8,7 +8,6 @@
 
 class UButton;
 class UTextBlock;
-class AContainerActor;
 class UInventoryData;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnClickedWithInventory, UInventoryData* /*Inventory*/);
@@ -37,7 +36,7 @@ private:
     void HandleClicked();
 
 public:
-    FOnClickedWithInventory OnClickedWithInventory;
+    FOnClickedWithContainer OnClickedWithContainer;
 
 private:
     UPROPERTY(meta = (BindWidget))

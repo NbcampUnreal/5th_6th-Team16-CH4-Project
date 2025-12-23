@@ -4,9 +4,8 @@
 #include "Inventory/ContainerActor.h"
 
 #include "Components/BoxComponent.h"
-#include "Misc/Guid.h"
-#include "Inventory/InventoryData.h"
 #include "Components/StaticMeshComponent.h"
+#include "Inventory/WorldContainerComponent.h"
 
 // Sets default values
 AContainerActor::AContainerActor()
@@ -15,6 +14,8 @@ AContainerActor::AContainerActor()
 
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
+
+	ContainerComponent = CreateDefaultSubobject<UWorldContainerComponent>(TEXT("ContainerComponent"));
 
 	SenseBox = CreateDefaultSubobject<UBoxComponent>(TEXT("SenseBox"));
 	SenseBox->SetupAttachment(Root);
@@ -37,16 +38,17 @@ AContainerActor::AContainerActor()
 	}
 }
 
-// Called when the game starts or when spawned
-void AContainerActor::BeginPlay()
+FGuid AContainerActor::GetContainerId() const
 {
-	Super::BeginPlay();
-	
-    if (!ContainerId.IsValid())
-    {
-        ContainerId = FGuid::NewGuid(); // 테스트용
-    }
+	return ContainerComponent ? ContainerComponent->GetContainerId() : FGuid();
+}
 
-    InventoryData = NewObject<UInventoryData>(this);
-    InventoryData->Init(GridSize);
+FText AContainerActor::GetDisplayName() const
+{
+	return ContainerComponent ? ContainerComponent->GetDisplayName() : FText::GetEmpty();
+}
+
+UInventoryData* AContainerActor::GetInventoryData() const
+{
+	return ContainerComponent ? ContainerComponent->GetInventoryData() : nullptr;
 }

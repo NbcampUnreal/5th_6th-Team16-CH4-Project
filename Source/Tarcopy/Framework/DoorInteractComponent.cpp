@@ -2,10 +2,12 @@
 
 #include "Framework/DoorInteractComponent.h"
 #include "GameFramework/Actor.h"
+#include "Components/ActorComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Character/MyCharacter.h"
+#include "Framework/DoorTagUtils.h"
 #include "Kismet/GameplayStatics.h"
 
 UDoorInteractComponent::UDoorInteractComponent()
@@ -87,6 +89,7 @@ void UDoorInteractComponent::BeginPlay()
 
 	if (AActor* Owner = GetOwner())
 	{
+		CacheDoorMeshes();
 		EnsureMovableMesh();
 
 		static const FName DoorSlideTag(TEXT("DoorSlide"));
@@ -114,8 +117,40 @@ void UDoorInteractComponent::ToggleDoor()
 	ToggleDoorInternal(true);
 }
 
+void UDoorInteractComponent::Activate(AActor* InInstigator)
+{
+	ToggleDoorInternal(true);
+}
+
 void UDoorInteractComponent::ApplyDoorState()
 {
+	if (DoorMeshComponents.Num() > 0 && DoorMeshComponents.Num() == DoorMeshInitialRelativeTransforms.Num())
+	{
+		for (int32 Index = 0; Index < DoorMeshComponents.Num(); ++Index)
+		{
+			UStaticMeshComponent* MeshComp = DoorMeshComponents[Index].Get();
+			if (!IsValid(MeshComp))
+			{
+				continue;
+			}
+
+			const FTransform& InitialRel = DoorMeshInitialRelativeTransforms[Index];
+			if (MotionType == EDoorMotionType::Slide)
+			{
+				const FVector LocalOffset = bIsOpen ? OpenLocalOffset : ClosedLocalOffset;
+				MeshComp->SetRelativeLocation(InitialRel.GetLocation() + LocalOffset);
+			}
+			else
+			{
+				FRotator Rot = InitialRel.Rotator();
+				Rot.Yaw = Rot.Yaw + (bIsOpen ? OpenYawOffset : ClosedYawOffset);
+				MeshComp->SetRelativeRotation(Rot);
+			}
+		}
+
+		return;
+	}
+
 	if (AActor* Owner = GetOwner())
 	{
 		if (MotionType == EDoorMotionType::Slide)
@@ -135,6 +170,22 @@ void UDoorInteractComponent::ApplyDoorState()
 
 void UDoorInteractComponent::EnsureMovableMesh() const
 {
+	if (DoorMeshComponents.Num() > 0)
+	{
+		for (const TWeakObjectPtr<UStaticMeshComponent>& MeshPtr : DoorMeshComponents)
+		{
+			if (UStaticMeshComponent* Mesh = MeshPtr.Get())
+			{
+				if (Mesh->Mobility != EComponentMobility::Movable)
+				{
+					Mesh->SetMobility(EComponentMobility::Movable);
+				}
+			}
+		}
+
+		return;
+	}
+
 	if (const AActor* Owner = GetOwner())
 	{
 		if (UStaticMeshComponent* Mesh = Cast<UStaticMeshComponent>(Owner->GetRootComponent()))
@@ -178,6 +229,7 @@ void UDoorInteractComponent::InitializeIfNeeded()
 
 	if (AActor* Owner = GetOwner())
 	{
+		CacheDoorMeshes();
 		EnsureMovableMesh();
 
 		static const FName DoorSlideTag(TEXT("DoorSlide"));
@@ -195,6 +247,28 @@ void UDoorInteractComponent::InitializeIfNeeded()
 	}
 }
 
+void UDoorInteractComponent::CacheDoorMeshes()
+{
+	DoorMeshComponents.Reset();
+	DoorMeshInitialRelativeTransforms.Reset();
+
+	AActor* Owner = GetOwner();
+	if (!IsValid(Owner))
+	{
+		return;
+	}
+
+	TInlineComponentArray<UStaticMeshComponent*> MeshComponents(Owner);
+	for (UStaticMeshComponent* MeshComp : MeshComponents)
+	{
+		if (IsValid(MeshComp) && MeshComp->ComponentHasTag(GetDoorTagName()))
+		{
+			DoorMeshComponents.Add(MeshComp);
+			DoorMeshInitialRelativeTransforms.Add(MeshComp->GetRelativeTransform());
+		}
+	}
+}
+
 void UDoorInteractComponent::RefreshAutoSlideOffsetsFromBounds()
 {
 	if (MotionType != EDoorMotionType::Slide || !bAutoSlideFromBounds)
@@ -209,7 +283,21 @@ void UDoorInteractComponent::RefreshAutoSlideOffsetsFromBounds()
 	}
 
 	const FTransform OwnerTransform = Owner->GetActorTransform();
-	const FBox LocalBounds = Owner->GetComponentsBoundingBox(true).TransformBy(OwnerTransform.Inverse());
+	FBox LocalBounds(ForceInit);
+
+	if (DoorMeshComponents.Num() > 0)
+	{
+		if (const UStaticMeshComponent* MeshComp = DoorMeshComponents[0].Get())
+		{
+			LocalBounds = MeshComp->Bounds.GetBox().TransformBy(OwnerTransform.Inverse());
+		}
+	}
+
+	if (!LocalBounds.IsValid)
+	{
+		LocalBounds = Owner->GetComponentsBoundingBox(true).TransformBy(OwnerTransform.Inverse());
+	}
+
 	const FVector LocalExtent = LocalBounds.GetExtent(); // owner-local half size
 
 	// FVector(UE::Math::TVector<double>) does not provide GetMinAxis/GetMaxAxis in UE5,
@@ -273,7 +361,6 @@ void UDoorInteractComponent::ToggleDoorInternal(bool bPropagateToGroup)
 		return;
 	}
 
-	static const FName DoorTag(TEXT("Door"));
 	const FName GroupTag = ResolveDoorGroupTag();
 	if (GroupTag == NAME_None)
 	{
@@ -298,7 +385,7 @@ void UDoorInteractComponent::ToggleDoorInternal(bool bPropagateToGroup)
 
 	for (AActor* DoorActor : GroupActors)
 	{
-		if (!IsValid(DoorActor) || !DoorActor->ActorHasTag(DoorTag))
+		if (!ActorHasDoorTagOrDoorMesh(DoorActor))
 		{
 			continue;
 		}

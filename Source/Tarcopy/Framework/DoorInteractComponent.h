@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Character/ActivateInterface.h"
 #include "DoorInteractComponent.generated.h"
 
 UENUM(BlueprintType)
@@ -14,7 +15,7 @@ enum class EDoorMotionType : uint8
 };
 
 UCLASS(ClassGroup = (Interaction), Blueprintable, BlueprintType, meta = (BlueprintSpawnableComponent))
-class TARCOPY_API UDoorInteractComponent : public UActorComponent
+class TARCOPY_API UDoorInteractComponent : public UActorComponent, public IActivateInterface
 {
 	GENERATED_BODY()
 
@@ -24,11 +25,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Door")
 	void ToggleDoor();
 
+	virtual void Activate(AActor* InInstigator) override;
+
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 
 protected:
 	virtual void BeginPlay() override;
+
+	UPROPERTY(Transient)
+	TArray<TWeakObjectPtr<class UStaticMeshComponent>> DoorMeshComponents;
+
+	UPROPERTY(Transient)
+	TArray<FTransform> DoorMeshInitialRelativeTransforms;
 
 	UPROPERTY(EditAnywhere, Category = "Door")
 	EDoorMotionType MotionType = EDoorMotionType::SwingYaw;
@@ -86,6 +95,7 @@ protected:
 	void InitializeIfNeeded();
 	void SetDoorOpenInternal(bool bOpen);
 	void ToggleDoorInternal(bool bPropagateToGroup);
+	void CacheDoorMeshes();
 	FName ResolveDoorGroupTag() const;
 	void RefreshAutoSlideOffsetsFromBounds();
 	void UpdateInteractionBoxFromOwner();

@@ -13,6 +13,7 @@ class USphereComponent;
 class UDoorInteractComponent;
 struct FInputActionValue;
 class UMoodleComponent;
+class UCameraObstructionComponent;
 
 UCLASS()
 class TARCOPY_API AMyCharacter : public ACharacter
@@ -51,6 +52,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Interaction", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USphereComponent> InteractionSphere;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Equip", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UEquipComponent> EquipComponent;
+
 	UFUNCTION()
 	virtual void OnInteractionSphereBeginOverlap(
 		UPrimitiveComponent* OverlappedComp,
@@ -82,17 +86,8 @@ protected:
 		int32 OtherBodyIndex);
 
 protected:
-	void UpdateCameraObstructionFade();
-
-	UPROPERTY(EditAnywhere, Category = "Vision|Occlusion")
-	float ObstructionTraceInterval = 0.05f;
-
-	UPROPERTY(EditAnywhere, Category = "Vision|Occlusion")
-	float FadeHoldTime = 0.15f;
-
-	float TimeSinceLastObstructionTrace = 0.f;
-
-	TMap<TWeakObjectPtr<UPrimitiveComponent>, float> FadeHoldUntil;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UCameraObstructionComponent> CameraObstruction;
 
 public:
 	void AddInteractableDoor(AActor* DoorActor);
@@ -214,6 +209,13 @@ public:
 	UFUNCTION()
 	void SetItem();
 
+	UFUNCTION()
+	bool GetAimTarget(AActor*& OutTargetActor, FName& OutBone);
+
 #pragma endregion
 
+
+#pragma region Inventory
+	void OnRotateInventoryItem();
+#pragma endregion
 };

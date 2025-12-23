@@ -12,7 +12,6 @@ class UUW_InventoryBorder;
 class UUW_Inventory;
 class UScrollBox;
 class UUW_ContainerBtn;
-class AContainerActor;
 class UInventoryData;
 
 /**

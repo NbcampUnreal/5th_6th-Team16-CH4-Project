@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
+#include "Misc/Guid.h"
 #include "LootScannerComponent.generated.h"
 
 class USphereComponent;
-class AContainerActor;
+class UWorldContainerComponent;
 class AWorldSpawnedItem;
 class UInventoryData;
 
@@ -32,12 +33,14 @@ public:
 
 	void RebuildGroundInventory();
 
+	bool ConsumeGroundWorldItemByInstanceId(const FGuid& InstanceId);
+
 	FOnScannedContainersChanged OnScannedContainersChanged;
 
 	FOnScannedGroundChanged OnScannedGroundChanged;
 
 	UPROPERTY()
-	TSet<TWeakObjectPtr<AContainerActor>> OverlappedContainerActors;
+	TSet<TWeakObjectPtr<UWorldContainerComponent>> OverlappedContainers;
 
 	UPROPERTY()
 	TSet<TWeakObjectPtr<AWorldSpawnedItem>> OverlappedContainerItems;

@@ -4,6 +4,19 @@
 #include "Controller/MyPlayerController.h"
 #include <EnhancedInputSubsystems.h>
 #include "Item/Temp/UW_TempItem.h"
+#include "Inventory/InventoryData.h"
+#include "Item/ItemInstance.h"
+#include "Item/Data/ItemData.h"
+#include "UI/UW_Inventory.h"
+#include "UI/UW_InventoryBorder.h"
+#include "UI/UISubsystem.h"
+#include "UI/UW_NearbyPanel.h"
+#include "Inventory/LootScannerComponent.h"
+#include "UI/UW_PlayerPanel.h"
+#include "Inventory/PlayerInventoryComponent.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "UI/InventoryDragDropOp.h"
+#include "Components/SizeBox.h"
 
 AMyPlayerController::AMyPlayerController() :
 	IMC_Character(nullptr),
@@ -32,6 +45,31 @@ void AMyPlayerController::BeginPlay()
 		if (IsValid(TempItemInstance) == true)
 		{
 			TempItemInstance->AddToViewport(0);
+		}
+	}
+
+	if (auto* LP = GetLocalPlayer())
+	{
+		if (auto* UIS = LP->GetSubsystem<UUISubsystem>())
+		{
+			if (auto* Widget = UIS->ShowUI(EUIType::Nearby))
+			{
+				UUW_NearbyPanel* NearbyPanel = Cast<UUW_NearbyPanel>(Widget);
+
+				APawn* P = GetLocalPlayer()->GetPlayerController(GetWorld())->GetPawn();
+				ULootScannerComponent* Scanner = P->FindComponentByClass<ULootScannerComponent>();
+
+				NearbyPanel->BindScanner(Scanner);
+			}
+			if (auto* Widget = UIS->ShowUI(EUIType::Player))
+			{
+				UUW_PlayerPanel* PlayerPanel = Cast<UUW_PlayerPanel>(Widget);
+
+				APawn* P = GetLocalPlayer()->GetPlayerController(GetWorld())->GetPawn();
+				UPlayerInventoryComponent* InvComp = P->FindComponentByClass<UPlayerInventoryComponent>();
+
+				PlayerPanel->BindPlayerInventory(InvComp);
+			}
 		}
 	}
 }
