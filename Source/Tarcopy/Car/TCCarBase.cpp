@@ -18,6 +18,9 @@
 #include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/BoxComponent.h"
+#include "Car/TCVehicleWheelFront.h"
+#include "Car/TCVehicleWheelRear.h"
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
 
@@ -63,11 +66,9 @@ ATCCarBase::ATCCarBase() :
 
 	ChaosVehicleMovement = CastChecked<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement());
 
-	CombatComponent = CreateDefaultSubobject<UTCCarCombatComponent>(TEXT("CombatComponent"));
-
 	ChaosVehicleMovement->SetIsReplicated(true);
 
-	GetMesh()->SetAngularDamping(3.0f);
+	GetMesh()->SetAngularDamping(5.0f);
 	//Test
 	CurrentFuel = 100.f;
 
@@ -139,6 +140,8 @@ void ATCCarBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	DOREPLIFETIME(ThisClass, CurrentFuel);
 	DOREPLIFETIME(ThisClass, RidePawn);
 	DOREPLIFETIME(ThisClass, bPossessed);
+	DOREPLIFETIME(ThisClass, SteeringFactor);
+	DOREPLIFETIME(ThisClass, ThrottleFactor);
 }
 
 void ATCCarBase::UnPossessed()
@@ -159,28 +162,7 @@ void ATCCarBase::PossessedBy(AController* NewController)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Failed"));
 	}
-}
 
-void ATCCarBase::OnRep_Controller()
-{
-	Super::OnRep_Controller();
-
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (!PC) return;
-
-	ULocalPlayer* LP = PC->GetLocalPlayer();
-	checkf(LP, TEXT("ATCCarBase::OnRep_Controller() LP"));
-
-	UISubsystem = LP->GetSubsystem<UUISubsystem>();
-	if (UISubsystem)
-	{
-		CarWidgetInstance = Cast<UTCCarWidget>(UISubsystem->ShowUI(EUIType::Car));
-	}
-
-	ACharacter* PlayerCharacter = Cast<ACharacter>(RidePawn);
-	ServerRPCHideCharacter(PlayerCharacter);
-
-	//나중에 시동기능을 넣으면 거기로 이동할 예정
 	TWeakObjectPtr<ATCCarBase> WeakThis(this);
 
 	if (HasAuthority())
@@ -194,7 +176,7 @@ void ATCCarBase::OnRep_Controller()
 						if (!WeakThis.IsValid())
 							return;
 
-						float Consumption = 0.02f;
+						float Consumption = 0.f;
 
 						float CurrentRPM = WeakThis->ChaosVehicleMovement->GetEngineRotationSpeed();
 						float ClampedRate = FMath::Clamp(CurrentRPM / 6000.f, 0.f, 1.f);
@@ -209,20 +191,40 @@ void ATCCarBase::OnRep_Controller()
 	}
 }
 
+void ATCCarBase::OnRep_Controller()
+{
+	Super::OnRep_Controller();
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC) return;
+
+	ULocalPlayer* LP = PC->GetLocalPlayer();
+	checkf(LP, TEXT("ATCCarBase::OnRep_Controller() LP"));
+
+	UISubsystem = LP->GetSubsystem<UUISubsystem>();
+	if (IsValid(UISubsystem))
+	{
+		CarWidgetInstance = Cast<UTCCarWidget>(UISubsystem->ShowUI(EUIType::Car));
+	}
+
+	ACharacter* PlayerCharacter = Cast<ACharacter>(RidePawn);
+	ServerRPCHideCharacter(PlayerCharacter);
+}
+
 
 void ATCCarBase::Steering(const FInputActionValue& Value)
 {
-	DoSteering(Value.Get<float>());
+	DoSteering(Value.Get<float>()*SteeringFactor);
 }
 
 void ATCCarBase::Throttle(const FInputActionValue& Value)
 {
-	DoThrottle(Value.Get<float>());
+	DoThrottle(Value.Get<float>()*ThrottleFactor);
 }
 
 void ATCCarBase::Brake(const FInputActionValue& Value)
 {
-	DoBrake(Value.Get<float>());
+	DoBrake(Value.Get<float>()*ThrottleFactor);
 }
 
 void ATCCarBase::StartBrake(const FInputActionValue& Value)
@@ -319,7 +321,7 @@ void ATCCarBase::DoHandLight()
 
 void ATCCarBase::DamageOn()
 {
-	CombatComponent->ApplyDamage(CombatComponent->GetTestMesh(), 100.f);
+	CombatComponent->ApplyDamage(CombatComponent->FrontBox, 100.f, GetActorLocation());
 }
 
 void ATCCarBase::OnRep_UpdateGas()
@@ -348,7 +350,6 @@ void ATCCarBase::ExitVehicle(APawn* InPawn, APlayerController* InPC)
 	ServerRPCShowCharacter();
 	
 	PC->ChangeIMC(PC->IMC_Character);
-	//PC->ServerRPCChangePossess(RidePawn);
 
 	if (CarWidgetInstance) 
 	{
@@ -375,7 +376,6 @@ void ATCCarBase::Activate(AActor* InInstigator)
 		return;
 	}
 	EnterVehicle(Pawn, PC);
-
 }
 
 bool ATCCarBase::FindDismountLocation(FVector& OutLocation) const
@@ -449,6 +449,19 @@ bool ATCCarBase::FindDismountLocation(FVector& OutLocation) const
 	return false;
 }
 
+void ATCCarBase::DisableWheel(UPrimitiveComponent* DestroyComponent)
+{
+	if (DestroyComponent->ComponentHasTag("Front"))
+	{
+		SteeringFactor -= 0.5;
+		ThrottleFactor -= 0.15;
+	}
+	else if (DestroyComponent->ComponentHasTag("Back"))
+	{
+		ThrottleFactor -= 0.35;
+	}
+}
+
 void ATCCarBase::ServerRPCShowCharacter_Implementation()
 {
 	ACharacter* PlayerCharacter = Cast<ACharacter>(RidePawn);
@@ -490,7 +503,6 @@ void ATCCarBase::ServerRPCHideCharacter_Implementation(ACharacter* InCharacter)
 
 void ATCCarBase::OnRep_bPossessed()
 {
-	UE_LOG(LogTemp, Error, TEXT("OnRep"));
 	ACharacter* PlayerCharacter = Cast<ACharacter>(RidePawn);
 	if (!PlayerCharacter) return;
 	if (bPossessed)

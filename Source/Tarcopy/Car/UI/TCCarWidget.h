@@ -28,6 +28,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void UpdateFuel(float InValue);
 
+	UFUNCTION(BlueprintCallable)
+	void UpdateCarDamage(float Ratio);
+
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Speed")
@@ -57,6 +60,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	UImage* ImageFuel;
+
+	UPROPERTY(meta = (BindWidget))
+	UImage* ImageCarSection;
 
 	UPROPERTY()
 	UMaterialInstanceDynamic* MIDFuel;

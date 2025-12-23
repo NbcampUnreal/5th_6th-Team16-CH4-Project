@@ -200,6 +200,18 @@ public:
 
 	UPROPERTY(ReplicatedUsing = OnRep_bPossessed)
 	uint8 bPossessed : 1;
+#pragma endregion
+
+#pragma region Damage
+
+	UPROPERTY(Replicated)
+	float SteeringFactor = 1.f;
+
+	UPROPERTY(Replicated)
+	float ThrottleFactor = 1.f;
+	
+	void DisableWheel(UPrimitiveComponent* DestroyComponent);
+
 
 	
 };
