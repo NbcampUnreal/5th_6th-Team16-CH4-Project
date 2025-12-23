@@ -32,6 +32,8 @@ public:
 	UUW_InventoryBorder* ShowInventoryUI(UInventoryData* InventoryData);
 	void HideInventoryUI(FGuid InventoryID);
 
+	void ResetAllUI();
+
 private:
 	void InitRootHUD();
 
