@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "UW_Inventory.h"
+#include "UI/Inventory/UW_Inventory.h"
 
 #include "UW_InventoryItem.generated.h"
 

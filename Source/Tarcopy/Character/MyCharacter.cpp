@@ -21,14 +21,15 @@
 #include "AI/MyAICharacter.h"
 #include "Character/ActivateInterface.h"
 #include "Character/CameraObstructionFadeComponent.h"
+#include "Character/CameraObstructionComponent.h"
 #include "Item/WorldSpawnedItem.h"
 #include "Item/Data/ItemData.h"
 #include "Misc/Guid.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
-#include "UI/InventoryDragDropOp.h"
+#include "UI/Inventory/InventoryDragDropOp.h"
 #include "Components/SizeBox.h"
 #include "Inventory/InventoryData.h"
-#include "UI/UW_Inventory.h"
+#include "UI/Inventory/UW_Inventory.h"
 #include "Tarcopy.h"
 
 // Sets default values

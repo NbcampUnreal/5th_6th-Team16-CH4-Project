@@ -1,13 +1,13 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/InventoryDragDropOp.h"
+#include "UI/Inventory/InventoryDragDropOp.h"
 
 #include "Inventory/PlayerInventoryComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
 #include "Inventory/InventoryData.h"
-#include "UI/UW_Inventory.h"
+#include "UI/Inventory/UW_Inventory.h"
 #include "Inventory/LootScannerComponent.h"
 
 void UInventoryDragDropOp::DragCancelled_Implementation(const FPointerEvent& PointerEvent)

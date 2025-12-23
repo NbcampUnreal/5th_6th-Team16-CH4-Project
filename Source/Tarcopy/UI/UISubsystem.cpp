@@ -9,8 +9,8 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Inventory/InventoryData.h"
 #include "Misc/Guid.h"
-#include "UI/UW_Inventory.h"
-#include "UI/UW_InventoryBorder.h"
+#include "UI/Inventory/UW_Inventory.h"
+#include "UI/Inventory/UW_InventoryBorder.h"
 
 UUISubsystem::UUISubsystem()
 {

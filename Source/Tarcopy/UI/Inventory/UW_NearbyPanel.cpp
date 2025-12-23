@@ -1,14 +1,14 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/UW_NearbyPanel.h"
+#include "UI/Inventory/UW_NearbyPanel.h"
 
 #include "Components/ScrollBox.h"
 #include "Inventory/LootScannerComponent.h"
 #include "Inventory/WorldContainerComponent.h"
 #include "UI/UISubsystem.h"
-#include "UI/UW_InventoryBorder.h"
-#include "UI/UW_Inventory.h"
+#include "UI/Inventory/UW_InventoryBorder.h"
+#include "UI/Inventory/UW_Inventory.h"
 #include "Components/NamedSlot.h"
 #include "Components/Button.h"
 #include "Blueprint/WidgetTree.h"

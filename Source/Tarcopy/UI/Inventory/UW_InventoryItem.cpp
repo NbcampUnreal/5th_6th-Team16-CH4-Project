@@ -1,10 +1,10 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/UW_InventoryItem.h"
+#include "UI/Inventory/UW_InventoryItem.h"
 
-#include "UI/UW_Inventory.h"
-#include "UI/InventoryDragDropOp.h"
+#include "UI/Inventory/UW_Inventory.h"
+#include "UI/Inventory/InventoryDragDropOp.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Inventory/InventoryData.h"
 #include "Components/SizeBox.h"

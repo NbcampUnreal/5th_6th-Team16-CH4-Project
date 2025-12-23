@@ -1,16 +1,16 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/UW_Inventory.h"
+#include "UI/Inventory/UW_Inventory.h"
 
 #include "Inventory/InventoryData.h"
-#include "UI/UW_InventoryCell.h"
-#include "UI/UW_InventoryItem.h"
+#include "UI/Inventory/UW_InventoryCell.h"
+#include "UI/Inventory/UW_InventoryItem.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Item/ItemInstance.h"
-#include "UI/InventoryDragDropOp.h"
+#include "UI/Inventory/InventoryDragDropOp.h"
 #include "Inventory/PlayerInventoryComponent.h"
 #include "Inventory/LootScannerComponent.h"
 #include "GameFramework/Pawn.h"
