@@ -15,6 +15,7 @@ enum class EUIType : uint8
 {
     Root,
     Title,
+    Option,
     Inventory,
     InventoryBorder,
     Player,
