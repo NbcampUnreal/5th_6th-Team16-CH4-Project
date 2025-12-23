@@ -60,6 +60,8 @@ ATCSportsCar::ATCSportsCar()
 
 	GetChaosVehicleMovement()->SteeringSetup.SteeringType = ESteeringType::Ackermann;
 	GetChaosVehicleMovement()->SteeringSetup.AngleRatio = 0.7f;
+
+	
 }
 
 

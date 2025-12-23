@@ -8,11 +8,34 @@
 #include "WheeledVehiclePawn.h"
 #include "Car/TCCarBase.h"
 #include "Car/TCChaosVehicleDummyWheel.h"
-
+#include "Components/BoxComponent.h"
+#include "Car/UI/TCCarWidget.h"
 
 UTCCarCombatComponent::UTCCarCombatComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+
+	FrontBox = CreateDefaultSubobject<UBoxComponent>(TEXT("FrontBox"));
+
+	FrontBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FrontBox->ComponentTags.Add("Front");
+	DamageZone.Add(FrontBox);
+
+	BackBox = CreateDefaultSubobject<UBoxComponent>(TEXT("BackBox"));
+	BackBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	BackBox->ComponentTags.Add("Back");
+	DamageZone.Add(BackBox);
+
+	RightBox = CreateDefaultSubobject<UBoxComponent>(TEXT("RightBox"));
+	RightBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RightBox->ComponentTags.Add("Right");
+	DamageZone.Add(RightBox);
+
+	LeftBox = CreateDefaultSubobject<UBoxComponent>(TEXT("LeftBox"));
+	LeftBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	LeftBox->ComponentTags.Add("Left");
+	DamageZone.Add(LeftBox);
+
 }
 
 void UTCCarCombatComponent::BeginPlay()
@@ -27,30 +50,28 @@ void UTCCarCombatComponent::BeginPlay()
 		{
 			VehicleMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 			VehicleMesh->SetNotifyRigidBodyCollision(true);
-
+			VehicleMesh->OnComponentHit.AddDynamic(this, &UTCCarCombatComponent::OnVehicleHit);
 		}
 	}
 
 	Owner->GetComponents<UStaticMeshComponent>(Meshes);
-	
-	for (auto Mesh : Meshes)
+	checkf(PartDataAsset, TEXT("No Data"));
+
+	for (UStaticMeshComponent* Mesh : Meshes)
 	{
-		ComponentHealth.Add(Mesh, 100);
+		const FName CompName = Mesh->GetFName();
 
-		Mesh->SetSimulatePhysics(false);
-
-		Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		Mesh->SetNotifyRigidBodyCollision(true);
-
-		Mesh->SetCollisionProfileName(TEXT("CarProfile"));
-
-		Mesh->OnComponentHit.AddDynamic(this, &UTCCarCombatComponent::OnVehiclePartHit);
+		if (const FCarPartStat* Stat =
+			PartDataAsset->PartData.Find(CompName))
+		{
+			PartDataMap.Add(Mesh, *Stat);
+			ComponentHealth.Add(Mesh, Stat->MaxHealth);
+		}
 	}
 }
 
 void UTCCarCombatComponent::DestroyPart(UPrimitiveComponent* DestroyComponent)
 {
-	DestroyComponent->OnComponentHit.RemoveDynamic(this, &UTCCarCombatComponent::OnVehiclePartHit);
 	if (DestroyComponent->ComponentHasTag("Window"))
 	{
 		DestroyWindow(DestroyComponent);
@@ -83,54 +104,30 @@ void UTCCarCombatComponent::DestroyWindow(UPrimitiveComponent* DestroyComponent)
 
 void UTCCarCombatComponent::DestroyWheel(UPrimitiveComponent* DestroyComponent)
 {
-	int32 WheelIndex = FindWheelIndexFromComp(DestroyComponent);
+	DisableWheelPhysics(DestroyComponent);
 
-	UStaticMeshComponent* WheelMesh = Cast<UStaticMeshComponent>(DestroyComponent);
-	if (!WheelMesh) return;
-
-	if (WheelActorClass) 
-	{
-		FActorSpawnParameters Params;
-		Params.SpawnCollisionHandlingOverride =
-			ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		GetWorld()->SpawnActor<AActor>(
-			WheelActorClass,
-			WheelMesh->GetComponentTransform(),
-			Params
-		);
-	}
-
-	WheelMesh->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-	WheelMesh->SetVisibility(false);
-
-	DisableWheelPhysics(WheelIndex);
+	DestroyDefault(DestroyComponent);
 }
 
 void UTCCarCombatComponent::DestroyMain(UPrimitiveComponent* DestroyComponent)
 {
-	//자동차 전체파괴
+
 }
 
 void UTCCarCombatComponent::DestroyDefault(UPrimitiveComponent* DestroyComponent)
 {
-	DestroyComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	DestroyComponent->SetCollisionProfileName("BlockAll");
 	DestroyComponent->SetSimulatePhysics(true);
-	DestroyComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	DestroyComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 }
 
-void UTCCarCombatComponent::DisableWheelPhysics(int32 WheelIndex)
+void UTCCarCombatComponent::DisableWheelPhysics(UPrimitiveComponent* DestroyComponent)
 {
 	ATCCarBase* Car = Cast<ATCCarBase>(GetOwner());
 	if (!Car) return;
 
-	UChaosWheeledVehicleMovementComponent* Move = Car->GetChaosVehicleMovement();
-	if (!Move) return;
 
-	if (!Move->WheelSetups.IsValidIndex(WheelIndex))
-		return;
-
-	FChaosWheelSetup& Wheel = Move->WheelSetups[WheelIndex];
+	Car->DisableWheel(DestroyComponent);
 
 	/*Move->SetWheelFrictionMultiplier(WheelIndex, 0.1f);
 	Move->SetWheelHandbrakeTorque(WheelIndex, 0.1f);
@@ -143,60 +140,84 @@ void UTCCarCombatComponent::DisableWheelPhysics(int32 WheelIndex)
 
 }
 
-void UTCCarCombatComponent::OnVehiclePartHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	const float ImpulseSize = NormalImpulse.Size();
+
+	if (ImpulseSize < MinDamageImpulse)
+		return;
 
 	if (OtherActor == GetOwner()) return;
 
-	ApplyDamage(HitComp, 100.f);
-}
+	const float Now = GetWorld()->GetTimeSeconds();
 
-int32 UTCCarCombatComponent::FindWheelIndexFromComp(UPrimitiveComponent* DestroyComponent)
-{
-	if (!DestroyComponent) return -1;
+	if (Now - LastHitTime < 0.5f) return;
 
-	AWheeledVehiclePawn* Vehicle = Cast<AWheeledVehiclePawn>(GetOwner());
-	if (!Vehicle) return -1;
+	LastHitTime = Now;
 
-	USkeletalMeshComponent* Mesh = Vehicle->GetMesh();
-	if (!Mesh) return -1;
+	float Damage = ImpulseSize * DamageFactor;
 
-	FName HitBone = DestroyComponent->GetAttachSocketName();
-	if (HitBone.IsNone())
-	{
-		HitBone = Mesh->FindClosestBone(DestroyComponent->GetComponentLocation());
-	}
+	UE_LOG(LogTemp, Error, TEXT("Hit %.0f"), Damage);
 
-	ATCCarBase* Car = Cast<ATCCarBase>(GetOwner());
+	const FVector WorldPoint = Hit.ImpactPoint;
 	
-	UChaosWheeledVehicleMovementComponent* Move = Car->GetChaosVehicleMovement();
-		
-	
-	if (!Move) return -1;
-	for (int32 i = 0; i < Move->WheelSetups.Num(); i++)
+
+	for (auto Zone : DamageZone)
 	{
-		if (Move->WheelSetups[i].BoneName == HitBone)
+		if (Zone && IsPointInsideBox(Zone, WorldPoint))
 		{
-			return i;		
+			ApplyDamage(Zone, Damage, WorldPoint);
 		}
 	}
-
-	return -1;
 }
 
-void UTCCarCombatComponent::ApplyDamage(UPrimitiveComponent* HitComp, float Damage)
+void UTCCarCombatComponent::ApplyDamage(UBoxComponent* InBox, float Damage,const FVector& WorldPoint)
 {
-	if (!HitComp) return ;
+	if (!InBox) return;
 
-	if (ComponentHealth.Contains(HitComp))
+	for (const FName& Tag : InBox->ComponentTags)
 	{
-		ComponentHealth[HitComp] = FMath::Clamp(ComponentHealth[HitComp] - Damage, 0.f, 100.f);
-
-		if (ComponentHealth[HitComp] <= 0)
+		for (auto& MeshHP : ComponentHealth)
 		{
-			DestroyPart(HitComp);
+			if (MeshHP.Key->ComponentHasTag(Tag))
+			{
+				FVector MeshLocation = MeshHP.Key->GetComponentLocation();
+				float MeshImpactDist = FVector::Dist(MeshLocation, WorldPoint);
+
+
+				MeshHP.Value = FMath::Clamp(MeshHP.Value - Damage, 0.f, PartDataMap[MeshHP.Key].MaxHealth);
+				UE_LOG(LogTemp, Error, TEXT("Component Name %s , CurrentHP %.0f"), *MeshHP.Key->GetName(), MeshHP.Value);
+				if (MeshHP.Value <= 0)
+				{
+					DestroyPart(MeshHP.Key);
+				}
+
+				if (MeshHP.Key->ComponentHasTag("Main"))
+				{
+					ATCCarBase* Car = Cast<ATCCarBase>(GetOwner());
+					if (!Car) return;
+
+					UTCCarWidget* WidgetInstance = Car->CarWidgetInstance;
+					WidgetInstance->UpdateCarDamage(MeshHP.Value / PartDataMap[MeshHP.Key].MaxHealth);
+				}
+			}
 		}
 	}
+}
+
+bool UTCCarCombatComponent::IsPointInsideBox(UBoxComponent* InBox, const FVector& WorldPoint)
+{
+	if (!InBox) return false;
+
+	const FTransform& BoxTM = InBox->GetComponentTransform();
+	FVector LocalPoint = BoxTM.InverseTransformPosition(WorldPoint);
+	FVector Extent = InBox->GetUnscaledBoxExtent();
+
+	return
+		FMath::Abs(LocalPoint.X) <= Extent.X &&
+		FMath::Abs(LocalPoint.Y) <= Extent.Y &&
+		FMath::Abs(LocalPoint.Z) <= Extent.Z;
+
 }
 
 UPrimitiveComponent* UTCCarCombatComponent::GetTestMesh()

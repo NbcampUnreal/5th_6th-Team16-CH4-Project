@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Car/Data/TCCarPartDataAsset.h"
 #include "TCCarCombatComponent.generated.h"
 
 class UStaticMeshComponent;
+class UBoxComponent;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class TARCOPY_API UTCCarCombatComponent : public UActorComponent
@@ -16,13 +18,9 @@ class TARCOPY_API UTCCarCombatComponent : public UActorComponent
 public:	
 	UTCCarCombatComponent();
 
-	void ApplyDamage(UPrimitiveComponent* HitComp, float Damage);
+	void ApplyDamage(UBoxComponent* InBox, float Damage, const FVector& WorldPoint);
 
 protected:
-
-	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Combat")
-	TMap<UPrimitiveComponent*, float> ComponentHealth;
-
 	virtual void BeginPlay() override;
 
 	void DestroyPart(UPrimitiveComponent* DestroyComponent);
@@ -35,10 +33,10 @@ protected:
 
 	void DestroyDefault(UPrimitiveComponent* DestroyComponent);
 
-	void DisableWheelPhysics(int32 WheelIndex);
-	
+	void DisableWheelPhysics(UPrimitiveComponent* DestroyComponent);
+
 	UFUNCTION()
-	void OnVehiclePartHit(
+	void OnVehicleHit(
 		UPrimitiveComponent* HitComp,
 		AActor* OtherActor,
 		UPrimitiveComponent* OtherComp,
@@ -46,18 +44,50 @@ protected:
 		const FHitResult& Hit
 	);
 
-	int32 FindWheelIndexFromComp(UPrimitiveComponent* DestroyComponent);
+	bool IsPointInsideBox(UBoxComponent* InBox, const FVector& WorldPoint);
 	
 public:	
 
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<AActor> WheelActorClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitBox")
+	UBoxComponent* FrontBox;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitBox")
+	UBoxComponent* BackBox;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitBox")
+	UBoxComponent* RightBox;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HitBox")
+	UBoxComponent* LeftBox;
+
+	UPROPERTY()
+	TArray<UBoxComponent*> DamageZone;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DamageFactor = 0.00001f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MinDamageImpulse = 50000.f;
+
+	float LastHitTime = 0.f;
+
+	UPROPERTY(EditAnywhere)
+	UTCCarPartDataAsset* PartDataAsset;
+
+	UPROPERTY(EditAnywhere)
+	TMap<TObjectPtr<UPrimitiveComponent>, FCarPartStat> PartDataMap;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	TMap<TObjectPtr<UPrimitiveComponent>, float> ComponentHealth;
+
+	float DistanceRatio;
 
 	//Test
 	UPrimitiveComponent* GetTestMesh();
 
 	UPrimitiveComponent* TestMesh;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TArray<UStaticMeshComponent*> Meshes;
 
 	
