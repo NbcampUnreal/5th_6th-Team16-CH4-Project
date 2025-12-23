@@ -6,14 +6,26 @@
 
 class UItemInstance;
 
+DECLARE_MULTICAST_DELEGATE(FOnUpdatedItemComponent)
+
 UCLASS(Abstract)
 class TARCOPY_API UItemComponentBase : public UObject
 {
 	GENERATED_BODY()
-	
+
+protected:
+	virtual bool IsSupportedForNetworking() const override;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual int32 GetFunctionCallspace(UFunction* Function, FFrame* Stack) override;
+	virtual bool CallRemoteFunction(UFunction* Function, void* Parms, struct FOutParmRec* OutParms, FFrame* Stack) override;
+
 public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem);
 	UItemInstance* GetOwnerItem() const;
+
+	ACharacter* GetOwnerCharacter() const;
+
+	bool HasAuthority() const;
 
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) {}
 
@@ -22,7 +34,13 @@ public:
 protected:
 	const struct FItemData* GetOwnerItemData() const;
 
+	UFUNCTION()
+	virtual void OnRep_SetComponent() {}
+
+public:
+	FOnUpdatedItemComponent OnUpdatedItemComponent;
+
 protected:
-	UPROPERTY()
+	UPROPERTY(ReplicatedUsing = OnRep_SetComponent)
 	TWeakObjectPtr<UItemInstance> OwnerItem;
 };

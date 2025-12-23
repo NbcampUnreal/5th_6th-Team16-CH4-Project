@@ -16,9 +16,19 @@ public:
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void OnRep_SetComponent() override;
+
+public:
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_Fill(float InAmount);
+	UFUNCTION()
+	void OnRep_PrintFluid();
+
+protected:
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_PrintFluid)
 	FName ContainedFluidId;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_PrintFluid)
 	float Amount;
 
 	const FFluidContainerData* Data;

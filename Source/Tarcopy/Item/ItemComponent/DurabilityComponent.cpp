@@ -5,21 +5,16 @@
 #include "Item/Data/ItemData.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Item/ItemCommand/RepairCommand.h"
+#include "Net/UnrealNetwork.h"
 
 void UDurabilityComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
 
-	const FItemData* ItemData = GetOwnerItemData();
-	if (ItemData == nullptr)
-		return;
-
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return;
-
-	Data = DataTableSubsystem->GetTable(EDataTableType::DurabilityTable)->FindRow<FDurabilityData>(ItemData->ItemId, FString(""));
 	if (Data == nullptr)
+		return;
+
+	if (HasAuthority() == false)
 		return;
 
 	Condition = Data->MaxCondition;
@@ -41,14 +36,42 @@ void UDurabilityComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>
 	OutCommands.Add(RepairCommand);
 }
 
-void UDurabilityComponent::LoseDurability(float Amount)
+void UDurabilityComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
-	Condition -= Amount;
-	Condition = FMath::Max(Condition, 0.0f);
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, Condition);
 }
 
-void UDurabilityComponent::RestoreDurability(float Amount)
+void UDurabilityComponent::OnRep_SetComponent()
 {
+	const FItemData* ItemData = GetOwnerItemData();
+	if (ItemData == nullptr)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	Data = DataTableSubsystem->GetTable(EDataTableType::DurabilityTable)->FindRow<FDurabilityData>(ItemData->ItemId, FString(""));
+}
+
+void UDurabilityComponent::LoseDurability(float Amount)
+{
+	if (HasAuthority() == false)
+		return;
+
+	Condition -= Amount;
+	Condition = FMath::Max(Condition, 0.0f);
+
+	OnRep_PrintCondition();
+}
+
+void UDurabilityComponent::ServerRPC_RestoreDurability_Implementation(float Amount)
+{
+	if (HasAuthority() == false)
+		return;
+
 	if (Data == nullptr)
 	{
 		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("No Durability data"));
@@ -57,6 +80,15 @@ void UDurabilityComponent::RestoreDurability(float Amount)
 
 	Condition += Amount;
 	Condition = FMath::Min(Condition, Data->MaxCondition);
+	
+	OnRep_PrintCondition();
+}
 
+void UDurabilityComponent::OnRep_PrintCondition()
+{
 	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("Condition = %f"), Condition));
+	if (OnUpdatedItemComponent.IsBound())
+	{
+		OnUpdatedItemComponent.Broadcast();
+	}
 }
