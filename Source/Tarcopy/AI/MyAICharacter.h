@@ -23,23 +23,10 @@ public:
 #pragma endregion
 
 #pragma region Vision
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UStaticMeshComponent> VisionMesh;
 
-public:
-	void WatchedCountModify(int32 InIncrement);
-
-protected:
-	UPROPERTY(Replicated, VisibleAnywhere)
-	int32 WatchedCount;
-
-	UPROPERTY(VisibleAnywhere, Replicated, ReplicatedUsing = OnRep_SetVisible)
-	bool bIsVisible;
-
-	UFUNCTION()
-	void OnRep_SetVisible();
 #pragma endregion
-
-
 };

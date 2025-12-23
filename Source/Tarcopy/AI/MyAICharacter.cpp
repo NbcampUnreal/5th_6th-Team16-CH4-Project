@@ -8,8 +8,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
-AMyAICharacter::AMyAICharacter() :
-	WatchedCount(0)
+AMyAICharacter::AMyAICharacter()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
@@ -31,47 +30,11 @@ void AMyAICharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (HasAuthority())
-	{
-		SetActorHiddenInGame(true);
-	}
-	else
-	{
-		OnRep_SetVisible();
-	}
+	Tags.Add(FName("InVisible"));
+	SetActorHiddenInGame(true);
 }
 
 void AMyAICharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(ThisClass, bIsVisible);
-	DOREPLIFETIME(ThisClass, WatchedCount);
-}
-
-void AMyAICharacter::WatchedCountModify(int32 InIncrement)
-{
-	if (!HasAuthority()) return;
-
-	WatchedCount = FMath::Clamp(WatchedCount + InIncrement, 0, std::numeric_limits<int32>::max());
-	if (WatchedCount > 0)
-	{
-		bIsVisible = true;
-	}
-	else
-	{
-		bIsVisible = false;
-	}
-}
-
-void AMyAICharacter::OnRep_SetVisible()
-{
-	if (bIsVisible)
-	{
-		SetActorHiddenInGame(false);
-	}
-	else
-	{
-		SetActorHiddenInGame(true);
-	}
 }
