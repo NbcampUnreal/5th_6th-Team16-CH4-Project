@@ -300,8 +300,6 @@ void UCameraObstructionComponent::ApplyObstructionMaterial(UPrimitiveComponent* 
 
 	if (bNeedsRebuild)
 	{
-			*GetNameSafe(HitComp),
-			NumMaterials);
 		TArray<UMaterialInterface*>& StoredOriginals = OriginalMaterials.FindOrAdd(HitComp);
 		StoredOriginals.Reset();
 		DynamicMaterials.FindOrAdd(HitComp).Reset();
