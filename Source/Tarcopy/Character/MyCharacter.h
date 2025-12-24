@@ -200,6 +200,15 @@ protected:
 
 #pragma endregion
 
+#pragma region Combat
+	public:
+		virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	protected:
+		UFUNCTION(NetMulticast, Reliable)
+		void MultiRPC_Temp(float Damage, const FName& BoneName);
+#pragma endregion
+
 #pragma region TestItem
 
 public:

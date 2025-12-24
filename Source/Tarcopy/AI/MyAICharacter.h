@@ -7,6 +7,7 @@
 #include "MyAICharacter.generated.h"
 
 class UStaticMeshComponent;
+class AMyCharacter;
 
 UCLASS()
 class TARCOPY_API AMyAICharacter : public ACharacter
@@ -27,6 +28,16 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UStaticMeshComponent> VisionMesh;
+
+#pragma endregion
+
+#pragma region State Tree
+
+public:
+	int32 AttackDamage;
+
+	UFUNCTION(BlueprintCallable)
+	void Attack(AMyAICharacter* ContextActor, AActor* TargetActor);
 
 #pragma endregion
 };
