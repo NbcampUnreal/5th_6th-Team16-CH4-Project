@@ -21,12 +21,16 @@ protected:
 public:
 	void TakeDamage(float Damage, const FName& BoneName);
 
+protected:
+	UFUNCTION()
+	void OnRep_PrintHP();
+
 public:
 	FOnDead OnDead;
 
 protected:
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_PrintHP)
 	float MaxHP = 100.0f;
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_PrintHP)
 	float CurrentHP = 100.0f;
 };

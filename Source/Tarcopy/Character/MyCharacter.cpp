@@ -88,6 +88,11 @@ AMyCharacter::AMyCharacter() :
 	CameraObstruction = CreateDefaultSubobject<UCameraObstructionComponent>(TEXT("CameraObstruction"));
 	CameraObstruction->SetCamera(Camera);
 	CameraObstruction->SetCapsule(GetCapsuleComponent());
+
+	HoldingItemMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HoldingItemMeshComponent"));
+	HoldingItemMeshComponent->SetupAttachment(RootComponent);
+	HoldingItemMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HoldingItemMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 }
 
 // Called when the game starts or when spawned
@@ -357,6 +362,9 @@ void AMyCharacter::LeftClick(const FInputActionValue& Value)
 
 void AMyCharacter::ServerRPC_ExecuteAttack_Implementation()
 {
+	if (HasAuthority() == false)
+		return;
+
 	if (IsValid(EquipComponent) == false)
 		return;
 
@@ -537,6 +545,26 @@ bool AMyCharacter::GetAimTarget(AActor*& OutTargetActor, FName& OutBone)
 	OutTargetActor = nullptr;
 	OutBone = NAME_None;
 	return false;
+}
+
+void AMyCharacter::NetMulticast_SetHoldingItemMesh_Implementation(UStaticMesh* ItemMeshAsset, const FName& SocketName)
+{
+	if (IsValid(HoldingItemMeshComponent) == false)
+		return;
+
+	if (IsValid(ItemMeshAsset) == false)
+	{
+		HoldingItemMeshComponent->SetStaticMesh(nullptr);
+		return;
+	}
+
+	HoldingItemMeshComponent->SetStaticMesh(ItemMeshAsset);
+
+	FAttachmentTransformRules AttachRules(EAttachmentRule::SnapToTarget, true);
+	HoldingItemMeshComponent->AttachToComponent(GetMesh(), AttachRules, SocketName);
+	FTransform GripPointTransform = HoldingItemMeshComponent->GetSocketTransform(TEXT("GripPoint"), RTS_Component);
+	FTransform OffsetTransform = GripPointTransform.Inverse();
+	HoldingItemMeshComponent->SetRelativeTransform(OffsetTransform);
 }
 
 void AMyCharacter::AddInteractableDoor(AActor* DoorActor)

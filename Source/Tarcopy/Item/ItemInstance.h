@@ -59,6 +59,8 @@ protected:
 	void OnRep_SetData();
 	UFUNCTION()
 	void OnRep_ItemUpdated();
+	UFUNCTION()
+	void OnRep_SetOwnerCharacter();
 
 	void InitComponents();
 
@@ -72,7 +74,7 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_SetData)
 	FName ItemId;
 
-	UPROPERTY(ReplicatedUsing = OnRep_ItemUpdated)
+	UPROPERTY(ReplicatedUsing = OnRep_SetOwnerCharacter)
 	TWeakObjectPtr<ACharacter> OwnerCharacter;
 
 	const FItemData* Data = nullptr;

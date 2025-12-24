@@ -8,6 +8,7 @@
 #include "Engine/ActorChannel.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Item/ItemWrapperActor/ItemWrapperActor.h"
+#include "Character/MyCharacter.h"
 
 const float UEquipComponent::WeightMultiplier = 0.3f;
 
@@ -33,7 +34,7 @@ void UEquipComponent::BeginPlay()
 
 	// 인벤토리 없어서 임시 테스트용으로 부위 아무데나 정해서 Equip에 넣고 캐릭터에서 Equip에 장착된 아이템 표시되게 해서 테스트 중
 	UItemInstance* NewItem = NewObject<UItemInstance>(this);
-	NewItem->SetItemId(TEXT("Axe1"));
+	NewItem->SetItemId(TestEquippedItem);
 	EquipItem(EBodyLocation::RightHand, NewItem);
 }
 
@@ -116,8 +117,8 @@ void UEquipComponent::ServerRPC_UnequipItem_Implementation(UItemInstance* Item)
 
 void UEquipComponent::UnequipItem(UItemInstance* Item)
 {
-	AActor* Owner = GetOwner();
-	if (IsValid(Owner) == false || Owner->HasAuthority() == false)
+	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwner());
+	if (IsValid(OwnerCharacter) == false || OwnerCharacter->HasAuthority() == false)
 		return;
 
 	if (IsValid(Item) == false)
@@ -146,6 +147,8 @@ void UEquipComponent::UnequipItem(UItemInstance* Item)
 	}
 
 	TotalWeight -= ItemData->Weight * WeightMultiplier;
+
+	OwnerCharacter->NetMulticast_SetHoldingItemMesh(nullptr);
 }
 
 void UEquipComponent::ExecuteAttack()

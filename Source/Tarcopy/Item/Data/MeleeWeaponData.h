@@ -13,6 +13,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	EBodyLocation BodyLocation = EBodyLocation::Hands;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	EHoldableSocket Socket = EHoldableSocket::RightHand;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<class UAnimMontage> Montage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float MinDamage = 0.0f;

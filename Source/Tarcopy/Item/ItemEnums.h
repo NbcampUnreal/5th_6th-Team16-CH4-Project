@@ -54,6 +54,13 @@ enum class EItemComponent : uint8
 	Tool							UMETA(DisplayName = "Tool"),				// 도구류
 };
 
+UENUM(BlueprintType)
+enum class EHoldableSocket : uint8
+{
+	RightHand,
+	LeftHand,
+};
+
 UENUM()
 enum class EBodyLocation : uint32
 {

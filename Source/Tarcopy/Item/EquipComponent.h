@@ -57,5 +57,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float TotalWeight;
 
+	// For Test
+	UPROPERTY(EditAnywhere)
+	FName TestEquippedItem = FName(TEXT("Axe1"));
+
 	static const float WeightMultiplier;
 };

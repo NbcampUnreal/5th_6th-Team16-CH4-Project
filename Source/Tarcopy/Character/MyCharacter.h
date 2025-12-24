@@ -205,14 +205,17 @@ protected:
 #pragma region TestItem
 
 public:
-	UPROPERTY(EditAnywhere)
-	FName ItemId;
-
 	UFUNCTION()
 	void SetItem();
 
 	UFUNCTION()
 	bool GetAimTarget(AActor*& OutTargetActor, FName& OutBone);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void NetMulticast_SetHoldingItemMesh(UStaticMesh* ItemMeshAsset, const FName& SocketName = NAME_None);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<class UStaticMeshComponent> HoldingItemMeshComponent;
 
 #pragma endregion
 
