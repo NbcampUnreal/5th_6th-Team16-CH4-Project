@@ -15,22 +15,22 @@ public:
 	UMoodleComponent();
 
 	UFUNCTION(BlueprintPure)
-	FORCEINLINE float GetCurrentHunger() const { return CurrentHunger; }
+	float GetCurrentHunger() const { return CurrentHunger; }
 	UFUNCTION(BlueprintPure)
-	FORCEINLINE float GetCurrentThirst() const { return CurrentThirst; }
+	float GetCurrentThirst() const { return CurrentThirst; }
 	UFUNCTION(BlueprintPure)
-	FORCEINLINE float GetCurrentStamina() const { return CurrentStamina; }
+	float GetCurrentStamina() const { return CurrentStamina; }
 	UFUNCTION(BlueprintPure)
-	FORCEINLINE float GetMaxStamina() const { return MaxStamina; }
+	float GetMaxStamina() const { return MaxStamina; }
 
 	UFUNCTION(BlueprintCallable)
-	FORCEINLINE void SetCurrentHunger(float InHunger);
+	void SetCurrentHunger(float InHunger);
 	UFUNCTION(BlueprintCallable)
-	FORCEINLINE void SetCurrentThirst(float InThirst);
+	void SetCurrentThirst(float InThirst);
 	UFUNCTION(BlueprintCallable)
-	FORCEINLINE void SetCurrentStamina(float InStamina);
+	void SetCurrentStamina(float InStamina);
 	UFUNCTION(BlueprintCallable)
-	FORCEINLINE void SetMaxStamina(float InStamina);
+	void SetMaxStamina(float InStamina);
 
 protected:
 

@@ -27,7 +27,7 @@ protected:
 private:
 	void UpdateCameraObstructionFade();
 	void ApplyObstructionMaterial(UPrimitiveComponent* HitComp, const FVector& LineStart, const FVector& LineEnd,
-		const FVector2D& ScreenCenterUV, float ScreenRadius, float ScreenSoftness, float ScreenAspect);
+		const FVector2D& ScreenCenterUV, float ScreenRadius, float ScreenSoftness, float ScreenAspect, float Opacity);
 	void ClearObstructionMaterial(UPrimitiveComponent* HitComp);
 
 	UPROPERTY(EditAnywhere, Category = "Vision|Occlusion")
@@ -59,6 +59,15 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Vision|Occlusion")
 	float ObstructionTraceStep = 2.f;
+
+	UPROPERTY(EditAnywhere, Category = "Vision|Occlusion")
+	FName ObstructionOpacityParamName = TEXT("OpacityScalar");
+
+	UPROPERTY(EditAnywhere, Category = "Vision|Occlusion", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float FirstObstructionOpacity = 1.f;
+
+	UPROPERTY(EditAnywhere, Category = "Vision|Occlusion", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float SubsequentObstructionOpacity = 0.5f;
 
 	float TimeSinceLastObstructionTrace = 0.f;
 
