@@ -10,9 +10,12 @@
 #include "Car/TCChaosVehicleDummyWheel.h"
 #include "Components/BoxComponent.h"
 #include "Car/UI/TCCarWidget.h"
+#include "Net/UnrealNetwork.h"
 
 UTCCarCombatComponent::UTCCarCombatComponent()
 {
+	SetIsReplicatedByDefault(true);
+
 	PrimaryComponentTick.bCanEverTick = false;
 
 	FrontBox = CreateDefaultSubobject<UBoxComponent>(TEXT("FrontBox"));
@@ -50,7 +53,10 @@ void UTCCarCombatComponent::BeginPlay()
 		{
 			VehicleMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 			VehicleMesh->SetNotifyRigidBodyCollision(true);
-			VehicleMesh->OnComponentHit.AddDynamic(this, &UTCCarCombatComponent::OnVehicleHit);
+			if (GetOwner()->HasAuthority()) 
+			{
+				VehicleMesh->OnComponentHit.AddDynamic(this, &UTCCarCombatComponent::OnVehicleHit);
+			}
 		}
 	}
 
@@ -59,15 +65,29 @@ void UTCCarCombatComponent::BeginPlay()
 
 	for (UStaticMeshComponent* Mesh : Meshes)
 	{
+		Mesh->SetIsReplicated(true);
 		const FName CompName = Mesh->GetFName();
 
 		if (const FCarPartStat* Stat =
 			PartDataAsset->PartData.Find(CompName))
 		{
 			PartDataMap.Add(Mesh, *Stat);
-			ComponentHealth.Add(Mesh, Stat->MaxHealth);
+			/*ComponentHealth.Add(Mesh, Stat->MaxHealth);*/
+
+			ComponentName.Add(CompName, Mesh);
+			FCarPartHP Temp;
+			Temp.PartHP = Stat->MaxHealth;
+			Temp.PartName = CompName;
+			PartsHP.Add(Temp);
 		}
 	}
+}
+
+void UTCCarCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, PartsHP);
 }
 
 void UTCCarCombatComponent::DestroyPart(UPrimitiveComponent* DestroyComponent)
@@ -177,29 +197,28 @@ void UTCCarCombatComponent::ApplyDamage(UBoxComponent* InBox, float Damage,const
 
 	for (const FName& Tag : InBox->ComponentTags)
 	{
-		for (auto& MeshHP : ComponentHealth)
+		for (FCarPartHP &Part : PartsHP)
 		{
-			if (MeshHP.Key->ComponentHasTag(Tag))
+			if (ComponentName[Part.PartName]->ComponentHasTag(Tag))
 			{
-				FVector MeshLocation = MeshHP.Key->GetComponentLocation();
-				float MeshImpactDist = FVector::Dist(MeshLocation, WorldPoint);
+				/*FVector MeshLocation = MeshHP.Key->GetComponentLocation();
+				float MeshImpactDist = FVector::Dist(MeshLocation, WorldPoint);*/
+				Part.PartHP = FMath::Clamp(Part.PartHP - Damage, 0.f, PartDataMap[ComponentName[Part.PartName]].MaxHealth);
+				UE_LOG(LogTemp, Error, TEXT("Component Name %s , CurrentHP %.0f"), *Part.PartName.ToString(), Part.PartHP);
 
-
-				MeshHP.Value = FMath::Clamp(MeshHP.Value - Damage, 0.f, PartDataMap[MeshHP.Key].MaxHealth);
-				UE_LOG(LogTemp, Error, TEXT("Component Name %s , CurrentHP %.0f"), *MeshHP.Key->GetName(), MeshHP.Value);
-				if (MeshHP.Value <= 0)
+				if (Part.PartHP <= 0)
 				{
-					DestroyPart(MeshHP.Key);
+					DestroyPart(ComponentName[Part.PartName]);
 				}
 
-				if (MeshHP.Key->ComponentHasTag("Main"))
+				/*if (ComponentName[Part.PartName]->ComponentHasTag("Main"))
 				{
 					ATCCarBase* Car = Cast<ATCCarBase>(GetOwner());
 					if (!Car) return;
 
 					UTCCarWidget* WidgetInstance = Car->CarWidgetInstance;
-					WidgetInstance->UpdateCarDamage(MeshHP.Value / PartDataMap[MeshHP.Key].MaxHealth);
-				}
+					WidgetInstance->UpdateCarDamage(Part.PartHP / PartDataMap[ComponentName[Part.PartName]].MaxHealth);
+				}*/
 			}
 		}
 	}

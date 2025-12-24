@@ -31,6 +31,8 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+	virtual void OnRep_Controller() override;
+
 protected:
 	virtual void BeginPlay() override;
 

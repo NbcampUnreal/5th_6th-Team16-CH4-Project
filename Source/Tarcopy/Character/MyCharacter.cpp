@@ -109,12 +109,22 @@ void AMyCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+void AMyCharacter::OnRep_Controller()
+{
+	Super::OnRep_Controller();
+
+	AMyPlayerController* PC = Cast<AMyPlayerController>(GetController());
+	if (!PC) return;
+
+	PC->ChangeIMC(PC->IMC_Character);
+}
+
 void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                             UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
                                             const FHitResult& SweepResult)
 {
 	if (!IsLocallyControlled()) return;
-	if (ActorHasTag("InVisible") == false) return;
+	if (OtherActor->ActorHasTag("InVisible") == false) return;
 
 	FVector MyLocation = GetActorLocation();
 	FVector OtherLocation = OtherActor->GetActorLocation();
@@ -156,7 +166,7 @@ void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, A
                                           UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (!IsLocallyControlled()) return;
-	if (ActorHasTag("InVisible") == false) return;
+	if (OtherActor->ActorHasTag("InVisible") == false) return;
 
 	OtherActor->SetActorHiddenInGame(true);
 }
