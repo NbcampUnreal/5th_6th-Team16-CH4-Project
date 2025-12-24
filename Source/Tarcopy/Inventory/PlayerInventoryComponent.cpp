@@ -5,7 +5,7 @@
 
 #include "Inventory/InventoryData.h"
 #include "Inventory/LootScannerComponent.h"
-#include "Item/WorldSpawnedItem.h"
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Item/ItemInstance.h"
@@ -111,7 +111,7 @@ void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceI
 
 	FTransform SpawnTM(SpawnRot, SpawnLoc);
 
-	AWorldSpawnedItem* Spawned = GetWorld()->SpawnActorDeferred<AWorldSpawnedItem>(
+	AItemWrapperActor* Spawned = GetWorld()->SpawnActorDeferred<AItemWrapperActor>(
 		WorldItemClass,
 		SpawnTM,
 		GetOwner(),

@@ -14,7 +14,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Inventory/UW_ContainerBtn.h"
 #include "Inventory/InventoryData.h"
-#include "Item/WorldSpawnedItem.h"
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "Item/ItemInstance.h"
 #include "Item/ItemComponent/ContainerComponent.h"
 
@@ -87,9 +87,9 @@ void UUW_NearbyPanel::RefreshContainerList()
 		}
 	}
 
-	for (const TWeakObjectPtr<AWorldSpawnedItem>& W : BoundScanner->OverlappedContainerItems)
+	for (const TWeakObjectPtr<AItemWrapperActor>& W : BoundScanner->OverlappedContainerItems)
 	{
-		AWorldSpawnedItem* ItemActor = W.Get();
+		AItemWrapperActor* ItemActor = W.Get();
 		if (!IsValid(ItemActor))
 		{
 			continue;

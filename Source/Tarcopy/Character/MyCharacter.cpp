@@ -22,7 +22,7 @@
 #include "Character/ActivateInterface.h"
 #include "Character/CameraObstructionFadeComponent.h"
 #include "Character/CameraObstructionComponent.h"
-#include "Item/WorldSpawnedItem.h"
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "Item/Data/ItemData.h"
 #include "Misc/Guid.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"

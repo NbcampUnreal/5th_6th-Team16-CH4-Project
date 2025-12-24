@@ -5,7 +5,7 @@
 
 #include "Components/SphereComponent.h"
 #include "Inventory/InventoryData.h"
-#include "Item/WorldSpawnedItem.h"
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "Inventory/WorldContainerComponent.h"
 #include "Item/ItemInstance.h"
 #include "Item/ItemComponent/ContainerComponent.h"
@@ -62,9 +62,9 @@ void ULootScannerComponent::RebuildGroundInventory()
 
 	GroundInventoryData->ClearAll();
 
-	for (const TWeakObjectPtr<AWorldSpawnedItem>& ItemActorPtr : OverlappedGroundItems)
+	for (const TWeakObjectPtr<AItemWrapperActor>& ItemActorPtr : OverlappedGroundItems)
 	{
-		AWorldSpawnedItem* ItemActor = ItemActorPtr.Get();
+		AItemWrapperActor* ItemActor = ItemActorPtr.Get();
 		if (!IsValid(ItemActor))
 		{
 			continue;
@@ -95,13 +95,13 @@ void ULootScannerComponent::RebuildGroundInventory()
 
 bool ULootScannerComponent::ConsumeGroundWorldItemByInstanceId(const FGuid& InstanceId)
 {
-	TWeakObjectPtr<AWorldSpawnedItem>* Found = InstanceIdToWorldItem.Find(InstanceId);
+	TWeakObjectPtr<AItemWrapperActor>* Found = InstanceIdToWorldItem.Find(InstanceId);
 	if (!Found)
 	{
 		return false;
 	}
 
-	AWorldSpawnedItem* Actor = Found->Get();
+	AItemWrapperActor* Actor = Found->Get();
 	InstanceIdToWorldItem.Remove(InstanceId);
 
 	if (IsValid(Actor))
@@ -157,7 +157,7 @@ void ULootScannerComponent::OnGroundBeginOverlap(UPrimitiveComponent* Overlapped
 		return;
 	}
 
-	if (AWorldSpawnedItem* ItemActor = Cast<AWorldSpawnedItem>(OtherActor))
+	if (AItemWrapperActor* ItemActor = Cast<AItemWrapperActor>(OtherActor))
 	{
 		UItemInstance* ItemInst = ItemActor->GetItemInstance();
 		if (IsValid(ItemInst))
@@ -183,7 +183,7 @@ void ULootScannerComponent::OnGroundEndOverlap(UPrimitiveComponent* OverlappedCo
 		return;
 	}
 
-	if (AWorldSpawnedItem* ItemActor = Cast<AWorldSpawnedItem>(OtherActor))
+	if (AItemWrapperActor* ItemActor = Cast<AItemWrapperActor>(OtherActor))
 	{
 		UItemInstance* ItemInst = ItemActor->GetItemInstance();
 		if (IsValid(ItemInst))

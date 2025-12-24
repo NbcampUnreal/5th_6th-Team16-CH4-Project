@@ -7,7 +7,7 @@
 #include "PlayerInventoryComponent.generated.h"
 
 class UInventoryData;
-class AWorldSpawnedItem;
+class AItemWrapperActor;
 class ULootScannerComponent;
 class UItemInstance;
 
@@ -55,7 +55,7 @@ private:
 	FIntPoint DefaultInventorySize = FIntPoint(5, 2);
 
 	UPROPERTY(EditDefaultsOnly, Category = "World Drop")
-	TSubclassOf<AWorldSpawnedItem> WorldItemClass;
+	TSubclassOf<AItemWrapperActor> WorldItemClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "World Drop")
 	float DropForwardOffset = 80.f;
