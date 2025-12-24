@@ -1,10 +1,13 @@
 ﻿#include "Item/Temp/TempDamageableActor.h"
 #include "Common/HealthComponent.h"
 #include "Engine/DamageEvents.h"
+#include "Net/UnrealNetwork.h"
 
 ATempDamageableActor::ATempDamageableActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	bReplicates = true;
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 }
@@ -13,6 +16,27 @@ void ATempDamageableActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (HasAuthority() == true)
+	{
+		if (IsValid(HealthComponent) == true)
+		{
+			HealthComponent->OnDead.AddLambda
+			([WeakThis = TWeakObjectPtr(this)]()-> void
+			{
+				if (WeakThis.IsValid() == true)
+				{
+					WeakThis->Destroy();
+				}
+			});
+		}
+	}
+}
+
+void ATempDamageableActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, HealthComponent);
 }
 
 float ATempDamageableActor::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)

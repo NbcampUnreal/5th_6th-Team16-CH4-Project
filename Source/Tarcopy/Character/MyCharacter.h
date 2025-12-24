@@ -175,6 +175,8 @@ protected:
 
 	UFUNCTION()
 	virtual void LeftClick(const FInputActionValue& Value);
+	UFUNCTION(Server, Reliable)
+	virtual void ServerRPC_ExecuteAttack();
 
 	UFUNCTION(Server, Reliable)
 	virtual void ServerRPC_TurnToMouse(const FRotator& TargetRot);

@@ -7,18 +7,6 @@
 void UClothingComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
-
-	const FItemData* ItemData = GetOwnerItemData();
-	if (ItemData == nullptr)
-		return;
-
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return;
-
-	Data = DataTableSubsystem->GetTable(EDataTableType::ClothTable)->FindRow<FClothData>(ItemData->ItemId, FString(""));
-	if (Data == nullptr)
-		return;
 }
 
 void UClothingComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
@@ -37,4 +25,17 @@ void UClothingComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>&
 	EquipClothData.bIsInteractable = true;
 	EquipClothData.DelegateInteract.BindUObject(this, &ThisClass::EquipCloth);
 	OutDatas.Add(EquipClothData);*/
+}
+
+void UClothingComponent::OnRep_SetComponent()
+{
+	const FItemData* ItemData = GetOwnerItemData();
+	if (ItemData == nullptr)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	Data = DataTableSubsystem->GetTable(EDataTableType::ClothTable)->FindRow<FClothData>(ItemData->ItemId, FString(""));
 }

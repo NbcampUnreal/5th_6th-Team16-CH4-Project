@@ -16,6 +16,9 @@ public:
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
 
 protected:
+	virtual void OnRep_SetComponent() override;
+
+protected:
 	UPROPERTY()
 	uint8 bIsEquipped : 1 = false;
 

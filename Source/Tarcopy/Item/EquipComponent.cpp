@@ -4,6 +4,10 @@
 #include "Item/ItemComponent/WeaponComponent.h"
 #include "GameFramework/Character.h"
 #include "Item/DataTableSubsystem.h"
+#include "Net/UnrealNetwork.h"
+#include "Engine/ActorChannel.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
 
 const float UEquipComponent::WeightMultiplier = 0.3f;
 
@@ -11,31 +15,76 @@ UEquipComponent::UEquipComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
+	SetIsReplicatedByDefault(true);
 }
 
 void UEquipComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	AActor* Owner = GetOwner();
+	if (IsValid(Owner) == false || Owner->HasAuthority() == false)
+		return;
+
 	for (uint32 SlotBit = 1; SlotBit < (uint32)EBodyLocation::MAX_BASE; SlotBit <<= 1)
 	{
-		EquippedItems.Add((EBodyLocation)SlotBit, nullptr);
+		EquippedItemInfos.Emplace((EBodyLocation)SlotBit, nullptr);
 	}
 
 	// 인벤토리 없어서 임시 테스트용으로 부위 아무데나 정해서 Equip에 넣고 캐릭터에서 Equip에 장착된 아이템 표시되게 해서 테스트 중
 	UItemInstance* NewItem = NewObject<UItemInstance>(this);
-	NewItem->SetData(GetItemData(TEXT("Axe1")));
+	NewItem->SetItemId(TEXT("Axe1"));
 	EquipItem(EBodyLocation::RightHand, NewItem);
+}
+
+void UEquipComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, EquippedItemInfos);
+}
+
+bool UEquipComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	for (auto& EquippedItemInfo : EquippedItemInfos)
+	{
+		UItemInstance* Item = EquippedItemInfo.Item;
+		if (IsValid(Item) == true)
+		{
+			bWroteSomething |= Channel->ReplicateSubobject(Item, *Bunch, *RepFlags);
+
+			const auto& ItemComponents = Item->GetItemComponents();
+			for (const auto& ItemComponent : ItemComponents)
+			{
+				if (IsValid(ItemComponent) == false)
+					continue;
+
+				bWroteSomething |= Channel->ReplicateSubobject(ItemComponent, *Bunch, *RepFlags);
+			}
+		}
+	}
+	return bWroteSomething;
 }
 
 UItemInstance* UEquipComponent::GetEquippedItem(EBodyLocation Bodylocation) const
 {
-	auto* EquippedItemPtr = EquippedItems.Find(Bodylocation);
-	return EquippedItemPtr != nullptr ? *EquippedItemPtr : nullptr;
+	auto* EquippedItemPtr = EquippedItemInfos.FindByPredicate([Bodylocation](const FEquippedItemInfo ItemInfo)->bool { return ItemInfo.Location == Bodylocation; });
+	return EquippedItemPtr != nullptr ? EquippedItemPtr->Item : nullptr;
+}
+
+void UEquipComponent::ServerRPC_EquipItem_Implementation(EBodyLocation BodyLocation, UItemInstance* Item)
+{
+	EquipItem(BodyLocation, Item);
 }
 
 void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item)
 {
+	ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
+	if (IsValid(OwnerCharacter) == false || OwnerCharacter->HasAuthority() == false)
+		return;
+
 	if (IsValid(Item) == false)
 		return;
 
@@ -43,38 +92,57 @@ void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item)
 	if (ItemData == nullptr)
 		return;
 
-	for (auto& Pair : EquippedItems)
+	for (auto& EquippedItemInfo : EquippedItemInfos)
 	{
-		if (Exclusive(Pair.Key, BodyLocation) == true)
+		if (Exclusive(EquippedItemInfo.Location, BodyLocation) == true)
 		{
-			RemoveItem(Pair.Value);
-			Pair.Value = Item;
+			UnequipItem(EquippedItemInfo.Item);
+			EquippedItemInfo.Item = Item;
 		}
 	}
 
 	TotalWeight += ItemData->Weight * WeightMultiplier;
+
+	Item->SetOwnerCharacter(OwnerCharacter);
+	UKismetSystemLibrary::PrintString(GetWorld(),
+		IsValid(Item->GetOwnerCharacter()) == true ?
+		*Item->GetOwnerCharacter()->GetName() : TEXT("Item No Owner"));
 }
 
-void UEquipComponent::RemoveItem(UItemInstance* Item)
+void UEquipComponent::ServerRPC_UnequipItem_Implementation(UItemInstance* Item)
 {
+	UnequipItem(Item);
+}
+
+void UEquipComponent::UnequipItem(UItemInstance* Item)
+{
+	AActor* Owner = GetOwner();
+	if (IsValid(Owner) == false || Owner->HasAuthority() == false)
+		return;
+
 	if (IsValid(Item) == false)
 		return;
 
 	const FItemData* ItemData = Item->GetData();
 	checkf(ItemData != nullptr, TEXT("EquipComponent => There's no equipped item's data"));
 
-	for (auto& Pair : EquippedItems)
+	Item->SetOwnerCharacter(nullptr);
+	UKismetSystemLibrary::PrintString(GetWorld(),
+		IsValid(Item->GetOwnerCharacter()) == true ?
+		*Item->GetOwnerCharacter()->GetName() : TEXT("Item No Owner"));
+
+	for (auto& EquippedItemInfo : EquippedItemInfos)
 	{
-		if (IsValid(Pair.Value) == true)
+		if (IsValid(EquippedItemInfo.Item) == true)
 		{
-			const FItemData* CompareData = Pair.Value->GetData();
+			const FItemData* CompareData = EquippedItemInfo.Item->GetData();
 			if (CompareData != nullptr && CompareData->ItemId != ItemData->ItemId)
 				continue;
 		}
 
 		// Equipment에 이상한 값 들어있거나 유효하지 않은 상태면 정리
 		// 장착한 아이템이 지울 아이템이면 정리
-		Pair.Value = nullptr;
+		EquippedItemInfo.Item = nullptr;
 	}
 
 	TotalWeight -= ItemData->Weight * WeightMultiplier;
@@ -82,6 +150,10 @@ void UEquipComponent::RemoveItem(UItemInstance* Item)
 
 void UEquipComponent::ExecuteAttack()
 {
+	AActor* Owner = GetOwner();
+	if (IsValid(Owner) == false || Owner->HasAuthority() == false)
+		return;
+
 	UItemInstance* ItemOnHand = GetEquippedItem(EBodyLocation::RightHand);
 	if (IsValid(ItemOnHand) == false)
 	{
@@ -95,7 +167,7 @@ void UEquipComponent::ExecuteAttack()
 	if (IsValid(WeaponComponent) == false)
 		return;
 
-	WeaponComponent->ExecuteAttack(Cast<ACharacter>(GetOwner()));
+	WeaponComponent->ExecuteAttack();
 }
 
 void UEquipComponent::CancelActions()
