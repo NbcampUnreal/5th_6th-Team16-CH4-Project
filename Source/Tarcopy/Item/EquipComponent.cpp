@@ -5,8 +5,6 @@
 #include "GameFramework/Character.h"
 #include "Item/DataTableSubsystem.h"
 
-#include "Item/ItemWrapperActor/ItemWrapperActor.h"
-
 const float UEquipComponent::WeightMultiplier = 0.3f;
 
 UEquipComponent::UEquipComponent()
@@ -27,10 +25,6 @@ void UEquipComponent::BeginPlay()
 	// 인벤토리 없어서 임시 테스트용으로 부위 아무데나 정해서 Equip에 넣고 캐릭터에서 Equip에 장착된 아이템 표시되게 해서 테스트 중
 	UItemInstance* NewItem = NewObject<UItemInstance>(this);
 	NewItem->SetData(GetItemData(TEXT("Axe1")));
-
-	AItemWrapperActor* ItemActor = GetWorld()->SpawnActor<AItemWrapperActor>(FVector::ZeroVector, FRotator::ZeroRotator);
-	ItemActor->SetItemInstance(NewItem);
-
 	EquipItem(EBodyLocation::RightHand, NewItem);
 }
 
