@@ -21,7 +21,6 @@
 #include "AI/MyAICharacter.h"
 #include "Character/ActivateInterface.h"
 #include "Character/CameraObstructionFadeComponent.h"
-#include "Character/CameraObstructionComponent.h"
 #include "Item/WorldSpawnedItem.h"
 #include "Item/Data/ItemData.h"
 #include "Misc/Guid.h"
@@ -31,6 +30,7 @@
 #include "Inventory/InventoryData.h"
 #include "UI/UW_Inventory.h"
 #include "Tarcopy.h"
+#include "Engine/DamageEvents.h"
 #include "Character/CameraObstructionComponent.h"
 
 // Sets default values
@@ -109,12 +109,34 @@ void AMyCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+float AMyCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+
+	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	{
+		FPointDamageEvent const& PointDamageEvent = static_cast<FPointDamageEvent const&>(DamageEvent);
+		FHitResult HitResult = PointDamageEvent.HitInfo;
+		FName BoneName = HitResult.BoneName;
+		MultiRPC_Temp(Damage, BoneName);
+	}
+
+	
+
+	return Damage;
+}
+
+void AMyCharacter::MultiRPC_Temp_Implementation(float Damage, const FName& BoneName)
+{
+	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("TakeDamage : %f, BoneName : %s"), Damage, *BoneName.ToString()), true, true, FColor::Red);
+}
+
 void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                             UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
                                             const FHitResult& SweepResult)
 {
 	if (!IsLocallyControlled()) return;
-	if (ActorHasTag("InVisible") == false) return;
+	if (OtherActor->ActorHasTag("InVisible") == false) return;
 
 	FVector MyLocation = GetActorLocation();
 	FVector OtherLocation = OtherActor->GetActorLocation();
@@ -156,7 +178,7 @@ void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, A
                                           UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (!IsLocallyControlled()) return;
-	if (ActorHasTag("InVisible") == false) return;
+	if (OtherActor->ActorHasTag("InVisible") == false) return;
 
 	OtherActor->SetActorHiddenInGame(true);
 }
