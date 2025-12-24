@@ -4,27 +4,29 @@
 #include "Engine/DataAsset.h"
 #include "AnimationPreset.generated.h"
 
+class UBlendSpace1D;
+
 UCLASS()
 class TARCOPY_API UAnimationPreset : public UDataAsset
 {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UAnimInstance> IdleAnimation;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UBlendSpace1D> StandIdleWalkRunAnimation;
 
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UAnimInstance> WalkAnimation;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UBlendSpace1D> CrouchIdleWalkAnimation;
 
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UAnimInstance> SprintAnimation;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UBlendSpace1D> AimingIdleWalkAnimation;
 
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UAnimInstance> CrouchAnimation;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UAnimSequence> FallLoopAnimation;
 
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UAnimInstance> HitAnimation;
-	
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UAnimInstance> AimAnimation;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UAnimSequence> LandAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UAnimSequence> HitAnimation;
 };

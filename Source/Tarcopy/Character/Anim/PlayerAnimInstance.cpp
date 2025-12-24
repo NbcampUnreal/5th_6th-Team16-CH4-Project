@@ -2,6 +2,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Character/Anim/AnimationPreset.h"
+#include "Character/MyCharacter.h"
 
 void UPlayerAnimInstance::NativeInitializeAnimation()
 {
@@ -25,4 +26,11 @@ void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	bShouldMove = (MovementComponent->GetCurrentAcceleration().IsNearlyZero() == false) && (GroundSpeed > 3.f);
 	bIsFalling = MovementComponent->IsFalling();
+
+	bIsCrouch = Character->bIsCrouched;
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(Character);
+	if (IsValid(MyCharacter))
+	{
+		bIsAiming = MyCharacter->IsAiming();
+	}
 }

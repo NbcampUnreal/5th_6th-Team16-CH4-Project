@@ -35,6 +35,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EssentialMovementData")
     bool bIsFalling;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EssentialMovementData")
+    bool bIsCrouch;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EssentialMovementData")
+    bool bIsAiming;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimDataAsset")
     TObjectPtr<UAnimationPreset> AnimDataAsset;
 };

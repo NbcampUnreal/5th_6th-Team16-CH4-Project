@@ -162,6 +162,9 @@ protected:
 
 #pragma region Mouse Action
 
+public:
+	bool IsAiming() { return bIsAttackMode; }
+
 protected:
 	UFUNCTION()
 	virtual void Wheel(const FInputActionValue& Value);
