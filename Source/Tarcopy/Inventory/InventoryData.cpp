@@ -11,38 +11,24 @@ void UInventoryData::Init(const FIntPoint& InGridSize)
 {
 	InventoryID = FGuid::NewGuid();
 	GridSize = InGridSize;
+
 	Cells.SetNum(GridSize.X * GridSize.Y);
-
-	for (FGuid& Cell : Cells)
+	for (auto& Cell : Cells)
 	{
-		Cell.Invalidate();
+		Cell = nullptr;
 	}
-}
 
-UItemInstance* UInventoryData::FindItemByID(FGuid ItemID)
-{
-	if (TObjectPtr<UItemInstance>* Found = Items.Find(ItemID))
-	{
-		return Found->Get();
-	}
-	return nullptr;
-}
-
-FIntPoint UInventoryData::GetItemSizeByID(FGuid ItemID, bool bRotated)
-{
-	UItemInstance* Item = FindItemByID(ItemID);
-	return GetItemSize(Item, bRotated);
+	Placements.Empty();
 }
 
 bool UInventoryData::TryAddItem(UItemInstance* NewItem, const FIntPoint& Origin, bool bRotated)
 {
-	if (!IsValid(NewItem))
+	if (!IsValid(NewItem) || NewItem->GetData() == nullptr)
 	{
 		return false;
 	}
 
-	const FGuid ItemId = NewItem->GetInstanceId();
-	if (Placements.Contains(ItemId))
+	if (Placements.Contains(NewItem))
 	{
 		return false;
 	}
@@ -53,29 +39,26 @@ bool UInventoryData::TryAddItem(UItemInstance* NewItem, const FIntPoint& Origin,
 	}
 
 	const FIntPoint Size = GetItemSize(NewItem, bRotated);
-	FillCells(ItemId, Origin, Size);
+	if (Size == FIntPoint::ZeroValue)
+	{
+		return false;
+	}
 
-	Placements.Add(ItemId, { Origin, bRotated });
-	Items.Add(ItemId, NewItem);
+	FillCells(NewItem, Origin, Size);
+	Placements.Add(NewItem, { Origin, bRotated });
 
 	return true;
 }
 
-bool UInventoryData::TryRelocateItem(const FGuid& ItemId, UInventoryData* Dest, const FIntPoint& NewOrigin, bool bRotated)
+bool UInventoryData::TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, const FIntPoint& NewOrigin, bool bRotated)
 {
-	if (!Dest) 
+	if (!IsValid(Dest) || !IsValid(Item) || Item->GetData() == nullptr)
 	{
 		return false;
 	}
 
-	UItemInstance* Item = FindItemByID(ItemId);
-	if (!IsValid(Item))
-	{
-		return false;
-	}
-
-	FItemPlacement* Placement = Placements.Find(ItemId);
-	if (!Placement) 
+	FItemPlacement* Placement = Placements.Find(Item);
+	if (!Placement)
 	{
 		return false;
 	}
@@ -83,7 +66,7 @@ bool UInventoryData::TryRelocateItem(const FGuid& ItemId, UInventoryData* Dest, 
 	if (Dest == this)
 	{
 		// 같은 인벤토리에서 이동 할 경우 체크에서 본인 제외
-		if (!CheckCanPlace(Item, NewOrigin, bRotated, &ItemId))
+		if (!CheckCanPlace(Item, NewOrigin, bRotated, Item))
 		{
 			return false;
 		}
@@ -97,26 +80,30 @@ bool UInventoryData::TryRelocateItem(const FGuid& ItemId, UInventoryData* Dest, 
 	}
 
 	// 소스에서 제거
-	ClearCells(ItemId);
-	Placements.Remove(ItemId);
-	Items.Remove(ItemId);
+	ClearCells(Item);
+	Placements.Remove(Item);
 
 	// 목적지에 추가
 	const FIntPoint Size = GetItemSize(Item, bRotated);
-	Dest->FillCells(ItemId, NewOrigin, Size);
-	Dest->Placements.Add(ItemId, { NewOrigin, bRotated });
-	Dest->Items.Add(ItemId, Item);
+	if (Size == FIntPoint::ZeroValue)
+	{
+		return false;
+	}
+
+	Dest->FillCells(Item, NewOrigin, Size);
+	Dest->Placements.Add(Item, { NewOrigin, bRotated });
 
 	return true;
 }
+
 
 int32 UInventoryData::GetItemCountByItemId(FName InItemId) const
 {
 	int32 Count = 0;
 
-	for (const TPair<FGuid, TObjectPtr<UItemInstance>>& Pair : Items)
+	for (const TPair<TObjectPtr<UItemInstance>, FItemPlacement>& Pair : Placements)
 	{
-		const UItemInstance* Item = Pair.Value.Get();
+		const UItemInstance* Item = Pair.Key;
 		if (!IsValid(Item) || Item->GetData() == nullptr)
 		{
 			continue;
@@ -138,13 +125,13 @@ bool UInventoryData::TryConsumeItemsByItemId(FName InItemId, int32 Count)
 		return true;
 	}
 
-	TArray<FGuid> Candidates;
+	TArray<TObjectPtr<UItemInstance>> Candidates;
 	Candidates.Reserve(Count);
 
 	// 제거 후보 수집
-	for (const TPair<FGuid, TObjectPtr<UItemInstance>>& Pair : Items)
+	for (const TPair<TObjectPtr<UItemInstance>, FItemPlacement>& Pair : Placements)
 	{
-		const UItemInstance* Item = Pair.Value.Get();
+		const UItemInstance* Item = Pair.Key;
 		if (!IsValid(Item) || Item->GetData() == nullptr)
 		{
 			continue;
@@ -167,65 +154,71 @@ bool UInventoryData::TryConsumeItemsByItemId(FName InItemId, int32 Count)
 	}
 
 	// 순회하며 제거
-	for (const FGuid& InstanceId : Candidates)
+	for (UItemInstance* Item : Candidates)
 	{
-		RemoveItemByInstanceId(InstanceId);
+		RemoveItem(Item);
 	}
 
 	return true;
 }
 
-bool UInventoryData::RemoveItemByInstanceId(const FGuid& InstanceId)
+bool UInventoryData::RemoveItem(UItemInstance* Item)
 {
-	if (!Placements.Contains(InstanceId))
+	if (!IsValid(Item))
 	{
 		return false;
 	}
 
-	ClearCells(InstanceId);
+	if (!Placements.Contains(Item))
+	{
+		return false;
+	}
 
-	Placements.Remove(InstanceId);
-	Items.Remove(InstanceId);
+	ClearCells(Item);
+	Placements.Remove(Item);
 
 	return true;
 }
 
 void UInventoryData::ClearAll()
 {
-	for (FGuid& Cell : Cells)
+	for (auto& Cell : Cells)
 	{
-		Cell.Invalidate();
+		Cell = nullptr;
 	}
 
 	Placements.Empty();
-	Items.Empty();
 }
 
-bool UInventoryData::CanPlaceItemPreview(const FGuid& ItemId, UInventoryData* Source, const FIntPoint& NewOrigin, bool bRotated) const
+FIntPoint UInventoryData::GetItemSize(const UItemInstance* InItem, bool bRotated) const
 {
-	if (!IsValid(Source))
+	if (!IsValid(InItem) || InItem->GetData() == nullptr)
+	{
+		return FIntPoint::ZeroValue;
+	}
+
+	FIntPoint Size = InItem->GetData()->InventoryBound;
+	return bRotated ? FIntPoint(Size.Y, Size.X) : Size;
+}
+
+bool UInventoryData::CanPlaceItemPreview(const UItemInstance* Item, const UInventoryData* Source, const FIntPoint& NewOrigin, bool bRotated) const
+{
+	if (!IsValid(Source) || !IsValid(Item) || Item->GetData() == nullptr)
 	{
 		return false;
 	}
 
-	const UItemInstance* Item = Source->FindItemByID(ItemId);
-	if (!IsValid(Item) || Item->GetData() == nullptr)
-	{
-		return false;
-	}
-
-	const FGuid* Ignore = nullptr;
-	if (Source == this)
-	{
-		Ignore = &ItemId;
-	}
-
+	const UItemInstance* Ignore = (Source == this) ? Item : nullptr;
 	return CheckCanPlace(Item, NewOrigin, bRotated, Ignore);
 }
 
-bool UInventoryData::CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated, const FGuid* IgnoreId) const
+bool UInventoryData::CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated, const UItemInstance* IgnoreItem) const
 {
 	const FIntPoint Size = GetItemSize(InItem, bRotated);
+	if (Size == FIntPoint::ZeroValue)
+	{
+		return false;
+	}
 
 	for (int32 Y = 0; Y < Size.Y; ++Y)
 	{
@@ -242,7 +235,7 @@ bool UInventoryData::CheckCanPlace(const UItemInstance* InItem, const FIntPoint&
 			const int32 Index = ToIndex(CellX, CellY);
 			if (Cells[Index].IsValid())
 			{
-				if (IgnoreId && Cells[Index] == *IgnoreId)
+				if (IgnoreItem && Cells[Index].Get() == IgnoreItem)
 				{
 					continue;
 				}
@@ -251,12 +244,6 @@ bool UInventoryData::CheckCanPlace(const UItemInstance* InItem, const FIntPoint&
 		}
 	}
 	return true;
-}
-
-FIntPoint UInventoryData::GetItemSize(const UItemInstance* InItem, bool bRotated) const
-{
-	FIntPoint Size = InItem->GetData()->InventoryBound;
-	return bRotated ? FIntPoint(Size.Y, Size.X) : Size;
 }
 
 bool UInventoryData::IsInBounds(int32 X, int32 Y) const
@@ -269,25 +256,25 @@ int32 UInventoryData::ToIndex(int32 X, int32 Y) const
 	return X + Y * GridSize.X;
 }
 
-void UInventoryData::FillCells(const FGuid& ItemId, const FIntPoint& Origin, const FIntPoint& Size)
+void UInventoryData::FillCells(UItemInstance* Item, const FIntPoint& Origin, const FIntPoint& Size)
 {
 	for (int32 Y = 0; Y < Size.Y; ++Y)
 	{
 		for (int32 X = 0; X < Size.X; ++X)
 		{
 			const int32 Index = ToIndex(Origin.X + X, Origin.Y + Y);
-			Cells[Index] = ItemId;
+			Cells[Index] = Item;
 		}
 	}
 }
 
-void UInventoryData::ClearCells(const FGuid& ItemId)
+void UInventoryData::ClearCells(UItemInstance* Item)
 {
-	for (FGuid& Cell : Cells)
+	for (auto& Cell : Cells)
 	{
-		if (Cell == ItemId)
+		if (Cell.Get() == Item)
 		{
-			Cell.Invalidate();
+			Cell = nullptr;
 		}
 	}
 }

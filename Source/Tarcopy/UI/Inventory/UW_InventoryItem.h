@@ -11,6 +11,7 @@
 class UInventoryData;
 class UUW_Inventory;
 class UBorder;
+class UItemInstance;
 
 /**
  * 
@@ -25,7 +26,7 @@ protected:
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 
 public:
-	void InitItem(const FGuid& InItemId, UInventoryData* InSourceInventory, UUW_Inventory* InSourceWidget, bool bInRotated);
+	void InitItem(UItemInstance* InItem, UInventoryData* InSourceInventory, UUW_Inventory* InSourceWidget, bool bInRotated);
 
 private:
 	void ApplyProxyVisual();
@@ -40,7 +41,7 @@ private:
 	TObjectPtr<UBorder> ItemBG;
 
 	UPROPERTY()
-	FGuid ItemId;
+	TWeakObjectPtr<UItemInstance> Item;
 
 	UPROPERTY()
 	TObjectPtr<UInventoryData> SourceInventory;

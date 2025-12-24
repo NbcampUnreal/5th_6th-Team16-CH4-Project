@@ -33,7 +33,7 @@ FReply UUW_InventoryItem::NativeOnMouseButtonDown(const FGeometry& InGeometry, c
 void UUW_InventoryItem::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)
 {
 	UInventoryDragDropOp* Op = NewObject<UInventoryDragDropOp>(GetOwningPlayer());
-	Op->ItemId = ItemId;
+	Op->Item = Item;
 	Op->SourceInventory = SourceInventory;
 	Op->SourceInventoryWidget = SourceInventoryWidget;
 	Op->bRotated = bRotated;
@@ -43,7 +43,7 @@ void UUW_InventoryItem::NativeOnDragDetected(const FGeometry& InGeometry, const 
 	UUW_InventoryItem* Proxy = CreateWidget<UUW_InventoryItem>(GetOwningPlayer(), GetClass());
 	if (Proxy)
 	{
-		Proxy->InitItem(ItemId, SourceInventory, SourceInventoryWidget, bRotated);
+		Proxy->InitItem(Item.Get(), SourceInventory, SourceInventoryWidget, bRotated);
 		Proxy->ApplyProxyVisual();
 		Proxy->SetRenderOpacity(0.4f);
 
@@ -67,9 +67,9 @@ void UUW_InventoryItem::NativeOnDragDetected(const FGeometry& InGeometry, const 
 	OutOperation = Op;
 }
 
-void UUW_InventoryItem::InitItem(const FGuid& InItemId, UInventoryData* InSourceInventory, UUW_Inventory* InSourceWidget, bool bInRotated)
+void UUW_InventoryItem::InitItem(UItemInstance* InItem, UInventoryData* InSourceInventory, UUW_Inventory* InSourceWidget, bool bInRotated)
 {
-	ItemId = InItemId;
+	Item = InItem;
 	SourceInventory = InSourceInventory;
 	SourceInventoryWidget = InSourceWidget;
 	bRotated = bInRotated;
@@ -95,7 +95,7 @@ FVector2D UUW_InventoryItem::GetItemPixelSize() const
 	}
 
 	const int32 CellPx = SourceInventoryWidget->GetCellSizePx();
-	const FIntPoint SizeCells = SourceInventory->GetItemSizeByID(ItemId, bRotated);
+	const FIntPoint SizeCells = SourceInventory->GetItemSize(Item.Get(), bRotated);
 
 	return FVector2D(SizeCells.X * CellPx, SizeCells.Y * CellPx);
 }
@@ -107,7 +107,7 @@ void UUW_InventoryItem::OpenCommandMenu(const FPointerEvent& InMouseEvent)
 		return;
 	}
 
-	UItemInstance* ItemInst = SourceInventory->FindItemByID(ItemId);
+	UItemInstance* ItemInst = Item.Get();
 	if (!IsValid(ItemInst))
 	{
 		return;

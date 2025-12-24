@@ -737,10 +737,11 @@ void AMyCharacter::OnRotateInventoryItem()
 
 	Op->bRotated = !Op->bRotated;
 
-	if (IsValid(Op->DragBox) && IsValid(Op->SourceInventoryWidget))
+	const UItemInstance* ItemPtr = Op->Item.Get();
+	if (ItemPtr && IsValid(Op->DragBox) && IsValid(Op->SourceInventoryWidget))
 	{
 		const int32 CellPx = Op->SourceInventoryWidget->GetCellSizePx();
-		const FIntPoint SizeCells = Op->SourceInventory->GetItemSizeByID(Op->ItemId, Op->bRotated);
+		const FIntPoint SizeCells = Op->SourceInventory->GetItemSize(ItemPtr, Op->bRotated);
 
 		if (SizeCells != FIntPoint::ZeroValue)
 		{

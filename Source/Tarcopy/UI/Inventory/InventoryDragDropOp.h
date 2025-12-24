@@ -9,6 +9,7 @@
 class UInventoryData;
 class UUW_Inventory;
 class USizeBox;
+class UItemInstance;
 
 /**
  * 
@@ -23,7 +24,7 @@ public:
 
 public:
 	UPROPERTY()
-	FGuid ItemId;
+	TWeakObjectPtr<UItemInstance> Item;
 
 	UPROPERTY()
 	TObjectPtr<UInventoryData> SourceInventory;

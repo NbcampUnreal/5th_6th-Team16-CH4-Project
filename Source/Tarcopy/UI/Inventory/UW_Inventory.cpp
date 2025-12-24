@@ -54,8 +54,13 @@ bool UUW_Inventory::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEve
 			}
 		}
 	}
+	UItemInstance* Item = Op->Item.Get();
+	if (!IsValid(Item))
+	{
+		return false;
+	}
 
-	const bool bOk = Op->SourceInventory->TryRelocateItem(Op->ItemId, BoundInventory, NewOrigin, Op->bRotated);
+	const bool bOk = Op->SourceInventory->TryRelocateItem(Item, BoundInventory, NewOrigin, Op->bRotated);
 	if (!bOk)
 	{
 		return false;
@@ -67,7 +72,7 @@ bool UUW_Inventory::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEve
 		{
 			if (UPlayerInventoryComponent* InvComp = P->FindComponentByClass<UPlayerInventoryComponent>())
 			{
-				InvComp->HandleRelocatePostProcess(Op->SourceInventory, Op->ItemId);
+				InvComp->HandleRelocatePostProcess(Op->SourceInventory, Item);
 			}
 		}
 	}
@@ -111,7 +116,14 @@ bool UUW_Inventory::NativeOnDragOver(const FGeometry& InGeometry, const FDragDro
 
 	ClearCellPreview();
 
-	const FIntPoint ItemSize = Op->SourceInventory->GetItemSizeByID(Op->ItemId, Op->bRotated);
+	UItemInstance* Item = Op->Item.Get();
+	if (!IsValid(Item))
+	{
+		ClearCellPreview();
+		return false;
+	}
+
+	const FIntPoint ItemSize = BoundInventory->GetItemSize(Item, Op->bRotated);
 	if (ItemSize == FIntPoint::ZeroValue)
 	{
 		ClearCellPreview();
@@ -119,7 +131,7 @@ bool UUW_Inventory::NativeOnDragOver(const FGeometry& InGeometry, const FDragDro
 	}
 
 	const bool bCanPlace = BoundInventory->CanPlaceItemPreview(
-		Op->ItemId,
+		Item,
 		Op->SourceInventory,
 		Origin,
 		Op->bRotated
@@ -156,18 +168,24 @@ void UUW_Inventory::BindInventory(UInventoryData* InData)
 	BuildItems();
 }
 
-void UUW_Inventory::AddItemWidget(FGuid NewItemID, const FIntPoint& Origin, bool bRotated)
+void UUW_Inventory::AddItemWidget(UItemInstance* Item, const FIntPoint& Origin, bool bRotated)
 {
-	UUW_InventoryItem* Item = CreateWidget<UUW_InventoryItem>(GetOwningPlayer(), ItemWidgetClass);
-	if (!Item)
+	if (!IsValid(Item) || !BoundInventory)
 	{
 		return;
 	}
-	UCanvasPanelSlot* CanvasSlot = ItemCanvas->AddChildToCanvas(Item);
+
+	UUW_InventoryItem* ItemWidget = CreateWidget<UUW_InventoryItem>(GetOwningPlayer(), ItemWidgetClass);
+	if (!ItemWidget)
+	{
+		return;
+	}
+
+	UCanvasPanelSlot* CanvasSlot = ItemCanvas->AddChildToCanvas(ItemWidget);
 	CanvasSlot->SetAnchors(FAnchors(0.f, 0.f, 0.f, 0.f));
 	CanvasSlot->SetAlignment(FVector2D(0.f, 0.f));
 
-	FIntPoint ItemSize = BoundInventory->GetItemSizeByID(NewItemID, bRotated);
+	const FIntPoint ItemSize = BoundInventory->GetItemSize(Item, bRotated);
 
 	const FVector2D PosPx(Origin.X * CellSizePx, Origin.Y * CellSizePx);
 	const FVector2D SizePx(ItemSize.X * CellSizePx, ItemSize.Y * CellSizePx);
@@ -175,8 +193,9 @@ void UUW_Inventory::AddItemWidget(FGuid NewItemID, const FIntPoint& Origin, bool
 	CanvasSlot->SetPosition(PosPx);
 	CanvasSlot->SetSize(SizePx);
 
-	Item->InitItem(NewItemID, BoundInventory, this, bRotated);
-	ItemWidgets.Add(NewItemID, Item);
+	ItemWidget->InitItem(Item, BoundInventory, this, bRotated);
+
+	ItemWidgets.Add(Item, ItemWidget);
 }
 
 void UUW_Inventory::RefreshItems()
@@ -210,14 +229,22 @@ void UUW_Inventory::ForceUpdatePreviewFromOp(UInventoryDragDropOp* Op)
 	const FIntPoint Origin(NewX, NewY);
 
 	ClearCellPreview();
-	const FIntPoint ItemSize = Op->SourceInventory->GetItemSizeByID(Op->ItemId, Op->bRotated);
+	UItemInstance* Item = Op->Item.Get();
+	if (!IsValid(Item))
+	{
+		ClearCellPreview();
+		return;
+	}
+
+	const FIntPoint ItemSize = BoundInventory->GetItemSize(Item, Op->bRotated);
 	if (ItemSize == FIntPoint::ZeroValue)
 	{
+		ClearCellPreview();
 		return;
 	}
 
 	const bool bCanPlace = BoundInventory->CanPlaceItemPreview(
-		Op->ItemId,
+		Item,
 		Op->SourceInventory,
 		Origin,
 		Op->bRotated
@@ -272,19 +299,18 @@ void UUW_Inventory::BuildItems()
 	}
 
 	ItemCanvas->ClearChildren();
-	UE_LOG(LogTemp, Warning, TEXT("After Clear: CanvasChildren=%d"), ItemCanvas->GetChildrenCount());
 	ItemWidgets.Empty();
 
-	const TMap<FGuid, FItemPlacement>& Placements = BoundInventory->GetPlacements();
-	for (const TPair<FGuid, FItemPlacement>& Pair : Placements)
+	const auto& Placements = BoundInventory->GetPlacements();
+	for (const TPair<TObjectPtr<UItemInstance>, FItemPlacement>& Pair : Placements)
 	{
-		const FGuid ItemInstanceId = Pair.Key;
+		UItemInstance* Item = Pair.Key;
 		const FItemPlacement& Placement = Pair.Value;
 
-		AddItemWidget(ItemInstanceId, Placement.Origin, Placement.bRotated);
-		UE_LOG(LogTemp, Warning, TEXT("After Add: CanvasChildren=%d"), ItemCanvas->GetChildrenCount());
+		AddItemWidget(Item, Placement.Origin, Placement.bRotated);
 	}
 }
+
 
 UUW_InventoryCell* UUW_Inventory::GetCell(int32 X, int32 Y) const
 {

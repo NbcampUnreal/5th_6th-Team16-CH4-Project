@@ -9,6 +9,7 @@
 #include "Inventory/InventoryData.h"
 #include "UI/Inventory/UW_Inventory.h"
 #include "Inventory/LootScannerComponent.h"
+#include "Item/ItemInstance.h"
 
 void UInventoryDragDropOp::DragCancelled_Implementation(const FPointerEvent& PointerEvent)
 {
@@ -54,7 +55,13 @@ void UInventoryDragDropOp::DragCancelled_Implementation(const FPointerEvent& Poi
 		}
 	}
 
-	InvComp->RequestDropItemToWorld(SourceInventory, ItemId, bRotated);
+	UItemInstance* ItemPtr = Item.Get();
+	if (!IsValid(ItemPtr))
+	{
+		return;
+	}
+
+	InvComp->RequestDropItemToWorld(SourceInventory, ItemPtr, bRotated);
 
 	if (SourceInventoryWidget)
 	{

@@ -93,22 +93,27 @@ void ULootScannerComponent::RebuildGroundInventory()
 	OnScannedGroundChanged.Broadcast();
 }
 
-bool ULootScannerComponent::ConsumeGroundWorldItemByInstanceId(const FGuid& InstanceId)
+bool ULootScannerComponent::ConsumeGroundWorldItem(UItemInstance* Item)
 {
-	TWeakObjectPtr<AItemWrapperActor>* Found = InstanceIdToWorldItem.Find(InstanceId);
+	if (!IsValid(Item))
+	{
+		return false;
+	}
+
+	TWeakObjectPtr<AItemWrapperActor>* Found = ItemToWorldItem.Find(Item);
 	if (!Found)
 	{
 		return false;
 	}
 
 	AItemWrapperActor* Actor = Found->Get();
-	InstanceIdToWorldItem.Remove(InstanceId);
+	ItemToWorldItem.Remove(Item);
 
 	if (IsValid(Actor))
 	{
 		OverlappedGroundItems.Remove(Actor);
 		OverlappedContainerItems.Remove(Actor);
-		
+
 		if (AActor* OwnerActor = GetOwner())
 		{
 			if (OwnerActor->HasAuthority())
@@ -162,7 +167,7 @@ void ULootScannerComponent::OnGroundBeginOverlap(UPrimitiveComponent* Overlapped
 		UItemInstance* ItemInst = ItemActor->GetItemInstance();
 		if (IsValid(ItemInst))
 		{
-			InstanceIdToWorldItem.Add(ItemInst->GetInstanceId(), ItemActor);
+			ItemToWorldItem.Add(ItemInst, ItemActor);
 			const UContainerComponent* ContainerComp = ItemInst->GetItemComponent<UContainerComponent>();
 			if (ContainerComp)
 			{
@@ -188,7 +193,7 @@ void ULootScannerComponent::OnGroundEndOverlap(UPrimitiveComponent* OverlappedCo
 		UItemInstance* ItemInst = ItemActor->GetItemInstance();
 		if (IsValid(ItemInst))
 		{
-			InstanceIdToWorldItem.Remove(ItemInst->GetInstanceId());
+			ItemToWorldItem.Remove(ItemInst);
 			const UContainerComponent* ContainerComp = ItemActor->GetItemInstance()->GetItemComponent<UContainerComponent>();
 			if (ContainerComp)
 			{

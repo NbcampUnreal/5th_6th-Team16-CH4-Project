@@ -32,7 +32,7 @@ void UPlayerInventoryComponent::BeginPlay()
 	OnInventoryReady.Broadcast();
 }
 
-void UPlayerInventoryComponent::HandleRelocatePostProcess(UInventoryData* SourceInventory, const FGuid& ItemId)
+void UPlayerInventoryComponent::HandleRelocatePostProcess(UInventoryData* SourceInventory, UItemInstance* Item)
 {
 	if (!SourceInventory)
 	{
@@ -49,52 +49,45 @@ void UPlayerInventoryComponent::HandleRelocatePostProcess(UInventoryData* Source
 	{
 		if (GetOwner() && GetOwner()->HasAuthority())
 		{
-			Scanner->ConsumeGroundWorldItemByInstanceId(ItemId);
+			Scanner->ConsumeGroundWorldItem(Item);
 		}
 		else
 		{
-			Server_ConsumeGroundWorldItem(ItemId);
+			Server_ConsumeGroundWorldItem(Item);
 		}
 	}
 }
 
-void UPlayerInventoryComponent::RequestDropItemToWorld(UInventoryData* SourceInventory, const FGuid& ItemId, bool bRotated)
+void UPlayerInventoryComponent::RequestDropItemToWorld(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated)
 {
-	if (!SourceInventory)
+	if (!IsValid(SourceInventory) || !IsValid(Item))
 	{
 		return;
 	}
 
-	DropItemToWorld_Internal(SourceInventory, ItemId, bRotated);
-	//if (GetOwner() && GetOwner()->HasAuthority())
-	//{
-	//	DropItemToWorld_Internal(SourceInventory, ItemId, bRotated);
-	//}
-	//else
-	//{
-	//	Server_DropItemToWorld(SourceInventory, ItemId, bRotated);
-	//}
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		DropItemToWorld_Internal(SourceInventory, Item, bRotated);
+	}
+	else
+	{
+		Server_DropItemToWorld(SourceInventory, Item, bRotated);
+	}
 }
 
-void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceInventory, const FGuid& ItemId, bool bRotated)
+void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated)
 {
 	//if (!GetOwner() || !GetOwner()->HasAuthority())
 	//{
 	//	return;
 	//}
 
-	if (!SourceInventory)
-	{
-		return;
-	}
+	if (!IsValid(SourceInventory) || !IsValid(Item))
+    {
+        return;
+    }
 
-	UItemInstance* ItemInst = SourceInventory->FindItemByID(ItemId);
-	if (!IsValid(ItemInst))
-	{
-		return;
-	}
-
-	SourceInventory->RemoveItemByInstanceId(ItemId);
+	SourceInventory->RemoveItem(Item);
 
 	if (!WorldItemClass)
 	{
@@ -124,7 +117,7 @@ void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceI
 		return;
 	}
 
-	Spawned->SetItemInstance(ItemInst);
+	Spawned->SetItemInstance(Item);
 	UGameplayStatics::FinishSpawningActor(Spawned, SpawnTM);
 
 	if (ULootScannerComponent* Scanner = FindLootScanner())
@@ -142,7 +135,7 @@ ULootScannerComponent* UPlayerInventoryComponent::FindLootScanner() const
 	return nullptr;
 }
 
-void UPlayerInventoryComponent::Server_ConsumeGroundWorldItem_Implementation(const FGuid& ItemId)
+void UPlayerInventoryComponent::Server_ConsumeGroundWorldItem_Implementation(UItemInstance* Item)
 {
 	ULootScannerComponent* Scanner = FindLootScanner();
 	if (!Scanner)
@@ -150,10 +143,10 @@ void UPlayerInventoryComponent::Server_ConsumeGroundWorldItem_Implementation(con
 		return;
 	}
 
-	Scanner->ConsumeGroundWorldItemByInstanceId(ItemId);
+	Scanner->ConsumeGroundWorldItem(Item);
 }
 
-void UPlayerInventoryComponent::Server_DropItemToWorld_Implementation(UInventoryData* SourceInventory, const FGuid& ItemId, bool bRotated)
+void UPlayerInventoryComponent::Server_DropItemToWorld_Implementation(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated)
 {
-	DropItemToWorld_Internal(SourceInventory, ItemId, bRotated);
+	DropItemToWorld_Internal(SourceInventory, Item, bRotated);
 }

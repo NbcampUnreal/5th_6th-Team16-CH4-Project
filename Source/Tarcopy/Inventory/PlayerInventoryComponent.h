@@ -29,18 +29,18 @@ protected:
 public:
 	UInventoryData* GetPlayerInventoryData() const { return PlayerInventoryData; }
 
-	void HandleRelocatePostProcess(UInventoryData* SourceInventory, const FGuid& ItemId);
+	void HandleRelocatePostProcess(UInventoryData* SourceInventory, UItemInstance* Item);
 
-	void RequestDropItemToWorld(UInventoryData* SourceInventory, const FGuid& ItemId, bool bRotated);
+	void RequestDropItemToWorld(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated);
 
 private:
-	void DropItemToWorld_Internal(UInventoryData* SourceInventory, const FGuid& ItemId, bool bRotated);
+	void DropItemToWorld_Internal(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated);
 
 	UFUNCTION(Server, Reliable)
-	void Server_DropItemToWorld(UInventoryData* SourceInventory, const FGuid& ItemId, bool bRotated);
+	void Server_DropItemToWorld(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated);
 
 	UFUNCTION(Server, Reliable)
-	void Server_ConsumeGroundWorldItem(const FGuid& ItemId);
+	void Server_ConsumeGroundWorldItem(UItemInstance* Item);
 
 	ULootScannerComponent* FindLootScanner() const;
 

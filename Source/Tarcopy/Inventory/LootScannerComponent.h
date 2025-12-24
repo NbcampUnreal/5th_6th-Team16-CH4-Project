@@ -11,6 +11,7 @@ class USphereComponent;
 class UWorldContainerComponent;
 class AItemWrapperActor;
 class UInventoryData;
+class UItemInstance;
 
 DECLARE_MULTICAST_DELEGATE(FOnScannedContainersChanged);
 DECLARE_MULTICAST_DELEGATE(FOnScannedGroundChanged);
@@ -33,7 +34,7 @@ public:
 
 	void RebuildGroundInventory();
 
-	bool ConsumeGroundWorldItemByInstanceId(const FGuid& InstanceId);
+	bool ConsumeGroundWorldItem(UItemInstance* Item);
 
 	FOnScannedContainersChanged OnScannedContainersChanged;
 
@@ -80,6 +81,6 @@ private:
 	TObjectPtr<UInventoryData> GroundInventoryData;
 
 	UPROPERTY()
-	TMap<FGuid, TWeakObjectPtr<AItemWrapperActor>> InstanceIdToWorldItem;
+	TMap<TWeakObjectPtr<UItemInstance>, TWeakObjectPtr<AItemWrapperActor>> ItemToWorldItem;
 
 };
