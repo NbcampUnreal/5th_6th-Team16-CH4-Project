@@ -16,9 +16,6 @@ public class Tarcopy : ModuleRules
 			"InputCore",
             "ChaosVehicles",
             "EnhancedInput",
-			"UMG",
-			"Slate",
-			"SlateCore"
 		});
 		
 		PublicIncludePaths.AddRange(new []
@@ -26,7 +23,12 @@ public class Tarcopy : ModuleRules
 			"Tarcopy"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"UMG",
+			"Slate",
+			"SlateCore"
+		});
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

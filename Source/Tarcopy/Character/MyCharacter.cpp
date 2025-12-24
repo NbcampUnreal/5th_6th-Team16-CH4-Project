@@ -31,6 +31,7 @@
 #include "Inventory/InventoryData.h"
 #include "UI/UW_Inventory.h"
 #include "Tarcopy.h"
+#include "Character/CameraObstructionComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
