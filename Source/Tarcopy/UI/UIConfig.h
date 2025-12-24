@@ -20,6 +20,7 @@ enum class EUIType : uint8
     InventoryBorder,
     Player,
     Nearby,
+    ItemCommandMenu,
     Test
 };
 

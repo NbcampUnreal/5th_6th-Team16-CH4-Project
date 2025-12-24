@@ -31,6 +31,8 @@ private:
 	void ApplyProxyVisual();
 	FVector2D GetItemPixelSize() const;
 
+	void OpenCommandMenu(const FPointerEvent& InMouseEvent);
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> ItemBorder;
 
@@ -47,5 +49,5 @@ private:
 	TObjectPtr<UUW_Inventory> SourceInventoryWidget;
 
 	UPROPERTY()
-	bool bRotated = false;	
+	bool bRotated = false;
 };

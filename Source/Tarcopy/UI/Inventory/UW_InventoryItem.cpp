@@ -9,6 +9,10 @@
 #include "Inventory/InventoryData.h"
 #include "Components/SizeBox.h"
 #include "Components/Border.h"
+#include "UI/Inventory/UW_ItemCommandMenu.h"
+#include "Item/ItemInstance.h"
+#include "UI/UISubsystem.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 
 FReply UUW_InventoryItem::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
@@ -16,6 +20,13 @@ FReply UUW_InventoryItem::NativeOnMouseButtonDown(const FGeometry& InGeometry, c
 	{
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
 	}
+
+	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		OpenCommandMenu(InMouseEvent);
+		return FReply::Handled();
+	}
+
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
@@ -87,4 +98,39 @@ FVector2D UUW_InventoryItem::GetItemPixelSize() const
 	const FIntPoint SizeCells = SourceInventory->GetItemSizeByID(ItemId, bRotated);
 
 	return FVector2D(SizeCells.X * CellPx, SizeCells.Y * CellPx);
+}
+
+void UUW_InventoryItem::OpenCommandMenu(const FPointerEvent& InMouseEvent)
+{
+	if (!IsValid(SourceInventory))
+	{
+		return;
+	}
+
+	UItemInstance* ItemInst = SourceInventory->FindItemByID(ItemId);
+	if (!IsValid(ItemInst))
+	{
+		return;
+	}
+
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC)
+	{
+		return;
+	}
+
+	ULocalPlayer* LP = PC->GetLocalPlayer();
+	if (!LP)
+	{
+		return;
+	}
+
+	UUISubsystem* UIS = LP->GetSubsystem<UUISubsystem>();
+	if (!UIS)
+	{
+		return;
+	}
+
+	const FVector2D ViewportPos = UWidgetLayoutLibrary::GetMousePositionOnViewport(PC);
+	UIS->ShowItemCommandMenu(ItemInst, ViewportPos);
 }

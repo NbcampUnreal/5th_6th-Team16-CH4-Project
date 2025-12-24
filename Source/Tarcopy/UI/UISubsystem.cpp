@@ -11,6 +11,8 @@
 #include "Misc/Guid.h"
 #include "UI/Inventory/UW_Inventory.h"
 #include "UI/Inventory/UW_InventoryBorder.h"
+#include "Item/ItemInstance.h"
+#include "UI/Inventory/UW_ItemCommandMenu.h"
 
 UUISubsystem::UUISubsystem()
 {
@@ -181,6 +183,58 @@ void UUISubsystem::ResetAllUI()
         RootHUD->RemoveFromParent();
         RootHUD = nullptr;
     }
+}
+
+UUW_ItemCommandMenu* UUISubsystem::ShowItemCommandMenu(UItemInstance* Item, const FVector2D& ScreenPos)
+{
+    InitRootHUD();
+
+    FUIInfo WidgetInfo;
+    if (!UIConfigData->GetInfo(EUIType::ItemCommandMenu, WidgetInfo))
+    {
+        UE_LOG(LogTemp, Error, TEXT("UUISubsystem::ShowItemCommandMenu: Cannot Find UIConfig Info!"));
+        return nullptr;
+    }
+
+    if (!RootHUD || !RootHUD->GetRootCanvas() || !IsValid(Item))
+    {
+        return nullptr;
+    }
+
+    CloseItemCommandMenu();
+
+    APlayerController* PC = GetLocalPlayer() ? GetLocalPlayer()->GetPlayerController(GetWorld()) : nullptr;
+    if (!PC)
+    {
+        return nullptr;
+    }
+
+    ActiveItemCommandMenu = CreateWidget<UUW_ItemCommandMenu>(PC, WidgetInfo.WidgetClass);
+    if (!IsValid(ActiveItemCommandMenu))
+    {
+        return nullptr;
+    }
+
+    ActiveItemCommandMenu->InitMenu(Item);
+
+    UCanvasPanelSlot* Slot = RootHUD->GetRootCanvas()->AddChildToCanvas(ActiveItemCommandMenu);
+    ApplyLayoutPreset(Slot, WidgetInfo.Layout);
+
+    Slot->SetPosition(ScreenPos);
+
+    UE_LOG(LogTemp, Warning, TEXT("ShowItemCommandMenu called. Item=%s"), *GetNameSafe(Item));
+    UE_LOG(LogTemp, Warning, TEXT("MenuClass=%s"), *GetNameSafe(WidgetInfo.WidgetClass));
+
+    return ActiveItemCommandMenu;
+}
+
+void UUISubsystem::CloseItemCommandMenu()
+{
+    if (IsValid(ActiveItemCommandMenu))
+    {
+        ActiveItemCommandMenu->RemoveFromParent();
+    }
+    ActiveItemCommandMenu = nullptr;
 }
 
 void UUISubsystem::InitRootHUD()
