@@ -132,6 +132,7 @@ void UCameraObstructionComponent::UpdateCameraObstructionFade()
 	Params.AddIgnoredActor(OwnerActor);
 
 	TSet<UPrimitiveComponent*> BlockingHitComps;
+	TMap<UPrimitiveComponent*, float> ObstructionOpacityByComp;
 	FVector TraceStart = Start;
 	for (int32 HitIndex = 0; HitIndex < MaxObstructionHits; ++HitIndex)
 	{
@@ -159,7 +160,9 @@ void UCameraObstructionComponent::UpdateCameraObstructionFade()
 
 		// Refresh hold time and apply hole on this surface.
 		FadeHoldUntil.FindOrAdd(HitComp) = Now + FadeHoldTime;
-		ApplyObstructionMaterial(HitComp, Start, End, ScreenCenterUV, ScreenRadius, ScreenSoftness, ScreenAspect);
+		const float TargetOpacity = (HitIndex == 0) ? FirstObstructionOpacity : SubsequentObstructionOpacity;
+		ObstructionOpacityByComp.Add(HitComp, TargetOpacity);
+		ApplyObstructionMaterial(HitComp, Start, End, ScreenCenterUV, ScreenRadius, ScreenSoftness, ScreenAspect, TargetOpacity);
 
 		Params.AddIgnoredComponent(HitComp);
 		TraceStart = Hit.ImpactPoint + TraceDirection * ObstructionTraceStep;
@@ -253,7 +256,9 @@ void UCameraObstructionComponent::UpdateCameraObstructionFade()
 					if (Dist <= ScreenRadius + ScreenSoftness)
 					{
 						FadeHoldUntil.FindOrAdd(OverlapComp) = Now + FadeHoldTime;
-						ApplyObstructionMaterial(OverlapComp, Start, End, ScreenCenterUV, ScreenRadius, ScreenSoftness, ScreenAspect);
+						const float* StoredOpacity = ObstructionOpacityByComp.Find(OverlapComp);
+						const float TargetOpacity = StoredOpacity ? *StoredOpacity : SubsequentObstructionOpacity;
+						ApplyObstructionMaterial(OverlapComp, Start, End, ScreenCenterUV, ScreenRadius, ScreenSoftness, ScreenAspect, TargetOpacity);
 					}
 				}
 			}
@@ -262,7 +267,7 @@ void UCameraObstructionComponent::UpdateCameraObstructionFade()
 }
 
 void UCameraObstructionComponent::ApplyObstructionMaterial(UPrimitiveComponent* HitComp, const FVector& LineStart, const FVector& LineEnd,
-	const FVector2D& ScreenCenterUV, float ScreenRadius, float ScreenSoftness, float ScreenAspect)
+	const FVector2D& ScreenCenterUV, float ScreenRadius, float ScreenSoftness, float ScreenAspect, float Opacity)
 {
 	if (!IsValid(HitComp))
 	{
@@ -361,6 +366,11 @@ void UCameraObstructionComponent::ApplyObstructionMaterial(UPrimitiveComponent* 
 			DynMat->SetVectorParameterValue(HoleCenterParam, LineEnd);
 			DynMat->SetScalarParameterValue(HoleRadiusParam, ObstructionHoleRadius);
 			DynMat->SetScalarParameterValue(HoleSoftnessParam, ObstructionHoleSoftness);
+
+			if (!ObstructionOpacityParamName.IsNone())
+			{
+				DynMat->SetScalarParameterValue(ObstructionOpacityParamName, Opacity);
+			}
 		}
 	}
 }
