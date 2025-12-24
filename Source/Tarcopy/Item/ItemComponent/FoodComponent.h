@@ -15,12 +15,20 @@ public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
 
-	void Consume(int32 ConsumeAmount);
+protected:
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void OnRep_SetComponent() override;
+
+public:
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_Consume(int32 ConsumeAmount);
+	UFUNCTION()
+	void OnRep_PrintAmount();
 
 private:
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_PrintAmount)
 	int32 Amount = 4;										// default Amount = 4
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Replicated)
 	float RemainToExpire;
 
 	const FFoodData* Data;

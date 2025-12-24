@@ -10,33 +10,43 @@
 #include "Animation/AnimMontage.h"
 #include "FirearmComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Item/ItemCommand/EquipCommand.h"
+#include "Item/ItemComponent/DurabilityComponent.h"
 
 const float UMeleeWeaponComponent::CheckHitDelay = 0.6f;
 
 void UMeleeWeaponComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
-
-	const FItemData* ItemData = GetOwnerItemData();
-	if (ItemData == nullptr)
-		return;
-
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return;
-
-	Data = DataTableSubsystem->GetTable(EDataTableType::MeleeWeaponTable)->FindRow<FMeleeWeaponData>(ItemData->ItemId, FString(""));
-	if (Data == nullptr)
-		return;
 }
 
 void UMeleeWeaponComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
 {
 	Super::GetCommands(OutCommands);
+
+	const FItemData* OwnerItemData = GetOwnerItemData();
+	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
+	FText TextItemName = OwnerItemData->TextName;
+
+	bool bIsEquipped = IsValid(GetOwnerCharacter()) == true;
+	UEquipCommand* EquipCommand = NewObject<UEquipCommand>(this);
+	EquipCommand->TargetItem = GetOwnerItem();
+	EquipCommand->TextDisplay = FText::Format(
+		FText::FromString(bIsEquipped == true ? TEXT("Unequip {0}") : TEXT("Equip {0}")),
+		TextItemName);
+	EquipCommand->bEquip = !bIsEquipped;
+	EquipCommand->BodyLocation = Data->BodyLocation;
+	// 인벤토리에서 공간 있는지 체크해야 함
+	EquipCommand->bExecutable = true;
+	OutCommands.Add(EquipCommand);
 }
 
-void UMeleeWeaponComponent::ExecuteAttack(ACharacter* OwnerCharacter)
+void UMeleeWeaponComponent::ExecuteAttack()
 {
+	if (Data == nullptr)
+		return;
+
+	ACharacter* OwnerCharacter = GetOwnerCharacter();
 	if (IsValid(OwnerCharacter) == false)
 		return;
 
@@ -45,7 +55,6 @@ void UMeleeWeaponComponent::ExecuteAttack(ACharacter* OwnerCharacter)
 		return;
 
 	bIsAttacking = true;
-	CachedOwner = OwnerCharacter;
 
 	if (IsValid(Data->Montage) == true)
 	{
@@ -81,15 +90,29 @@ void UMeleeWeaponComponent::CancelAction()
 	EnableOwnerMovement();
 }
 
+void UMeleeWeaponComponent::OnRep_SetComponent()
+{
+	Super::OnRep_SetComponent();
+
+	const FItemData* ItemData = GetOwnerItemData();
+	if (ItemData == nullptr)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	Data = DataTableSubsystem->GetTable(EDataTableType::MeleeWeaponTable)->FindRow<FMeleeWeaponData>(ItemData->ItemId, FString(""));
+}
+
 void UMeleeWeaponComponent::CheckHit()
 {
 	if (Data == nullptr)
 		return;
 
-	if (CachedOwner.IsValid() == false)
+	ACharacter* OwnerCharacter = GetOwnerCharacter();
+	if (IsValid(OwnerCharacter) == false)
 		return;
-
-	ACharacter* OwnerCharacter = CachedOwner.Get();
 
 	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Check Hit"));
 
@@ -141,6 +164,17 @@ void UMeleeWeaponComponent::CheckHit()
 		HitActors.Add(HitActor);
 	}
 
+	if (HitActors.IsEmpty() == false)
+	{
+		UDurabilityComponent* DurabilityComponent = GetOwnerItem()->GetItemComponent<UDurabilityComponent>();
+		if (IsValid(DurabilityComponent) == true)
+		{
+			// 바꿔야 함
+			float TempAmount = 1.0;
+			DurabilityComponent->LoseDurability(TempAmount);
+		}
+	}
+
 	// 충돌 검사 디버그
 	{
 		DrawDebugSphere(
@@ -161,10 +195,11 @@ void UMeleeWeaponComponent::CheckHit()
 
 bool UMeleeWeaponComponent::CheckIsAttackableTarget(AActor* TargetActor)
 {
-	if (CachedOwner.IsValid() == false)
+	ACharacter* OwnerCharacter = GetOwnerCharacter();
+	if (IsValid(OwnerCharacter) == false)
 		return false;
 
-	FVector Origin = CachedOwner->GetActorLocation();
+	FVector Origin = OwnerCharacter->GetActorLocation();
 	FVector TargetLocation = TargetActor->GetActorLocation();
 
 	FHitResult HitResult;
@@ -176,10 +211,11 @@ void UMeleeWeaponComponent::EnableOwnerMovement()
 	if (bIsAttacking == false)
 		return;
 
-	if (CachedOwner.IsValid() == false)
+	ACharacter* OwnerCharacter = GetOwnerCharacter();
+	if (IsValid(OwnerCharacter) == false)
 		return;
 
-	UCharacterMovementComponent* CharacterMovement = CachedOwner->GetCharacterMovement();
+	UCharacterMovementComponent* CharacterMovement = OwnerCharacter->GetCharacterMovement();
 	if (IsValid(CharacterMovement) == false)
 		return;
 

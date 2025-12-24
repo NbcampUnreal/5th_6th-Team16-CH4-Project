@@ -7,13 +7,86 @@
 #include "Item/ItemComponent/CraftComponent.h"
 #include "Item/ItemComponent/ItemComponentPreset.h"
 #include "Item/ItemComponent/DefaultItemComponent.h"
+#include "Net/UnrealNetwork.h"
+#include "GameFramework/Character.h"
+#include "Kismet/KismetSystemLibrary.h"
 
-void UItemInstance::SetData(const FItemData* InData)
+bool UItemInstance::IsSupportedForNetworking() const
 {
-	if (InData == nullptr)
+	return true;
+}
+
+void UItemInstance::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, ItemComponents);
+	DOREPLIFETIME(ThisClass, ItemId);
+	DOREPLIFETIME(ThisClass, OwnerCharacter);
+	DOREPLIFETIME(ThisClass, InstanceID);
+}
+
+int32 UItemInstance::GetFunctionCallspace(UFunction* Function, FFrame* Stack)
+{
+	AActor* Owner = GetTypedOuter<AActor>();
+	if (Owner)
+		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Get Function Call Space"));
+	return IsValid(Owner) == true ? Owner->GetFunctionCallspace(Function, Stack) : FunctionCallspace::Local;
+}
+
+bool UItemInstance::CallRemoteFunction(UFunction* Function, void* Parms, FOutParmRec* OutParms, FFrame* Stack)
+{
+	AActor* Owner = GetTypedOuter<AActor>();
+	if (Owner)
+		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Call Remote Function"));
+	if (UNetDriver* NetDriver = IsValid(Owner) == true ? Owner->GetNetDriver() : nullptr)
+	{
+		NetDriver->ProcessRemoteFunction(Owner, Function, Parms, OutParms, Stack, this);
+		return true;
+	}
+	return false;
+}
+
+void UItemInstance::SetItemId(const FName& InItemId)
+{
+	ItemId = InItemId;
+	OnRep_SetData();
+
+	// 아이템 컴포넌트 생성은 서버에서만
+	InitComponents();
+}
+
+void UItemInstance::OnRep_SetData()
+{
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
 		return;
 
-	Data = InData;
+	const UDataTable* ItemTable = DataTableSubsystem->GetTable(EDataTableType::ItemTable);
+	if (IsValid(ItemTable) == false)
+		return;
+
+	Data = ItemTable->FindRow<FItemData>(ItemId, FString(""));
+
+	OnRep_ItemUpdated();
+}
+
+void UItemInstance::OnRep_ItemUpdated()
+{
+	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("ItemUpdated"));
+	if (OnItemUpdated.IsBound() == true)
+	{
+		OnItemUpdated.Broadcast();
+	}
+}
+
+void UItemInstance::InitComponents()
+{
+	if (Data == nullptr)
+		return;
+
+	// 당장은 의미 없음
+	ItemComponents.Empty();
 
 	if (IsValid(Data->ItemComponentPreset) == true)
 	{
@@ -44,13 +117,28 @@ void UItemInstance::SetData(const FItemData* InData)
 	NewItemComponent->SetOwnerItem(this);
 	ItemComponents.Add(NewItemComponent);
 
-	// test
+	// testqn
 	InstanceID = FGuid::NewGuid();
+
+	OnRep_ItemUpdated();
 }
 
-const TArray<TObjectPtr<UItemComponentBase>> UItemInstance::GetItemComponents() const
+const TArray<TObjectPtr<UItemComponentBase>>& UItemInstance::GetItemComponents() const
 {
 	return ItemComponents;
+}
+
+void UItemInstance::SetOwnerCharacter(ACharacter* InOwnerCharacter)
+{
+	OwnerCharacter = InOwnerCharacter;
+
+	OnRep_ItemUpdated();
+}
+
+bool UItemInstance::HasAuthority() const
+{
+	AActor* Owner = GetTypedOuter<AActor>();
+	return IsValid(Owner) == true ? Owner->HasAuthority() : false;
 }
 
 void UItemInstance::CancelAllComponentActions()

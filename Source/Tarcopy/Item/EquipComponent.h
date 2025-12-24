@@ -2,10 +2,21 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Item/ItemEnums.h"
 #include "EquipComponent.generated.h"
 
-enum class EBodyLocation : uint32;
 class UItemInstance;
+
+USTRUCT()
+struct FEquippedItemInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EBodyLocation Location = EBodyLocation::None;
+	UPROPERTY()
+	TObjectPtr<UItemInstance> Item;
+};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class TARCOPY_API UEquipComponent : public UActorComponent
@@ -18,15 +29,21 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+
 public:
 	FORCEINLINE float GetWeight() const { return TotalWeight; }
-	FORCEINLINE const TMap<EBodyLocation, TObjectPtr<UItemInstance>>& GetEquippedItems() const { return EquippedItems; }
+	FORCEINLINE const TArray<FEquippedItemInfo>& GetEquippedItemInfos() const { return EquippedItemInfos; }
 	UItemInstance* GetEquippedItem(EBodyLocation Bodylocation) const;
 
 public:
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_EquipItem(EBodyLocation BodyLocation, UItemInstance* Item);
 	void EquipItem(EBodyLocation BodyLocation, UItemInstance* Item);
-	void RemoveItem(UItemInstance* Item);
-	//void UseTool(ToolType);
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_UnequipItem(UItemInstance* Item);
+	void UnequipItem(UItemInstance* Item);
 
 	void ExecuteAttack();
 	void CancelActions();
@@ -35,8 +52,8 @@ private:
 	const struct FItemData* GetItemData(const FName& InItemId) const;
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TMap<EBodyLocation, TObjectPtr<UItemInstance>> EquippedItems;
+	UPROPERTY(VisibleAnywhere, Replicated)
+	TArray<FEquippedItemInfo> EquippedItemInfos;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float TotalWeight;
 

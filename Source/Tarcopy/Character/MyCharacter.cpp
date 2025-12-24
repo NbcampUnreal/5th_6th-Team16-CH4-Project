@@ -21,7 +21,6 @@
 #include "AI/MyAICharacter.h"
 #include "Character/ActivateInterface.h"
 #include "Character/CameraObstructionFadeComponent.h"
-#include "Character/CameraObstructionComponent.h"
 #include "Item/WorldSpawnedItem.h"
 #include "Item/Data/ItemData.h"
 #include "Misc/Guid.h"
@@ -32,6 +31,7 @@
 #include "UI/UW_Inventory.h"
 #include "Tarcopy.h"
 #include "Engine/DamageEvents.h"
+#include "Character/CameraObstructionComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -373,6 +373,13 @@ void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
 
 void AMyCharacter::LeftClick(const FInputActionValue& Value)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Left Click"));
+
+	ServerRPC_ExecuteAttack();
+}
+
+void AMyCharacter::ServerRPC_ExecuteAttack_Implementation()
+{
 	if (IsValid(EquipComponent) == false)
 		return;
 
@@ -517,12 +524,12 @@ void AMyCharacter::SetItem()
 		if (IsValid(EquipComponent) == false)
 			return;
 
-		const auto& EquippedItems = EquipComponent->GetEquippedItems();
-		for (const auto& Pair : EquippedItems)
+		const auto& EquippedItemInfos = EquipComponent->GetEquippedItemInfos();
+		for (const auto& EquippedItem : EquippedItemInfos)
 		{
-			if (IsValid(Pair.Value) == true)
+			if (IsValid(EquippedItem.Item) == true)
 			{
-				PlayerController->SetItem(Pair.Value);
+				PlayerController->SetItem(EquippedItem.Item);
 				break;
 			}
 		}

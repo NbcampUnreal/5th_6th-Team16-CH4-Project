@@ -17,9 +17,16 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+
 public:
 	void SetItemInstance(UItemInstance* InItemInstance);
 	FORCEINLINE UItemInstance* GetItemInstance() const { return ItemInstance; }
+
+protected:
+	UFUNCTION()
+	void OnRep_SetMesh();
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -29,6 +36,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UStaticMeshComponent> DefaultMesh;
 
-	UPROPERTY()
+	UPROPERTY(ReplicatedUsing = OnRep_SetMesh)
+	TObjectPtr<UStaticMesh> CurrentMeshAsset;
+
+	UPROPERTY(VisibleAnywhere, Replicated)
 	TObjectPtr<UItemInstance> ItemInstance;
 };

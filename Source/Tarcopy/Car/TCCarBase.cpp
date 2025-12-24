@@ -68,6 +68,15 @@ ATCCarBase::ATCCarBase() :
 
 	ChaosVehicleMovement->SetIsReplicated(true);
 
+	CombatComponent = CreateDefaultSubobject<UTCCarCombatComponent>(TEXT("CombatComponent"));
+	if (CombatComponent)
+	{
+		for (auto& Zone : CombatComponent->DamageZone)
+		{
+			Zone->SetupAttachment(GetMesh());
+		}
+	}
+
 	GetMesh()->SetAngularDamping(5.0f);
 	//Test
 	CurrentFuel = 100.f;

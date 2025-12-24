@@ -6,20 +6,15 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Inventory/InventoryData.h"
 #include "Item/ItemCommand/OpenContainerCommand.h"
+#include "Net/UnrealNetwork.h"
 
 void UContainerComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
 
-	const FItemData* ItemData = GetOwnerItemData();
-	if (ItemData == nullptr)
+	if (HasAuthority() == false)
 		return;
 
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return;
-
-	Data = DataTableSubsystem->GetTable(EDataTableType::ContainerTable)->FindRow<FContainerData>(ItemData->ItemId, FString(""));
 	if (Data == nullptr)
 		return;
 
@@ -40,4 +35,24 @@ void UContainerComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>
 	OpenContainerCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Open Inventory of {0}")), TextItemName);
 	OpenContainerCommand->bExecutable = true;
 	OutCommands.Add(OpenContainerCommand);
+}
+
+void UContainerComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, InventoryData);
+}
+
+void UContainerComponent::OnRep_SetComponent()
+{
+	const FItemData* ItemData = GetOwnerItemData();
+	if (ItemData == nullptr)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	Data = DataTableSubsystem->GetTable(EDataTableType::ContainerTable)->FindRow<FContainerData>(ItemData->ItemId, FString(""));
 }

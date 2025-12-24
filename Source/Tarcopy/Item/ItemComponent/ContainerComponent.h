@@ -16,10 +16,15 @@ public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
 
+protected:
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void OnRep_SetComponent() override;
+
+public:
 	UInventoryData* GetInventoryData() const { return InventoryData; }
 
 private:
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	TObjectPtr<UInventoryData> InventoryData;
 
 	const FContainerData* Data;

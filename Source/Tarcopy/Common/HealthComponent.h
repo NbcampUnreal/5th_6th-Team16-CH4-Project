@@ -16,6 +16,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:
 	void TakeDamage(float Damage, const FName& BoneName);
@@ -24,8 +25,8 @@ public:
 	FOnDead OnDead;
 
 protected:
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	float MaxHP = 100.0f;
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	float CurrentHP = 100.0f;
 };

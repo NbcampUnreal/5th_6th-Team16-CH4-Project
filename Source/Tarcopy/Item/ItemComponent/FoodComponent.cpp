@@ -5,23 +5,11 @@
 #include "Item/Data/ItemData.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Item/ItemCommand/IngestCommand.h"
+#include "Net/UnrealNetwork.h"
 
 void UFoodComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
-
-	const FItemData* ItemData = GetOwnerItemData();
-	if (ItemData == nullptr)
-		return;
-
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return;
-
-	Data = DataTableSubsystem->GetTable(EDataTableType::FoodTable)->FindRow<FFoodData>(ItemData->ItemId, FString(""));
-	if (Data == nullptr)
-		return;
-
 }
 
 void UFoodComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
@@ -54,8 +42,37 @@ void UFoodComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& Out
 	OutCommands.Add(IngestAllCommand);
 }
 
-void UFoodComponent::Consume(int32 ConsumeAmount)
+void UFoodComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, Amount);
+}
+
+void UFoodComponent::OnRep_SetComponent()
+{
+	const FItemData* ItemData = GetOwnerItemData();
+	if (ItemData == nullptr)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	Data = DataTableSubsystem->GetTable(EDataTableType::FoodTable)->FindRow<FFoodData>(ItemData->ItemId, FString(""));
+}
+
+void UFoodComponent::ServerRPC_Consume_Implementation(int32 ConsumeAmount)
 {
 	Amount -= ConsumeAmount;
-	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("Consume %d, %d left"), ConsumeAmount, Amount));
+	OnRep_PrintAmount();
+}
+
+void UFoodComponent::OnRep_PrintAmount()
+{
+	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%d left"), Amount));
+	if (OnUpdatedItemComponent.IsBound())
+	{
+		OnUpdatedItemComponent.Broadcast();
+	}
 }

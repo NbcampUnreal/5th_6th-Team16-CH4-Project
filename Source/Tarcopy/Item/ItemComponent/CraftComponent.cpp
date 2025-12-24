@@ -4,6 +4,7 @@
 #include "Item/Data/ItemData.h"
 #include "Item/Data/CraftData.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Item/ItemCommand/CraftCommand.h"
 
 void UCraftComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
@@ -46,24 +47,12 @@ void UCraftComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& Ou
 
 			FString JoinedString = FString::Join(GainedItemNames, TEXT(", "));
 
-			//FItemComponentInteractionData CraftInteractionData;
-			//CraftInteractionData.TextDisplay = FText::Format(FText::FromString(TEXT("Craft {0}")), FText::FromString(JoinedString));
-			// CraftInteractionData.bIsInteractable
-			// 인벤토리 및 근처에 재료 충분하고 도구 있는지 제작 가능한지 검사해서 true/false;
-			/*CraftInteractionData.DelegateInteract.BindLambda(
-				[WeakObjectPtr = TWeakObjectPtr<UCraftComponent>(this), CraftId = CraftDataHandle.RowName]()
-				{
-					if (WeakObjectPtr.IsValid() == true)
-					{
-						WeakObjectPtr->ExecuteCraft(CraftId);
-					}
-				});*/
-			//OutDatas.Add(CraftInteractionData);
+			UCraftCommand* CraftCommand = NewObject<UCraftCommand>(this);
+			CraftCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Craft {0}")), FText::FromString(JoinedString));
+			// Inventory에서 재료 충분한 지 파악해야 함
+			CraftCommand->bExecutable = false;
+			CraftCommand->CraftTargetId = CraftDataHandle.RowName;
+			OutCommands.Add(CraftCommand);
 		}
 	}
-}
-
-void UCraftComponent::ExecuteCraft(const FName& CraftId)
-{
-	UKismetSystemLibrary::PrintString(GetWorld(), *CraftId.ToString());
 }
