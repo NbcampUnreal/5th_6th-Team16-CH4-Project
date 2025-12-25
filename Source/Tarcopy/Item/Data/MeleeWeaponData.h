@@ -15,6 +15,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	EHoldableSocket Socket = EHoldableSocket::RightHand;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	EHoldableType HoldableType = EHoldableType::MeleeWeaponR;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<class UAnimMontage> Montage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float MinDamage = 0.0f;

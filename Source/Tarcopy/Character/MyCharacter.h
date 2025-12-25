@@ -14,6 +14,8 @@ class UDoorInteractComponent;
 struct FInputActionValue;
 class UMoodleComponent;
 class UCameraObstructionComponent;
+enum class EHoldableType : uint8;
+class UAnimPresetMap;
 
 UCLASS()
 class TARCOPY_API AMyCharacter : public ACharacter
@@ -225,11 +227,14 @@ public:
 	UFUNCTION()
 	bool GetAimTarget(AActor*& OutTargetActor, FName& OutBone);
 
-	UFUNCTION(NetMulticast, Reliable)
-	void NetMulticast_SetHoldingItemMesh(UStaticMesh* ItemMeshAsset, const FName& SocketName = NAME_None);
+	void SetHoldingItemMesh(UStaticMesh* ItemMeshAsset, const FName& SocketName = NAME_None);
+	void SetAnimPreset(EHoldableType Type);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<class UStaticMeshComponent> HoldingItemMeshComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UAnimPresetMap> AnimPresetMap;
 
 #pragma endregion
 

@@ -45,6 +45,9 @@ public:
 	void ServerRPC_UnequipItem(UItemInstance* Item);
 	void UnequipItem(UItemInstance* Item);
 
+	UFUNCTION(NetMulticast, Reliable)
+	void NetMulticast_SetOwnerHoldingItemEmpty();
+
 	void ExecuteAttack();
 	void CancelActions();
 	

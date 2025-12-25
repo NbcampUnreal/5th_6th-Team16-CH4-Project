@@ -15,6 +15,7 @@ void UHoldableComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 void UHoldableComponent::SetHolding(bool bInIsHolding)
 {
 	bIsHolding = bInIsHolding;
+	OnRep_Holding();
 }
 
 void UHoldableComponent::OnRep_Holding()
@@ -22,6 +23,7 @@ void UHoldableComponent::OnRep_Holding()
 	if (bIsHolding == true)
 	{
 		SetOwnerHoldingItemMesh();
+		SetOwnerAnimPreset();
 	}
 }
 
@@ -45,5 +47,14 @@ void UHoldableComponent::SetOwnerHoldingItemMeshAtSocket(EHoldableSocket Socket)
 	if (SocketName == nullptr)
 		return;
 
-	OwnerCharacter->NetMulticast_SetHoldingItemMesh(ItemData->DefaultMesh, *SocketName);
+	OwnerCharacter->SetHoldingItemMesh(ItemData->DefaultMesh, *SocketName);
+}
+
+void UHoldableComponent::SetOwnerAnimPresetByHoldableType(EHoldableType Type)
+{
+	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwnerCharacter());
+	if (IsValid(OwnerCharacter) == false)
+		return;
+
+	OwnerCharacter->SetAnimPreset(Type);
 }

@@ -61,6 +61,14 @@ enum class EHoldableSocket : uint8
 	LeftHand,
 };
 
+UENUM(BlueprintType)
+enum class EHoldableType : uint8
+{
+	None,					// default AnimPreset으로 설정하기 위해 사용
+	MeleeWeaponR,
+	Pistol,
+};
+
 UENUM()
 enum class EBodyLocation : uint32
 {

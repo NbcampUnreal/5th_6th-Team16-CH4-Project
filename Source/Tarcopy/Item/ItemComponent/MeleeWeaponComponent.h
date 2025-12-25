@@ -16,6 +16,7 @@ public:
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
 
 	virtual void SetOwnerHoldingItemMesh() override;
+	virtual void SetOwnerAnimPreset() override;
 
 	virtual void OnExecuteAttack() override;
 

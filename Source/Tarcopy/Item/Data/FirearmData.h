@@ -15,6 +15,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	EHoldableSocket Socket = EHoldableSocket::RightHand;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	EHoldableType HoldableType = EHoldableType::Pistol;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<class UAnimMontage> Montage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName AmmunitionId;

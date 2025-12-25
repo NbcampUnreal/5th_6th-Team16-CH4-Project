@@ -51,6 +51,14 @@ void UMeleeWeaponComponent::SetOwnerHoldingItemMesh()
 	SetOwnerHoldingItemMeshAtSocket(Data->Socket);
 }
 
+void UMeleeWeaponComponent::SetOwnerAnimPreset()
+{
+	if (Data == nullptr)
+		return;
+
+	SetOwnerAnimPresetByHoldableType(Data->HoldableType);
+}
+
 void UMeleeWeaponComponent::OnExecuteAttack()
 {
 	if (Data == nullptr)

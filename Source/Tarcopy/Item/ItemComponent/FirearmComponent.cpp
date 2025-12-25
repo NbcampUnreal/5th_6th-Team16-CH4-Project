@@ -50,6 +50,14 @@ void UFirearmComponent::SetOwnerHoldingItemMesh()
 	SetOwnerHoldingItemMeshAtSocket(Data->Socket);
 }
 
+void UFirearmComponent::SetOwnerAnimPreset()
+{
+	if (Data == nullptr)
+		return;
+
+	SetOwnerAnimPresetByHoldableType(Data->HoldableType);
+}
+
 void UFirearmComponent::OnExecuteAttack()
 {
 	if (Data == nullptr)

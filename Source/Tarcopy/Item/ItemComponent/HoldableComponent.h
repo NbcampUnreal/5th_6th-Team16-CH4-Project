@@ -5,6 +5,7 @@
 #include "HoldableComponent.generated.h"
 
 enum class EHoldableSocket : uint8;
+enum class EHoldableType : uint8;
 
 UCLASS(Abstract)
 class TARCOPY_API UHoldableComponent : public UItemComponentBase
@@ -22,9 +23,11 @@ protected:
 	void OnRep_Holding();
 
 	virtual void SetOwnerHoldingItemMesh() {}
+	virtual void SetOwnerAnimPreset() {}
 
 protected:
 	void SetOwnerHoldingItemMeshAtSocket(EHoldableSocket Socket);
+	void SetOwnerAnimPresetByHoldableType(EHoldableType Type);
 
 protected:
 	UPROPERTY(ReplicatedUsing = OnRep_Holding)

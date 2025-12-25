@@ -24,6 +24,7 @@
 #include "Character/CameraObstructionComponent.h"
 #include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "Item/Data/ItemData.h"
+#include "Item/ItemEnums.h"
 #include "Misc/Guid.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "UI/Inventory/InventoryDragDropOp.h"
@@ -32,7 +33,9 @@
 #include "UI/Inventory/UW_Inventory.h"
 #include "Tarcopy.h"
 #include "Engine/DamageEvents.h"
-#include "Character/CameraObstructionComponent.h"
+#include "Character/Anim/AnimPresetMap.h"
+#include "Character/Anim/AnimationPreset.h"
+#include "Character/Anim/PlayerAnimInstance.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -587,7 +590,7 @@ bool AMyCharacter::GetAimTarget(AActor*& OutTargetActor, FName& OutBone)
 	return false;
 }
 
-void AMyCharacter::NetMulticast_SetHoldingItemMesh_Implementation(UStaticMesh* ItemMeshAsset, const FName& SocketName)
+void AMyCharacter::SetHoldingItemMesh(UStaticMesh* ItemMeshAsset, const FName& SocketName)
 {
 	if (IsValid(HoldingItemMeshComponent) == false)
 		return;
@@ -605,6 +608,22 @@ void AMyCharacter::NetMulticast_SetHoldingItemMesh_Implementation(UStaticMesh* I
 	FTransform GripPointTransform = HoldingItemMeshComponent->GetSocketTransform(TEXT("GripPoint"), RTS_Component);
 	FTransform OffsetTransform = GripPointTransform.Inverse();
 	HoldingItemMeshComponent->SetRelativeTransform(OffsetTransform);
+}
+
+void AMyCharacter::SetAnimPreset(EHoldableType Type)
+{
+	if (IsValid(AnimPresetMap) == false)
+		return;
+
+	UPlayerAnimInstance* AnimInstance = Cast<UPlayerAnimInstance>(GetMesh()->GetAnimInstance());
+	if (IsValid(AnimInstance) == false)
+		return;
+
+	const TObjectPtr<UAnimationPreset>* Preset = AnimPresetMap->AnimPresets.Find(Type);
+	if (Preset == nullptr)
+		return;
+
+	AnimInstance->SetAnimDataAsset(*Preset);
 }
 
 void AMyCharacter::AddInteractableDoor(AActor* DoorActor)

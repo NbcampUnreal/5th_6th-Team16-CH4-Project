@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
@@ -16,7 +16,9 @@ public:
     virtual void NativeInitializeAnimation() override;
     virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
-    // ¾Ö´Ï¸ŞÀÌ¼Ç º¯¼öµé (ºí·çÇÁ¸°Æ®¿¡¼­ »ç¿ë)
+    void SetAnimDataAsset(UAnimationPreset* InAnimDataAsset);
+
+    // ì• ë‹ˆë©”ì´ì…˜ ë³€ìˆ˜ë“¤ (ë¸”ë£¨í”„ë¦°íŠ¸ì—ì„œ ì‚¬ìš©)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "References")
     TObjectPtr<ACharacter> Character;
 

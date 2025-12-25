@@ -148,7 +148,21 @@ void UEquipComponent::UnequipItem(UItemInstance* Item)
 
 	TotalWeight -= ItemData->Weight * WeightMultiplier;
 
-	OwnerCharacter->NetMulticast_SetHoldingItemMesh(nullptr);
+	UHoldableComponent* Holdable = Item->GetItemComponent<UHoldableComponent>();
+	if (IsValid(Holdable) == true)
+	{
+		NetMulticast_SetOwnerHoldingItemEmpty();
+	}
+}
+
+void UEquipComponent::NetMulticast_SetOwnerHoldingItemEmpty_Implementation()
+{
+	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwner());
+	if (IsValid(OwnerCharacter) == false)
+		return;
+
+	OwnerCharacter->SetHoldingItemMesh(nullptr);
+	OwnerCharacter->SetAnimPreset(EHoldableType::None);
 }
 
 void UEquipComponent::ExecuteAttack()

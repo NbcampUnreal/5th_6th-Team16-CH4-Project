@@ -35,3 +35,8 @@ void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		bIsAiming = MyCharacter->IsAiming();
 	}
 }
+
+void UPlayerAnimInstance::SetAnimDataAsset(UAnimationPreset* InAnimDataAsset)
+{
+	AnimDataAsset = InAnimDataAsset;
+}
