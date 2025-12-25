@@ -32,14 +32,6 @@ bool UUW_Inventory::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEve
 		return false;
 	}
 
-	const FVector2D LocalPos = InGeometry.AbsoluteToLocal(InDragDropEvent.GetScreenSpacePosition());
-
-	const FVector2D TopLeftPx = LocalPos - Op->GrabOffsetPx;
-
-	const int32 NewX = FMath::FloorToInt(TopLeftPx.X / CellSizePx);
-	const int32 NewY = FMath::FloorToInt(TopLeftPx.Y / CellSizePx);
-	const FIntPoint NewOrigin(NewX, NewY);
-
 	if (APlayerController* PC = GetOwningPlayer())
 	{
 		if (APawn* P = PC->GetPawn())
@@ -54,35 +46,35 @@ bool UUW_Inventory::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEve
 			}
 		}
 	}
+
+	const FVector2D LocalPos = InGeometry.AbsoluteToLocal(InDragDropEvent.GetScreenSpacePosition());
+
+	const FVector2D TopLeftPx = LocalPos - Op->GrabOffsetPx;
+
+	const int32 NewX = FMath::FloorToInt(TopLeftPx.X / CellSizePx);
+	const int32 NewY = FMath::FloorToInt(TopLeftPx.Y / CellSizePx);
+	const FIntPoint NewOrigin(NewX, NewY);
+
 	UItemInstance* Item = Op->Item.Get();
 	if (!IsValid(Item))
 	{
 		return false;
 	}
 
-	const bool bOk = Op->SourceInventory->TryRelocateItem(Item, BoundInventory, NewOrigin, Op->bRotated);
-	if (!bOk)
-	{
-		return false;
-	}
-
+	UPlayerInventoryComponent* InvComp = nullptr;
 	if (APlayerController* PC = GetOwningPlayer())
 	{
 		if (APawn* P = PC->GetPawn())
 		{
-			if (UPlayerInventoryComponent* InvComp = P->FindComponentByClass<UPlayerInventoryComponent>())
-			{
-				InvComp->HandleRelocatePostProcess(Op->SourceInventory, Item);
-			}
+			InvComp = P->FindComponentByClass<UPlayerInventoryComponent>();
 		}
 	}
-
-	RefreshItems();
-
-	if (IsValid(Op->SourceInventoryWidget) && Op->SourceInventoryWidget.Get() != this)
+	if (!InvComp)
 	{
-		Op->SourceInventoryWidget->RefreshItems();
+		return false;
 	}
+
+	InvComp->RequestMoveItem(Op->SourceInventory, Item, BoundInventory, NewOrigin, Op->bRotated);
 
 	return true;
 }
@@ -159,11 +151,32 @@ void UUW_Inventory::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDr
 	ClearCellPreview();
 }
 
+void UUW_Inventory::NativeDestruct()
+{
+	if (BoundInventory)
+	{
+		BoundInventory->OnInventoryChanged.RemoveAll(this);
+	}
+	Super::NativeDestruct();
+}
+
 void UUW_Inventory::BindInventory(UInventoryData* InData)
 {
+	if (BoundInventory)
+	{
+		BoundInventory->OnInventoryChanged.RemoveAll(this);
+	}
+
 	BoundInventory = InData;
 
 	ClearGrid();
+	if (!BoundInventory)
+	{
+		return;
+	}
+
+	BoundInventory->OnInventoryChanged.AddUObject(this, &UUW_Inventory::RefreshItems);
+
 	BuildGrid(BoundInventory->GetGridSize());
 	BuildItems();
 }
@@ -301,13 +314,15 @@ void UUW_Inventory::BuildItems()
 	ItemCanvas->ClearChildren();
 	ItemWidgets.Empty();
 
-	const auto& Placements = BoundInventory->GetPlacements();
-	for (const TPair<TObjectPtr<UItemInstance>, FItemPlacement>& Pair : Placements)
-	{
-		UItemInstance* Item = Pair.Key;
-		const FItemPlacement& Placement = Pair.Value;
+	const FInventoryItemList& RepList = BoundInventory->GetReplicatedItems();
 
-		AddItemWidget(Item, Placement.Origin, Placement.bRotated);
+	for (const FInventoryItemEntry& Entry : RepList.Items)
+	{
+		if (!IsValid(Entry.Item))
+		{
+			continue;
+		}
+		AddItemWidget(Entry.Item, Entry.Origin, Entry.bRotated);
 	}
 }
 

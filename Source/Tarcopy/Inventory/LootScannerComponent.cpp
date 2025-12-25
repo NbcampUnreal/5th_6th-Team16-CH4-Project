@@ -55,12 +55,16 @@ void ULootScannerComponent::BeginPlay()
 
 void ULootScannerComponent::RebuildGroundInventory()
 {
-	if (!GroundInventoryData)
+	for (auto It = OverlappedGroundItems.CreateIterator(); It; ++It)
 	{
-		return;
+		if (!It->IsValid())
+		{
+			It.RemoveCurrent();
+		}
 	}
 
-	GroundInventoryData->ClearAll();
+	GroundInventoryData = NewObject<UInventoryData>(this);
+	GroundInventoryData->Init(GroundGridSize);
 
 	for (const TWeakObjectPtr<AItemWrapperActor>& ItemActorPtr : OverlappedGroundItems)
 	{
@@ -77,7 +81,6 @@ void ULootScannerComponent::RebuildGroundInventory()
 		}
 
 		bool bPlaced = false;
-
 		for (int32 Y = 0; Y < GroundGridSize.Y && !bPlaced; ++Y)
 		{
 			for (int32 X = 0; X < GroundGridSize.X && !bPlaced; ++X)

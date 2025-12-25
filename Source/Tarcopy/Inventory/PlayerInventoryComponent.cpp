@@ -9,15 +9,14 @@
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Item/ItemInstance.h"
+#include "Net/UnrealNetwork.h"
+#include "Engine/ActorChannel.h"
 
 // Sets default values for this component's properties
 UPlayerInventoryComponent::UPlayerInventoryComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
-
-	// ...
+	SetIsReplicatedByDefault(true);
 }
 
 
@@ -26,10 +25,40 @@ void UPlayerInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	PlayerInventoryData = NewObject<UInventoryData>(this);
-	PlayerInventoryData->Init(DefaultInventorySize);
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		PlayerInventoryData = NewObject<UInventoryData>(this);
+		PlayerInventoryData->Init(DefaultInventorySize);
 
-	OnInventoryReady.Broadcast();
+		OnInventoryReady.Broadcast();
+	}
+}
+
+void UPlayerInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UPlayerInventoryComponent, PlayerInventoryData);
+}
+
+bool UPlayerInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool bWrote = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	if (IsValid(PlayerInventoryData))
+	{
+		bWrote |= Channel->ReplicateSubobject(PlayerInventoryData, *Bunch, *RepFlags);
+
+		for (const FInventoryItemEntry& Entry : PlayerInventoryData->GetReplicatedItems().Items)
+		{
+			if (IsValid(Entry.Item))
+			{
+				bWrote |= Channel->ReplicateSubobject(Entry.Item, *Bunch, *RepFlags);
+			}
+		}
+	}
+
+	return bWrote;
 }
 
 void UPlayerInventoryComponent::HandleRelocatePostProcess(UInventoryData* SourceInventory, UItemInstance* Item)
@@ -73,6 +102,22 @@ void UPlayerInventoryComponent::RequestDropItemToWorld(UInventoryData* SourceInv
 	{
 		Server_DropItemToWorld(SourceInventory, Item, bRotated);
 	}
+}
+
+void UPlayerInventoryComponent::RequestMoveItem(UInventoryData* Source, UItemInstance* Item, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated)
+{
+	if (!IsValid(Source) || !IsValid(Dest) || !IsValid(Item))
+	{
+		return;
+	}
+
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		Server_RequestMoveItem(Source, Item, Dest, NewOrigin, bRotated);
+		return;
+	}
+
+	MoveItem_Internal(Source, Item, Dest, NewOrigin, bRotated);
 }
 
 void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated)
@@ -126,6 +171,27 @@ void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceI
 	}
 }
 
+void UPlayerInventoryComponent::MoveItem_Internal(UInventoryData* Source, UItemInstance* Item, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated)
+{
+	if (!IsValid(Source) || !IsValid(Dest) || !IsValid(Item))
+	{
+		return;
+	}
+
+	const bool bOk = Source->TryRelocateItem(Item, Dest, NewOrigin, bRotated);
+	if (!bOk)
+	{
+		return;
+	}
+
+	HandleRelocatePostProcess(Source, Item);
+}
+
+void UPlayerInventoryComponent::Server_RequestMoveItem_Implementation(UInventoryData* Source, UItemInstance* Item, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated)
+{
+	MoveItem_Internal(Source, Item, Dest, NewOrigin, bRotated);
+}
+
 ULootScannerComponent* UPlayerInventoryComponent::FindLootScanner() const
 {
 	if (AActor* Owner = GetOwner())
@@ -133,6 +199,11 @@ ULootScannerComponent* UPlayerInventoryComponent::FindLootScanner() const
 		return Owner->FindComponentByClass<ULootScannerComponent>();
 	}
 	return nullptr;
+}
+
+void UPlayerInventoryComponent::OnRep_PlayerInventoryData()
+{
+	OnInventoryReady.Broadcast();
 }
 
 void UPlayerInventoryComponent::Server_ConsumeGroundWorldItem_Implementation(UItemInstance* Item)

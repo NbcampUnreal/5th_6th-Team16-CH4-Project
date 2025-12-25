@@ -18,7 +18,8 @@ public class Tarcopy : ModuleRules
             "EnhancedInput",
 			"UMG",
 			"Slate",
-			"SlateCore"
+			"SlateCore",
+			"NetCore"
 		});
 		
 		PublicIncludePaths.AddRange(new []

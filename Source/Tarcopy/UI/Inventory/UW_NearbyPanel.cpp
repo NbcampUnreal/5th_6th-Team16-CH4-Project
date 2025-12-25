@@ -196,5 +196,5 @@ void UUW_NearbyPanel::HandleGroundUpdatedWhileOpen()
 		return;
 	}
 
-	InventoryWidget->RefreshItems();
+	InventoryWidget->BindInventory(BoundScanner->GetGroundInventoryData());
 }
