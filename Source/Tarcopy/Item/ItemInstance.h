@@ -27,6 +27,7 @@ public:
 
 public:
 	void SetItemId(const FName& InItemId);
+	FORCEINLINE const FName& GetItemId() const { return ItemId; }
 	const FItemData* GetData() const { return Data; }
 
 	template <typename T>
@@ -47,6 +48,9 @@ public:
 
 	const TArray<TObjectPtr<UItemComponentBase>>& GetItemComponents() const;
 
+	void SetOwnerObject(UObject* InOwnerObject);
+	UObject* GetOwnerObject() const { return OwnerObject.IsValid() == true ? OwnerObject.Get() : nullptr; }
+
 	void SetOwnerCharacter(ACharacter* InOwnerCharacter);
 	ACharacter* GetOwnerCharacter() const { return OwnerCharacter.IsValid() == true ? OwnerCharacter.Get() : nullptr; };
 
@@ -61,6 +65,8 @@ protected:
 	void OnRep_ItemUpdated();
 	UFUNCTION()
 	void OnRep_SetOwnerCharacter();
+	UFUNCTION()
+	void OnRep_SetOwner();
 
 	void InitComponents();
 
@@ -74,6 +80,8 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_SetData)
 	FName ItemId;
 
+	UPROPERTY(ReplicatedUsing = OnRep_SetOwner)
+	TWeakObjectPtr<UObject> OwnerObject;
 	UPROPERTY(ReplicatedUsing = OnRep_SetOwnerCharacter)
 	TWeakObjectPtr<ACharacter> OwnerCharacter;
 

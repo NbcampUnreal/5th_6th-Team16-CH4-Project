@@ -230,6 +230,8 @@ public:
 	void SetHoldingItemMesh(UStaticMesh* ItemMeshAsset, const FName& SocketName = NAME_None);
 	void SetAnimPreset(EHoldableType Type);
 
+	void GetNearbyInventoryDatas(TArray<class UInventoryData*>& InventoryDatas);
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<class UStaticMeshComponent> HoldingItemMeshComponent;
 

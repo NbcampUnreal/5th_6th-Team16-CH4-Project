@@ -5,6 +5,8 @@
 #include "Item/Data/CraftData.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Item/ItemCommand/CraftCommand.h"
+#include "Character/MyCharacter.h"
+#include "Inventory/InventoryData.h"
 
 void UCraftComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
@@ -30,6 +32,13 @@ void UCraftComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& Ou
 	if (IsValid(ItemTable) == false)
 		return;
 
+	TArray<UInventoryData*> InventoryDatas;
+	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwnerCharacter());
+	if (IsValid(OwnerCharacter) == true)
+	{
+		OwnerCharacter->GetNearbyInventoryDatas(InventoryDatas);
+	}
+
 	for (const auto& CraftDataHandle : Recipe->CraftDataHandles)
 	{
 		FCraftData* CraftData = CraftDataHandle.DataTable->FindRow<FCraftData>(CraftDataHandle.RowName, FString(""));
@@ -49,8 +58,25 @@ void UCraftComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& Ou
 
 			UCraftCommand* CraftCommand = NewObject<UCraftCommand>(this);
 			CraftCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Craft {0}")), FText::FromString(JoinedString));
-			// Inventory에서 재료 충분한 지 파악해야 함
-			CraftCommand->bExecutable = false;
+
+			CraftCommand->bExecutable = true;			
+			for (const auto& Ingredient : CraftData->IngredientItems)
+			{
+				int Count = 0;
+				for (const auto& InventoryData : InventoryDatas)
+				{
+					if (IsValid(InventoryData) == false)
+						continue;
+
+					Count += InventoryData->GetItemCountByItemId(Ingredient.Key);
+				}
+
+				if (Count < Ingredient.Value)
+				{
+					CraftCommand->bExecutable = false;
+					break;
+				}
+			}
 			CraftCommand->CraftTargetId = CraftDataHandle.RowName;
 			OutCommands.Add(CraftCommand);
 		}
