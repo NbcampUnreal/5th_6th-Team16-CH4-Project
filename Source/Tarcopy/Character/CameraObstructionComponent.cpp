@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Character/CameraObstructionComponent.h"
 
@@ -6,6 +6,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/World.h"
+#include "GameFramework/Pawn.h"
 #include "CollisionQueryParams.h"
 #include "Engine/OverlapResult.h"
 #include "WorldCollision.h"
@@ -31,6 +32,21 @@ void UCameraObstructionComponent::SetCapsule(UCapsuleComponent* InCapsule)
 void UCameraObstructionComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		SetComponentTickEnabled(false);
+		return;
+	}
+
+	if (APawn* PawnOwner = Cast<APawn>(GetOwner()))
+	{
+		if (!PawnOwner->IsLocallyControlled())
+		{
+			SetComponentTickEnabled(false);
+			return;
+		}
+	}
 
 	if (!Camera)
 	{
@@ -116,6 +132,7 @@ void UCameraObstructionComponent::UpdateCameraObstructionFade()
 	Params.AddIgnoredActor(OwnerActor);
 
 	TSet<UPrimitiveComponent*> BlockingHitComps;
+	TMap<UPrimitiveComponent*, float> ObstructionOpacityByComp;
 	FVector TraceStart = Start;
 	for (int32 HitIndex = 0; HitIndex < MaxObstructionHits; ++HitIndex)
 	{
@@ -141,14 +158,11 @@ void UCameraObstructionComponent::UpdateCameraObstructionFade()
 
 		BlockingHitComps.Add(HitComp);
 
-		UE_LOG(LogTemp, Log, TEXT("[Occlusion] Hit %s / Comp %s / MatSlots %d"),
-			*GetNameSafe(HitComp->GetOwner()),
-			*GetNameSafe(HitComp),
-			HitComp->GetNumMaterials());
-
 		// Refresh hold time and apply hole on this surface.
 		FadeHoldUntil.FindOrAdd(HitComp) = Now + FadeHoldTime;
-		ApplyObstructionMaterial(HitComp, Start, End, ScreenCenterUV, ScreenRadius, ScreenSoftness, ScreenAspect);
+		const float TargetOpacity = (HitIndex == 0) ? FirstObstructionOpacity : SubsequentObstructionOpacity;
+		ObstructionOpacityByComp.Add(HitComp, TargetOpacity);
+		ApplyObstructionMaterial(HitComp, Start, End, ScreenCenterUV, ScreenRadius, ScreenSoftness, ScreenAspect, TargetOpacity);
 
 		Params.AddIgnoredComponent(HitComp);
 		TraceStart = Hit.ImpactPoint + TraceDirection * ObstructionTraceStep;
@@ -242,7 +256,9 @@ void UCameraObstructionComponent::UpdateCameraObstructionFade()
 					if (Dist <= ScreenRadius + ScreenSoftness)
 					{
 						FadeHoldUntil.FindOrAdd(OverlapComp) = Now + FadeHoldTime;
-						ApplyObstructionMaterial(OverlapComp, Start, End, ScreenCenterUV, ScreenRadius, ScreenSoftness, ScreenAspect);
+						const float* StoredOpacity = ObstructionOpacityByComp.Find(OverlapComp);
+						const float TargetOpacity = StoredOpacity ? *StoredOpacity : SubsequentObstructionOpacity;
+						ApplyObstructionMaterial(OverlapComp, Start, End, ScreenCenterUV, ScreenRadius, ScreenSoftness, ScreenAspect, TargetOpacity);
 					}
 				}
 			}
@@ -251,7 +267,7 @@ void UCameraObstructionComponent::UpdateCameraObstructionFade()
 }
 
 void UCameraObstructionComponent::ApplyObstructionMaterial(UPrimitiveComponent* HitComp, const FVector& LineStart, const FVector& LineEnd,
-	const FVector2D& ScreenCenterUV, float ScreenRadius, float ScreenSoftness, float ScreenAspect)
+	const FVector2D& ScreenCenterUV, float ScreenRadius, float ScreenSoftness, float ScreenAspect, float Opacity)
 {
 	if (!IsValid(HitComp))
 	{
@@ -261,16 +277,12 @@ void UCameraObstructionComponent::ApplyObstructionMaterial(UPrimitiveComponent* 
 	const int32 NumMaterials = HitComp->GetNumMaterials();
 	if (NumMaterials <= 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[Occlusion] %s has no materials."), *GetNameSafe(HitComp));
 		return;
 	}
 
 	for (int32 Index = 0; Index < NumMaterials; ++Index)
 	{
 		UMaterialInterface* CurrentMat = HitComp->GetMaterial(Index);
-		UE_LOG(LogTemp, Log, TEXT("[Occlusion] Slot %d material: %s"),
-			Index,
-			*GetNameSafe(CurrentMat));
 	}
 
 	bool bNeedsRebuild = false;
@@ -293,9 +305,6 @@ void UCameraObstructionComponent::ApplyObstructionMaterial(UPrimitiveComponent* 
 
 	if (bNeedsRebuild)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[Occlusion] Building dynamic materials for %s (%d slots)"),
-			*GetNameSafe(HitComp),
-			NumMaterials);
 		TArray<UMaterialInterface*>& StoredOriginals = OriginalMaterials.FindOrAdd(HitComp);
 		StoredOriginals.Reset();
 		DynamicMaterials.FindOrAdd(HitComp).Reset();
@@ -311,7 +320,6 @@ void UCameraObstructionComponent::ApplyObstructionMaterial(UPrimitiveComponent* 
 
 			if (!BaseMat)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[Occlusion] Slot %d has null material on %s"), Index, *GetNameSafe(HitComp));
 				NewDynMats.Add(nullptr);
 				continue;
 			}
@@ -319,10 +327,6 @@ void UCameraObstructionComponent::ApplyObstructionMaterial(UPrimitiveComponent* 
 			UMaterialInstanceDynamic* DynMat = UMaterialInstanceDynamic::Create(BaseMat, this);
 			NewDynMats.Add(DynMat);
 			HitComp->SetMaterial(Index, DynMat);
-
-			UE_LOG(LogTemp, Log, TEXT("[Occlusion] Slot %d dynamic material: %s"),
-				Index,
-				*GetNameSafe(DynMat));
 		}
 
 		DynMats = &NewDynMats;
@@ -362,9 +366,12 @@ void UCameraObstructionComponent::ApplyObstructionMaterial(UPrimitiveComponent* 
 			DynMat->SetVectorParameterValue(HoleCenterParam, LineEnd);
 			DynMat->SetScalarParameterValue(HoleRadiusParam, ObstructionHoleRadius);
 			DynMat->SetScalarParameterValue(HoleSoftnessParam, ObstructionHoleSoftness);
+
+			if (!ObstructionOpacityParamName.IsNone())
+			{
+				DynMat->SetScalarParameterValue(ObstructionOpacityParamName, Opacity);
+			}
 		}
-		UE_LOG(LogTemp, Verbose, TEXT("[Occlusion] Params set: Radius %.2f Softness %.2f"),
-			ObstructionHoleRadius, ObstructionHoleSoftness);
 	}
 }
 
@@ -388,7 +395,6 @@ void UCameraObstructionComponent::ClearObstructionMaterial(UPrimitiveComponent* 
 		HitComp->SetMaterial(Index, (*StoredOriginals)[Index]);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[Occlusion] Restored materials for %s"), *GetNameSafe(HitComp));
 	OriginalMaterials.Remove(HitComp);
 	DynamicMaterials.Remove(HitComp);
 }
