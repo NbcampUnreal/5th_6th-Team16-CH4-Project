@@ -103,6 +103,10 @@ public:
 
 	FInventoryItemList& GetReplicatedItems() { return ReplicatedItems; }
 
+	void FixupAfterReplication();
+
+	void ForceRefreshNextTick();
+
 private:
 	bool CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated, const UItemInstance* IgnoreItem = nullptr) const;
 
