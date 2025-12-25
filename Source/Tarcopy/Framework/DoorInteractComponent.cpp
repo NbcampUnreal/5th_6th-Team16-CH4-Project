@@ -120,6 +120,13 @@ void UDoorInteractComponent::Activate(AActor* InInstigator)
 	ToggleDoorInternal(true);
 }
 
+void UDoorInteractComponent::ApplyDoorStateFromServer(bool bOpen)
+{
+	InitializeIfNeeded();
+	bIsOpen = bOpen;
+	ApplyDoorState();
+}
+
 void UDoorInteractComponent::ApplyDoorState()
 {
 	if (DoorMeshComponents.Num() > 0 && DoorMeshComponents.Num() == DoorMeshInitialRelativeTransforms.Num())
