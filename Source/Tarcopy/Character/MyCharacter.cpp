@@ -36,6 +36,10 @@
 #include "Character/Anim/AnimPresetMap.h"
 #include "Character/Anim/AnimationPreset.h"
 #include "Character/Anim/PlayerAnimInstance.h"
+#include "Inventory/WorldContainerComponent.h"
+#include "Item/ItemComponent/ContainerComponent.h"
+#include "Inventory/PlayerInventoryComponent.h"
+#include "Inventory/LootScannerComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -624,6 +628,41 @@ void AMyCharacter::SetAnimPreset(EHoldableType Type)
 		return;
 
 	AnimInstance->SetAnimDataAsset(*Preset);
+}
+
+void AMyCharacter::GetNearbyInventoryDatas(TArray<class UInventoryData*>& InventoryDatas)
+{
+	UPlayerInventoryComponent* InventoryComponent = FindComponentByClass<UPlayerInventoryComponent>();
+	if (IsValid(InventoryComponent) == true)
+	{
+		InventoryDatas.Add(InventoryComponent->GetPlayerInventoryData());
+	}
+
+	ULootScannerComponent* LootScannerComponent = FindComponentByClass<ULootScannerComponent>();
+	if (IsValid(LootScannerComponent) == true)
+	{
+		InventoryDatas.Add(LootScannerComponent->GetGroundInventoryData());
+		for (const auto& OverlappedContainer : LootScannerComponent->OverlappedContainers)
+		{
+			InventoryDatas.Add(OverlappedContainer->GetInventoryData());
+		}
+
+		for (const auto& OverlappedContainerItem : LootScannerComponent->OverlappedContainerItems)
+		{
+			if (OverlappedContainerItem.IsValid() == false)
+				continue;
+
+			UItemInstance* ItemInstance = OverlappedContainerItem->GetItemInstance();
+			if (IsValid(ItemInstance) == false)
+				continue;
+
+			UContainerComponent* ContainerComponent = ItemInstance->GetItemComponent<UContainerComponent>();
+			if (IsValid(ContainerComponent) == false)
+				continue;
+
+			InventoryDatas.Add(ContainerComponent->GetInventoryData());
+		}
+	}
 }
 
 void AMyCharacter::AddInteractableDoor(AActor* DoorActor)
