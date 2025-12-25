@@ -216,8 +216,14 @@ void AMyCharacter::MoveAction(const FInputActionValue& Value)
 
 	const FVector2D InMovementVector = Value.Get<FVector2D>();
 
-	AddMovementInput(Camera->GetForwardVector(), InMovementVector.X);
-	AddMovementInput(Camera->GetRightVector(), InMovementVector.Y);
+	const FRotator Rotation = Camera->GetComponentRotation();
+	const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+	AddMovementInput(ForwardDirection, InMovementVector.X);
+	AddMovementInput(RightDirection, InMovementVector.Y);
 }
 
 void AMyCharacter::StartSprint(const FInputActionValue& Value)

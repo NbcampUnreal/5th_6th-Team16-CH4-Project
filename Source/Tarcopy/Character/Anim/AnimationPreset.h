@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
@@ -14,9 +14,6 @@ class TARCOPY_API UAnimationPreset : public UDataAsset
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UBlendSpace1D> StandIdleWalkRunAnimation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UBlendSpace1D> CrouchIdleWalkAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UBlendSpace1D> AimingIdleWalkAnimation;
