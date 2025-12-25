@@ -47,6 +47,7 @@ bool UInventoryData::TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bo
 	Entry.bRotated = bRotated;
 
 	ReplicatedItems.MarkItemDirty(Entry);
+	ReplicatedItems.MarkArrayDirty();
 	RebuildCellsFromReplicatedItems();
 	return true;
 }
@@ -73,6 +74,7 @@ bool UInventoryData::TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, 
 				Entry.Origin = NewOrigin;
 				Entry.bRotated = bRotated;
 				ReplicatedItems.MarkItemDirty(Entry);
+				ReplicatedItems.MarkArrayDirty();
 				RebuildCellsFromReplicatedItems();
 				return true;
 			}
@@ -107,6 +109,7 @@ bool UInventoryData::TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, 
 		NewEntry.Origin = NewOrigin;
 		NewEntry.bRotated = bRotated;
 		Dest->ReplicatedItems.MarkItemDirty(NewEntry);
+		Dest->ReplicatedItems.MarkArrayDirty();
 
 		RebuildCellsFromReplicatedItems();
 		Dest->RebuildCellsFromReplicatedItems();
@@ -222,6 +225,24 @@ bool UInventoryData::CanPlaceItemPreview(const UItemInstance* Item, const UInven
 	return CheckCanPlace(Item, NewOrigin, bRotated, Ignore);
 }
 
+void UInventoryData::FixupAfterReplication()
+{
+	ReplicatedItems.Owner = this;
+	RebuildCellsFromReplicatedItems();
+	OnInventoryChanged.Broadcast();
+}
+
+void UInventoryData::ForceRefreshNextTick()
+{
+	if (UWorld* W = GetWorld())
+	{
+		W->GetTimerManager().SetTimerForNextTick([this]()
+			{
+				FixupAfterReplication();
+			});
+	}
+}
+
 bool UInventoryData::CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated, const UItemInstance* IgnoreItem) const
 {
 	const FIntPoint Size = GetItemSize(InItem, bRotated);
@@ -317,9 +338,14 @@ void FInventoryItemList::PostReplicatedAdd(const TArrayView<int32>&, int32)
 {
 	if (Owner)
 	{
-		Owner->RebuildCellsFromReplicatedItems();
-		Owner->OnInventoryChanged.Broadcast();
+		Owner->FixupAfterReplication();
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[Client] PostReplicatedAdd Owner=%s (%p) IsBound=%d Items=%d"),
+		*GetNameSafe(Owner), Owner,
+		Owner ? (int32)Owner->OnInventoryChanged.IsBound() : -1,
+		Items.Num());
+
 }
 
 void FInventoryItemList::PostReplicatedChange(const TArrayView<int32>&, int32)

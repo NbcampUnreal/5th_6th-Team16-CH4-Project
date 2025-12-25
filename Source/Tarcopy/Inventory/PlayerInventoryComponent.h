@@ -37,6 +37,8 @@ public:
 
 	void RequestMoveItem(UInventoryData* Source, UItemInstance* Item, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated);
 
+	void RequestLootFromWorld(AItemWrapperActor* WorldActor, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated);
+
 private:
 	void DropItemToWorld_Internal(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated);
 
@@ -51,10 +53,16 @@ private:
 	UFUNCTION(Server, Reliable)
 	void Server_RequestMoveItem(UInventoryData* Source, UItemInstance* Item, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated);
 
+	UFUNCTION(Server, Reliable)
+	void Server_RequestLootFromWorld(AItemWrapperActor* WorldActor, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated);
+
 	ULootScannerComponent* FindLootScanner() const;
 
 	UFUNCTION()
 	void OnRep_PlayerInventoryData();
+
+	UFUNCTION(Client, Reliable)
+	void Client_ForceRefreshInventoryUI();
 
 public:
 	FOnPlayerInventoryReady OnInventoryReady;

@@ -10,6 +10,7 @@
 #include "Inventory/InventoryData.h"
 #include "UI/UISubsystem.h"
 #include "UI/Inventory/UW_InventoryBorder.h"
+#include "UI/Inventory/UW_Inventory.h"
 
 void UUW_PlayerPanel::NativeConstruct()
 {
@@ -31,8 +32,6 @@ void UUW_PlayerPanel::RefreshInventories()
 	{
 		return;
 	}
-
-	InventoryScrollBox->ClearChildren();
 
 	APlayerController* PC = GetOwningPlayer();
 	if (!PC)
@@ -58,13 +57,18 @@ void UUW_PlayerPanel::RefreshInventories()
 		return;
 	}
 
-	UUW_InventoryBorder* Border = UIS->ShowInventoryUI(Data);
-	if (!Border)
+	if (!CachedPlayerInvBorder)
 	{
-		return;
-	}
+		CachedPlayerInvBorder = UIS->ShowInventoryUI(Data);
+		if (!CachedPlayerInvBorder) return;
 
-	InventoryScrollBox->AddChild(Border);
+		InventoryScrollBox->ClearChildren();
+		InventoryScrollBox->AddChild(CachedPlayerInvBorder);
+	}
+	else
+	{
+		Cast<UUW_Inventory>(CachedPlayerInvBorder->GetContentWidget())->BindInventory(Data);
+	}
 }
 
 void UUW_PlayerPanel::HandleInventoryReady()

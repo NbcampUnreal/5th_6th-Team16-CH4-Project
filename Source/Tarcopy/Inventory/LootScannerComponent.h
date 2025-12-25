@@ -36,6 +36,8 @@ public:
 
 	bool ConsumeGroundWorldItem(UItemInstance* Item);
 
+	AItemWrapperActor* FindWorldActorByItem(UItemInstance* Item) const;
+
 	FOnScannedContainersChanged OnScannedContainersChanged;
 
 	FOnScannedGroundChanged OnScannedGroundChanged;
