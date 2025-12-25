@@ -141,19 +141,6 @@ void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item)
 
 void UEquipComponent::ServerRPC_UnequipItem_Implementation(UItemInstance* Item)
 {
-	// test
-	FVector SpawnLocation = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 40.0f;
-	AItemWrapperActor* ItemWrapperActor = GetWorld()->SpawnActor<AItemWrapperActor>(
-		AItemWrapperActor::StaticClass(),
-		SpawnLocation,
-		FRotator::ZeroRotator);
-
-	if (IsValid(ItemWrapperActor) == true)
-	{
-		ItemWrapperActor->SetItemInstance(Item);
-	}
-	// test
-
 	UnequipItem(Item);
 }
 
@@ -175,6 +162,7 @@ void UEquipComponent::UnequipItem(UItemInstance* Item)
 		IsValid(Item->GetOwnerCharacter()) == true ?
 		*Item->GetOwnerCharacter()->GetName() : TEXT("Item No Owner"));
 
+	TSet<UItemInstance*> ItemsToDrop;
 	for (auto& EquippedItemInfo : EquippedItemInfos)
 	{
 		if (IsValid(EquippedItemInfo.Item) == true)
@@ -186,10 +174,30 @@ void UEquipComponent::UnequipItem(UItemInstance* Item)
 
 		// Equipment에 이상한 값 들어있거나 유효하지 않은 상태면 정리
 		// 장착한 아이템이 지울 아이템이면 정리
+		if (ItemsToDrop.Find(EquippedItemInfo.Item) == nullptr)
+		{
+			ItemsToDrop.Add(EquippedItemInfo.Item);
+		}
 		EquippedItemInfo.Item = nullptr;
 	}
 
 	TotalWeight -= ItemData->Weight * WeightMultiplier;
+
+	// test
+	for (const auto& ItemToDrop : ItemsToDrop)
+	{
+		FVector SpawnLocation = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 40.0f;
+		AItemWrapperActor* ItemWrapperActor = GetWorld()->SpawnActor<AItemWrapperActor>(
+			AItemWrapperActor::StaticClass(),
+			SpawnLocation,
+			FRotator::ZeroRotator);
+
+		if (IsValid(ItemWrapperActor) == true)
+		{
+			ItemWrapperActor->SetItemInstance(ItemToDrop);
+		}
+	}
+	// test
 
 	UHoldableComponent* Holdable = Item->GetItemComponent<UHoldableComponent>();
 	if (IsValid(Holdable) == true)
