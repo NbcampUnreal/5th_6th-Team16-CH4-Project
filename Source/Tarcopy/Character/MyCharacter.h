@@ -105,25 +105,25 @@ protected:
 	TObjectPtr<UMoodleComponent> Moodle;
 
 public:
-	FORCEINLINE UMoodleComponent* GetMoodleComponent() const { return Moodle; }
+	UMoodleComponent* GetMoodleComponent() const { return Moodle; }
 
 	UFUNCTION(BlueprintPure)
-	FORCEINLINE float GetCurrentHunger();
+	float GetCurrentHunger();
 	UFUNCTION(BlueprintPure)
-	FORCEINLINE float GetCurrentThirst();
+	float GetCurrentThirst();
 	UFUNCTION(BlueprintPure)
-	FORCEINLINE float GetCurrentStamina();
+	float GetCurrentStamina();
 	UFUNCTION(BlueprintPure)
-	FORCEINLINE float GetMaxStamina();
+	float GetMaxStamina();
 
 	UFUNCTION(BlueprintCallable)
-	FORCEINLINE void SetCurrentHunger(float InHunger);
+	void SetCurrentHunger(float InHunger);
 	UFUNCTION(BlueprintCallable)
-	FORCEINLINE void SetCurrentThirst(float InThirst);
+	void SetCurrentThirst(float InThirst);
 	UFUNCTION(BlueprintCallable)
-	FORCEINLINE void SetCurrentStamina(float InStamina);
+	void SetCurrentStamina(float InStamina);
 	UFUNCTION(BlueprintCallable)
-	FORCEINLINE void SetMaxStamina(float InStamina);
+	void SetMaxStamina(float InStamina);
 
 #pragma endregion
 
@@ -162,6 +162,9 @@ protected:
 
 #pragma region Mouse Action
 
+public:
+	bool IsAiming() { return bIsAttackMode; }
+
 protected:
 	UFUNCTION()
 	virtual void Wheel(const FInputActionValue& Value);
@@ -175,6 +178,8 @@ protected:
 
 	UFUNCTION()
 	virtual void LeftClick(const FInputActionValue& Value);
+	UFUNCTION(Server, Reliable)
+	virtual void ServerRPC_ExecuteAttack();
 
 	UFUNCTION(Server, Reliable)
 	virtual void ServerRPC_TurnToMouse(const FRotator& TargetRot);
@@ -196,8 +201,17 @@ protected:
 	virtual void ServerRPC_ToggleDoor(AActor* DoorActor);
 
 	UFUNCTION(NetMulticast, Reliable)
-	virtual void MulticastRPC_ApplyDoorTransforms(const TArray<AActor*>& DoorActors, const TArray<FTransform>& DoorTransforms);
+	virtual void MulticastRPC_ApplyDoorTransforms(const TArray<AActor*>& DoorActors, const TArray<FTransform>& DoorTransforms, const TArray<bool>& DoorOpenStates);
 
+#pragma endregion
+
+#pragma region Combat
+	public:
+		virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	protected:
+		UFUNCTION(NetMulticast, Reliable)
+		void MultiRPC_Temp(float Damage, const FName& BoneName);
 #pragma endregion
 
 #pragma region TestItem

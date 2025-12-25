@@ -7,5 +7,5 @@ void UIngestCommand::OnExecute(const FItemCommandContext& Context)
 	if (OwnerComponent.IsValid() == false)
 		return;
 
-	OwnerComponent->Consume(EatAmount);
+	OwnerComponent->ServerRPC_Consume(EatAmount);
 }

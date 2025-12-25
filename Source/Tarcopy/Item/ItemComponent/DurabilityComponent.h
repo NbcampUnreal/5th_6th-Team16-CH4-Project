@@ -15,11 +15,21 @@ public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
 
+protected:
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void OnRep_SetComponent() override;
+
+public:
 	void LoseDurability(float Amount);
-	void RestoreDurability(float Amount);
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_RestoreDurability(float Amount);
 
 protected:
-	UPROPERTY(VisibleAnywhere)
+	UFUNCTION()
+	virtual void OnRep_PrintCondition();
+
+protected:
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_PrintCondition)
 	float Condition;
 
 	const FDurabilityData* Data;

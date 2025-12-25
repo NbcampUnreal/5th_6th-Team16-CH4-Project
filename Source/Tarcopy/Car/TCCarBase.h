@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "WheeledVehiclePawn.h"
+#include "Character/ActivateInterface.h"
 #include "TCCarBase.generated.h"
 
 class UCameraComponent;
@@ -13,10 +14,11 @@ class UChaosWheeledVehicleMovementComponent;
 class USpotLightComponent;
 class UTCCarCombatComponent;
 class UTCCarWidget;
+class UUISubsystem;
 struct FInputActionValue;
 
 UCLASS(abstract)
-class ATCCarBase : public AWheeledVehiclePawn
+class ATCCarBase : public AWheeledVehiclePawn, public IActivateInterface
 {
 	GENERATED_BODY()
 
@@ -41,6 +43,8 @@ class ATCCarBase : public AWheeledVehiclePawn
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> ChaosVehicleMovement;
 
 
+
+
 protected:
 
 	UPROPERTY(EditAnywhere, Category = "Input")
@@ -58,6 +62,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* LightAction;
 
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* InterAction;
+
 public:
 	ATCCarBase();
 
@@ -70,6 +77,8 @@ public:
 	virtual void Tick(float Delta) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual void UnPossessed() override;
 
 
 protected:
@@ -87,6 +96,8 @@ protected:
 	void StopHandbrake(const FInputActionValue& Value);
 
 	void ToggleLight(const FInputActionValue& Value);
+
+	void StartInterAction(const FInputActionValue& Value);
 
 
 public:
@@ -140,8 +151,6 @@ public:
 
 	FTimerHandle GasHandler;
 
-	bool bMovingOnGround;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Gas");
 	float MoveFactor;
 
@@ -150,10 +159,59 @@ public:
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return Camera; }
 	FORCEINLINE const TObjectPtr<UChaosWheeledVehicleMovementComponent>& GetChaosVehicleMovement() const { return ChaosVehicleMovement; }
 
-	//Test
-	UPROPERTY(EditAnywhere, Category = "UI")
-	TSubclassOf<UTCCarWidget> CarWidgetClass;
-
 	UPROPERTY()
 	TObjectPtr<UTCCarWidget> CarWidgetInstance;
+
+	UPROPERTY()
+	TObjectPtr<UUISubsystem> UISubsystem;
+
+#pragma region Possess
+public:
+
+	virtual void PossessedBy(AController* NewController) override;
+
+	virtual void OnRep_Controller() override;
+
+	UFUNCTION()
+	void OnRep_bPossessed();
+
+	UFUNCTION()
+	void EnterVehicle(APawn* InPawn, APlayerController* InPC);
+
+	UFUNCTION()
+	void ExitVehicle(APawn* InPawn, APlayerController* InPC);
+
+	virtual void Activate(AActor* InInstigator) override;
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCHideCharacter(ACharacter* InCharacter);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCShowCharacter();
+
+	UFUNCTION()
+	bool FindDismountLocation(FVector& OutLocation) const;
+
+	UPROPERTY(Replicated)
+	APawn* RidePawn;
+
+	UPROPERTY()
+	TEnumAsByte<ECollisionEnabled::Type> TempSaveCollision;
+
+	UPROPERTY(ReplicatedUsing = OnRep_bPossessed)
+	uint8 bPossessed : 1;
+#pragma endregion
+
+#pragma region Damage
+
+	UPROPERTY(Replicated)
+	float SteeringFactor = 1.f;
+
+	UPROPERTY(Replicated)
+	float ThrottleFactor = 1.f;
+	
+	void DisableWheel(UPrimitiveComponent* DestroyComponent);
+
+
+	
 };

@@ -8,12 +8,23 @@
 #include "Item/ItemComponent/MeleeWeaponComponent.h"
 #include "Item/ItemCommand/ItemCommandBase.h"
 
+void UUW_TempItem::BeginDestroy()
+{
+	if (Item.IsValid() == true)
+	{
+		Item->OnItemUpdated.RemoveAll(this);
+	}
+
+	Super::BeginDestroy();
+}
+
 void UUW_TempItem::SetItem(UItemInstance* InItem)
 {
 	if (IsValid(InItem) == false)
 		return;
 
 	Item = InItem;
+	Item->OnItemUpdated.AddUObject(this, &ThisClass::UpdateTempItem);
 
 	UpdateTempItem();
 }

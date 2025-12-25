@@ -10,20 +10,13 @@
 #include "Animation/AnimMontage.h"
 #include "Tarcopy.h"
 #include "Kismet/GameplayStatics.h"
+#include "Item/ItemCommand/EquipCommand.h"
+#include "Item/ItemComponent/DurabilityComponent.h"
 
 void UFirearmComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
 
-	const FItemData* ItemData = GetOwnerItemData();
-	if (ItemData == nullptr)
-		return;
-
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return;
-
-	Data = DataTableSubsystem->GetTable(EDataTableType::FirearmTable)->FindRow<FFirearmData>(ItemData->ItemId, FString(""));
 	if (Data == nullptr)
 		return;
 }
@@ -31,23 +24,38 @@ void UFirearmComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 void UFirearmComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
 {
 	Super::GetCommands(OutCommands);
+
+	const FItemData* OwnerItemData = GetOwnerItemData();
+	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
+	FText TextItemName = OwnerItemData->TextName;
+
+	bool bIsEquipped = IsValid(GetOwnerCharacter()) == true;
+	UEquipCommand* EquipCommand = NewObject<UEquipCommand>(this);
+	EquipCommand->TargetItem = GetOwnerItem();
+	EquipCommand->TextDisplay = FText::Format(
+		FText::FromString(bIsEquipped == true ? TEXT("Unequip {0}") : TEXT("Equip {0}")),
+		TextItemName);
+	EquipCommand->bEquip = !bIsEquipped;
+	EquipCommand->BodyLocation = Data->BodyLocation;
+	// 인벤토리에서 공간 있는지 체크해야 함
+	EquipCommand->bExecutable = true;
+	OutCommands.Add(EquipCommand);
 }
 
-void UFirearmComponent::ExecuteAttack(ACharacter* OwnerCharacter)
+void UFirearmComponent::ExecuteAttack()
 {
 	if (Data == nullptr)
 		return;
 
-	UCharacterMovementComponent* CharacterMovement = OwnerCharacter->GetCharacterMovement();
-	if (IsValid(CharacterMovement) == false)
-		return;
-
-	AMyCharacter* MyCharacter = Cast<AMyCharacter>(OwnerCharacter);
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(GetOwnerCharacter());
 	if (IsValid(MyCharacter) == false)
 		return;
 
+	UCharacterMovementComponent* CharacterMovement = MyCharacter->GetCharacterMovement();
+	if (IsValid(CharacterMovement) == false)
+		return;
+
 	bIsAttacking = true;
-	CachedOwner = MyCharacter;
 
 	if (IsValid(Data->Montage) == true)
 	{
@@ -56,7 +64,7 @@ void UFirearmComponent::ExecuteAttack(ACharacter* OwnerCharacter)
 
 	float AttackDuration = IsValid(Data->Montage) == true ? Data->Montage->GetPlayLength() : 1.0f;
 	CharacterMovement->DisableMovement();
-	OwnerCharacter->GetWorldTimerManager().SetTimer(
+	MyCharacter->GetWorldTimerManager().SetTimer(
 		EnableMovementTimerHandle,
 		this,
 		&ThisClass::EnableOwnerMovement,
@@ -98,15 +106,27 @@ void UFirearmComponent::CancelAction()
 	EnableOwnerMovement();
 }
 
+void UFirearmComponent::OnRep_SetComponent()
+{
+	const FItemData* ItemData = GetOwnerItemData();
+	if (ItemData == nullptr)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	Data = DataTableSubsystem->GetTable(EDataTableType::FirearmTable)->FindRow<FFirearmData>(ItemData->ItemId, FString(""));
+}
+
 void UFirearmComponent::CheckHit(const FVector& StartLocation, const FVector& EndLocation)
 {
 	if (Data == nullptr)
 		return;
 
-	if (CachedOwner.IsValid() == false)
+	ACharacter* OwnerCharacter = GetOwnerCharacter();
+	if (IsValid(OwnerCharacter) == false)
 		return;
-
-	ACharacter* OwnerCharacter = CachedOwner.Get();
 
 	FHitResult HitResult;
 	FCollisionQueryParams Params;
@@ -143,6 +163,14 @@ void UFirearmComponent::CheckHit(const FVector& StartLocation, const FVector& En
 			OwnerCharacter->GetController(),
 			OwnerCharacter,
 			nullptr);
+
+		UDurabilityComponent* DurabilityComponent = GetOwnerItem()->GetItemComponent<UDurabilityComponent>();
+		if (IsValid(DurabilityComponent) == true)
+		{
+			// 바꿔야 함
+			float TempAmount = 1.0;
+			DurabilityComponent->LoseDurability(TempAmount);
+		}
 	}
 
 	// 충돌 검사 디버그
@@ -169,10 +197,11 @@ void UFirearmComponent::EnableOwnerMovement()
 	if (bIsAttacking == false)
 		return;
 
-	if (CachedOwner.IsValid() == false)
+	ACharacter* OwnerCharacter = GetOwnerCharacter();
+	if (IsValid(OwnerCharacter) == false)
 		return;
 
-	UCharacterMovementComponent* CharacterMovement = CachedOwner->GetCharacterMovement();
+	UCharacterMovementComponent* CharacterMovement = OwnerCharacter->GetCharacterMovement();
 	if (IsValid(CharacterMovement) == false)
 		return;
 

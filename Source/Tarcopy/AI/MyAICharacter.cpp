@@ -6,10 +6,12 @@
 #include <limits>
 #include "AI/ZombieController.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Character/MyCharacter.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
-	WatchedCount(0)
+	AttackDamage(40)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
@@ -31,47 +33,43 @@ void AMyAICharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (HasAuthority())
-	{
-		SetActorHiddenInGame(true);
-	}
-	else
-	{
-		OnRep_SetVisible();
-	}
+	Tags.Add(FName("InVisible"));
+	SetActorHiddenInGame(true);
 }
 
 void AMyAICharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(ThisClass, bIsVisible);
-	DOREPLIFETIME(ThisClass, WatchedCount);
 }
 
-void AMyAICharacter::WatchedCountModify(int32 InIncrement)
+void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
 {
-	if (!HasAuthority()) return;
+	AMyCharacter* DamagedActor = Cast<AMyCharacter>(TargetActor);
+	if (!IsValid(DamagedActor)) return;
 
-	WatchedCount = FMath::Clamp(WatchedCount + InIncrement, 0, std::numeric_limits<int32>::max());
-	if (WatchedCount > 0)
-	{
-		bIsVisible = true;
-	}
-	else
-	{
-		bIsVisible = false;
-	}
-}
+	FHitResult Hit;
+	FVector StartLocation = ContextActor->GetActorLocation() + FVector({ 0.f, 0.f, 80.f });
+	FVector EndLocation = DamagedActor->GetActorLocation() + FMath::FRandRange(0.f, 80.f);
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+	Params.bTraceComplex = true;
 
-void AMyAICharacter::OnRep_SetVisible()
-{
-	if (bIsVisible)
+	bool bIsWallHit = GetWorld()->LineTraceSingleByChannel(
+		Hit,
+		StartLocation,
+		EndLocation,
+		ECC_Visibility,
+		Params
+	);
+
+	if (!bIsWallHit)
 	{
-		SetActorHiddenInGame(false);
-	}
-	else
-	{
-		SetActorHiddenInGame(true);
+		UGameplayStatics::ApplyPointDamage(DamagedActor, 
+											AttackDamage, 
+											EndLocation - StartLocation, 
+											Hit, 
+											GetController(), 
+											this, 
+											UDamageType::StaticClass());
 	}
 }

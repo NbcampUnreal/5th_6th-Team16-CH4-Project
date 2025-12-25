@@ -1,4 +1,4 @@
-// Minimal component to toggle yaw on tagged StaticMeshActors without dedicated BP actors.
+﻿// Minimal component to toggle yaw on tagged StaticMeshActors without dedicated BP actors.
 
 #include "Framework/DoorInteractComponent.h"
 #include "GameFramework/Actor.h"
@@ -36,7 +36,7 @@ void UDoorInteractComponent::OnRegister()
 			InteractionVisualizer = NewObject<UBoxComponent>(Owner, TEXT("DoorInteractVisualizer"));
 			if (InteractionVisualizer)
 			{
-				// 절대 트랜스폼을 사용해 문의 회전에 영향을 받지 않고 초기 위치/방향을 유지.
+				// ?��? ?�랜?�폼???�용??문의 ?�전???�향??받�? ?�고 초기 ?�치/방향???��?.
 				InteractionVisualizer->SetUsingAbsoluteLocation(true);
 				InteractionVisualizer->SetUsingAbsoluteRotation(true);
 				InteractionVisualizer->SetUsingAbsoluteScale(true);
@@ -52,7 +52,6 @@ void UDoorInteractComponent::OnRegister()
 				InteractionVisualizer->SetHiddenInGame(true);
 				InteractionVisualizer->SetCastShadow(false);
 				InteractionVisualizer->bIsEditorOnly = false;
-				InteractionVisualizer->bVisualizeComponent = false;
 				InteractionVisualizer->ShapeColor = FColor::Red;
 				InteractionVisualizer->SetupAttachment(Owner->GetRootComponent());
 				InteractionVisualizer->OnComponentBeginOverlap.AddDynamic(this, &UDoorInteractComponent::OnVisualizerBeginOverlap);
@@ -67,7 +66,6 @@ void UDoorInteractComponent::OnRegister()
 		UpdateDoorOutline(false);
 		InteractionVisualizer->SetVisibility(false, true);
 		InteractionVisualizer->SetHiddenInGame(true);
-		InteractionVisualizer->bVisualizeComponent = false;
 	}
 }
 
@@ -99,7 +97,7 @@ void UDoorInteractComponent::BeginPlay()
 		}
 
 		UpdateInteractionBoxFromOwner();
-		// 상호작용 영역(Visualizer) 표시는 비활성화합니다.
+		// ?�호?�용 ?�역(Visualizer) ?�시??비활?�화?�니??
 		// UpdateVisualizerColor(false);
 
 		InitialLocation = Owner->GetActorLocation();
@@ -120,6 +118,13 @@ void UDoorInteractComponent::ToggleDoor()
 void UDoorInteractComponent::Activate(AActor* InInstigator)
 {
 	ToggleDoorInternal(true);
+}
+
+void UDoorInteractComponent::ApplyDoorStateFromServer(bool bOpen)
+{
+	InitializeIfNeeded();
+	bIsOpen = bOpen;
+	ApplyDoorState();
 }
 
 void UDoorInteractComponent::ApplyDoorState()
@@ -422,7 +427,7 @@ void UDoorInteractComponent::UpdateInteractionBoxFromOwner()
 
 		if (InteractionVisualizer)
 		{
-			// 폭(X/Y)은 1.1배로 약간 크게, 높이(Z)는 동일하게 유지.
+			// ??X/Y)?� 1.1배로 ?�간 ?�게, ?�이(Z)???�일?�게 ?��?.
 			const FVector AdjustedExtent(LocalExtent.X * 1.1f, LocalExtent.Y * 1.1f, LocalExtent.Z);
 			InteractionVisualizer->SetBoxExtent(AdjustedExtent);
 			InteractionVisualizer->SetWorldLocation(OwnerTransform.TransformPosition(LocalCenter));

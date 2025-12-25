@@ -77,5 +77,19 @@ void UTCCarWidget::UpdateFuel(float InValue)
 	Ratio = FMath::Clamp(Ratio, 0.f, 1.f);
 
 	MIDFuel->SetScalarParameterValue(TEXT("FillAmount"), Ratio);
-	UE_LOG(LogTemp, Error, TEXT("Update Fuel"));
+}
+
+void UTCCarWidget::UpdateCarDamage(float Ratio)
+{
+	Ratio = FMath::Clamp(Ratio, 0.f, 1.f);
+
+	FLinearColor Color = FLinearColor::LerpUsingHSV(
+		FLinearColor::White,
+		FLinearColor::Red,
+		Ratio
+	);
+
+	Color.A = Ratio;
+
+	/*ImageCarSection->SetColorAndOpacity(Color);*/
 }

@@ -2,10 +2,13 @@
 #include "Components/SphereComponent.h"
 #include "Item/ItemInstance.h"
 #include "Item/Data/ItemData.h"
+#include "Net/UnrealNetwork.h"
+#include "Engine/ActorChannel.h"
 
 AItemWrapperActor::AItemWrapperActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
+	bReplicates = true;
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
@@ -31,8 +34,28 @@ void AItemWrapperActor::BeginPlay()
 	
 }
 
+void AItemWrapperActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, ItemInstance);
+}
+
+bool AItemWrapperActor::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+	if (IsValid(ItemInstance) == true)
+	{
+		bWroteSomething |= Channel->ReplicateSubobject(ItemInstance, *Bunch, *RepFlags);
+	}
+	return bWroteSomething;
+}
+
 void AItemWrapperActor::SetItemInstance(UItemInstance* InItemInstance)
 {
+	if (HasAuthority() == false)
+		return;
+
 	if (IsValid(InItemInstance) == false)
 		return;
 
@@ -45,5 +68,14 @@ void AItemWrapperActor::SetItemInstance(UItemInstance* InItemInstance)
 	if (IsValid(MeshAsset) == false)
 		return;
 
-	DefaultMesh->SetStaticMesh(MeshAsset);
+	CurrentMeshAsset = MeshAsset;
+	OnRep_SetMesh();
+}
+
+void AItemWrapperActor::OnRep_SetMesh()
+{
+	if (IsValid(DefaultMesh) == true && IsValid(CurrentMeshAsset) == true)
+	{
+		DefaultMesh->SetStaticMesh(CurrentMeshAsset);
+	}
 }

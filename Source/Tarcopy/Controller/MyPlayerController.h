@@ -33,6 +33,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
 	TObjectPtr<UInputMappingContext> IMC_Character;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Car")
+	TObjectPtr<UInputMappingContext> IMC_Car;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
 	TObjectPtr<UInputAction> MoveAction;
 
@@ -72,4 +75,12 @@ public:
 	TSubclassOf<UUW_TempItem> TempItemClass;
 	UPROPERTY()
 	TObjectPtr<UUW_TempItem> TempItemInstance;
+
+public:
+	void ChangeIMC(UInputMappingContext* InIMC);
+
+	TObjectPtr<UInputMappingContext> CurrentIMC;
+
+	UFUNCTION(Server,Reliable)
+	void ServerRPCChangePossess(APawn* NewPawn);
 };

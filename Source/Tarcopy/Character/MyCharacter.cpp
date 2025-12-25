@@ -31,6 +31,8 @@
 #include "Inventory/InventoryData.h"
 #include "UI/Inventory/UW_Inventory.h"
 #include "Tarcopy.h"
+#include "Engine/DamageEvents.h"
+#include "Character/CameraObstructionComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -94,6 +96,13 @@ AMyCharacter::AMyCharacter() :
 void AMyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Tags.Add(FName("InVisible"));
+	if (GetNetMode() == ENetMode::NM_DedicatedServer || IsLocallyControlled() == false)
+	{
+		SetActorHiddenInGame(true);
+		VisionMesh->SetVisibility(false);
+	}
 }
 
 void AMyCharacter::Tick(float DeltaTime)
@@ -101,18 +110,34 @@ void AMyCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+float AMyCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+
+	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	{
+		FPointDamageEvent const& PointDamageEvent = static_cast<FPointDamageEvent const&>(DamageEvent);
+		FHitResult HitResult = PointDamageEvent.HitInfo;
+		FName BoneName = HitResult.BoneName;
+		MultiRPC_Temp(Damage, BoneName);
+	}
+
+	
+
+	return Damage;
+}
+
+void AMyCharacter::MultiRPC_Temp_Implementation(float Damage, const FName& BoneName)
+{
+	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("TakeDamage : %f, BoneName : %s"), Damage, *BoneName.ToString()), true, true, FColor::Red);
+}
+
 void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                             UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
                                             const FHitResult& SweepResult)
 {
-	if (HasAuthority() == false)
-		return;
-
-	AMyAICharacter* MyAI = Cast<AMyAICharacter>(OtherActor);
-	if (IsValid(MyAI) == false)
-		return;
-
-	UE_LOG(LogTemp, Warning, TEXT("Overlap"));
+	if (!IsLocallyControlled()) return;
+	if (OtherActor->ActorHasTag("InVisible") == false) return;
 
 	FVector MyLocation = GetActorLocation();
 	FVector OtherLocation = OtherActor->GetActorLocation();
@@ -127,27 +152,36 @@ void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp,
 		Hit,
 		MyLocation,
 		OtherLocation,
-		ECC_WorldStatic,
+		ECC_Visibility,
 		Params
 	);
 
+	/*DrawDebugLine(GetWorld(), MyLocation, OtherLocation, FColor::Red, false, 1.0f);
+	UKismetSystemLibrary::LineTraceSingle(
+		GetWorld(),
+		MyLocation,
+		OtherLocation,
+		UEngineTypes::ConvertToTraceType(ECC_Visibility),
+		false,
+		{ this },
+		EDrawDebugTrace::ForDuration,
+		Hit,
+		true
+	);*/
+
 	if (!bHitWall)
 	{
-		MyAI->WatchedCountModify(1);
+		OtherActor->SetActorHiddenInGame(false);
 	}
 }
 
 void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                           UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (HasAuthority() == false)
-		return;
+	if (!IsLocallyControlled()) return;
+	if (OtherActor->ActorHasTag("InVisible") == false) return;
 
-	AMyAICharacter* MyAI = Cast<AMyAICharacter>(OtherActor);
-	if (IsValid(MyAI) == false)
-		return;
-
-	MyAI->WatchedCountModify(-1);
+	OtherActor->SetActorHiddenInGame(true);
 }
 
 void AMyCharacter::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -342,6 +376,11 @@ void AMyCharacter::LeftClick(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Left Click"));
 
+	ServerRPC_ExecuteAttack();
+}
+
+void AMyCharacter::ServerRPC_ExecuteAttack_Implementation()
+{
 	if (IsValid(EquipComponent) == false)
 		return;
 
@@ -486,12 +525,12 @@ void AMyCharacter::SetItem()
 		if (IsValid(EquipComponent) == false)
 			return;
 
-		const auto& EquippedItems = EquipComponent->GetEquippedItems();
-		for (const auto& Pair : EquippedItems)
+		const auto& EquippedItemInfos = EquipComponent->GetEquippedItemInfos();
+		for (const auto& EquippedItem : EquippedItemInfos)
 		{
-			if (IsValid(Pair.Value) == true)
+			if (IsValid(EquippedItem.Item) == true)
 			{
-				PlayerController->SetItem(Pair.Value);
+				PlayerController->SetItem(EquippedItem.Item);
 				break;
 			}
 		}
@@ -691,6 +730,8 @@ void AMyCharacter::ServerRPC_ToggleDoor_Implementation(AActor* DoorActor)
 
 	TArray<FTransform> DoorTransforms;
 	DoorTransforms.Reserve(AffectedDoors.Num());
+	TArray<bool> DoorOpenStates;
+	DoorOpenStates.Reserve(AffectedDoors.Num());
 	for (AActor* AffectedDoor : AffectedDoors)
 	{
 		if (!IsValid(AffectedDoor))
@@ -698,19 +739,42 @@ void AMyCharacter::ServerRPC_ToggleDoor_Implementation(AActor* DoorActor)
 			continue;
 		}
 		DoorTransforms.Add(AffectedDoor->GetActorTransform());
+
+		bool bIsOpen = false;
+		if (UDoorInteractComponent* DoorComp = AffectedDoor->FindComponentByClass<UDoorInteractComponent>())
+		{
+			bIsOpen = DoorComp->IsDoorOpen();
+		}
+		DoorOpenStates.Add(bIsOpen);
 	}
 
-	MulticastRPC_ApplyDoorTransforms(AffectedDoors, DoorTransforms);
+	MulticastRPC_ApplyDoorTransforms(AffectedDoors, DoorTransforms, DoorOpenStates);
 }
 
-void AMyCharacter::MulticastRPC_ApplyDoorTransforms_Implementation(const TArray<AActor*>& DoorActors, const TArray<FTransform>& DoorTransforms)
+void AMyCharacter::MulticastRPC_ApplyDoorTransforms_Implementation(const TArray<AActor*>& DoorActors, const TArray<FTransform>& DoorTransforms, const TArray<bool>& DoorOpenStates)
 {
-	const int32 Count = FMath::Min(DoorActors.Num(), DoorTransforms.Num());
+	const int32 Count = FMath::Min3(DoorActors.Num(), DoorTransforms.Num(), DoorOpenStates.Num());
 	for (int32 i = 0; i < Count; ++i)
 	{
 		AActor* DoorActor = DoorActors[i];
 		if (!IsValid(DoorActor))
 		{
+			continue;
+		}
+
+		UDoorInteractComponent* DoorComp = DoorActor->FindComponentByClass<UDoorInteractComponent>();
+		if (!DoorComp)
+		{
+			DoorComp = NewObject<UDoorInteractComponent>(DoorActor);
+			if (IsValid(DoorComp))
+			{
+				DoorComp->RegisterComponent();
+			}
+		}
+
+		if (IsValid(DoorComp))
+		{
+			DoorComp->ApplyDoorStateFromServer(DoorOpenStates[i]);
 			continue;
 		}
 

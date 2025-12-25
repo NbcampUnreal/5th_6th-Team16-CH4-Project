@@ -10,16 +10,14 @@ class TARCOPY_API UWeaponComponent : public UItemComponentBase
 	GENERATED_BODY()
 
 public:
-	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
-	
-	virtual void ExecuteAttack(ACharacter* OwnerCharacter) PURE_VIRTUAL(UWeaponComponent::Attack, );
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+public:
+	virtual void ExecuteAttack() PURE_VIRTUAL(UWeaponComponent::Attack, );
 
 protected:
-	UPROPERTY()
-	TWeakObjectPtr<ACharacter> CachedOwner;
-
 	FTimerHandle EnableMovementTimerHandle;
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	uint8 bIsAttacking = false;
 };
