@@ -65,7 +65,7 @@ AMyCharacter::AMyCharacter() :
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->SetUsingAbsoluteRotation(true);
-	SpringArm->TargetArmLength = 1800.f;
+	SpringArm->TargetArmLength = 1400.f;
 	SpringArm->SetRelativeRotation(FRotator(-50.f, 45.f, 0.f));
 	SpringArm->bDoCollisionTest = false;
 	SpringArm->bEnableCameraLag = true;
@@ -326,7 +326,7 @@ void AMyCharacter::Wheel(const FInputActionValue& Value)
 		return;
 
 	const float Input = Value.Get<float>() * -200;
-	SpringArm->TargetArmLength = FMath::Clamp(SpringArm->TargetArmLength + Input, 900.f, 1800.f);
+	SpringArm->TargetArmLength = FMath::Clamp(SpringArm->TargetArmLength + Input, 600.f, 1400.f);
 }
 
 void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
