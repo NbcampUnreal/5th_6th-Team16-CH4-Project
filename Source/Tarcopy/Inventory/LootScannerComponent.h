@@ -9,8 +9,9 @@
 
 class USphereComponent;
 class UWorldContainerComponent;
-class AWorldSpawnedItem;
+class AItemWrapperActor;
 class UInventoryData;
+class UItemInstance;
 
 DECLARE_MULTICAST_DELEGATE(FOnScannedContainersChanged);
 DECLARE_MULTICAST_DELEGATE(FOnScannedGroundChanged);
@@ -33,7 +34,7 @@ public:
 
 	void RebuildGroundInventory();
 
-	bool ConsumeGroundWorldItemByInstanceId(const FGuid& InstanceId);
+	bool ConsumeGroundWorldItem(UItemInstance* Item);
 
 	FOnScannedContainersChanged OnScannedContainersChanged;
 
@@ -43,7 +44,7 @@ public:
 	TSet<TWeakObjectPtr<UWorldContainerComponent>> OverlappedContainers;
 
 	UPROPERTY()
-	TSet<TWeakObjectPtr<AWorldSpawnedItem>> OverlappedContainerItems;
+	TSet<TWeakObjectPtr<AItemWrapperActor>> OverlappedContainerItems;
 
 private:
 	UFUNCTION()
@@ -74,12 +75,12 @@ private:
 	FIntPoint GroundGridSize = FIntPoint(10, 10);
 
 	UPROPERTY()
-	TSet<TWeakObjectPtr<AWorldSpawnedItem>> OverlappedGroundItems;
+	TSet<TWeakObjectPtr<AItemWrapperActor>> OverlappedGroundItems;
 
 	UPROPERTY()
 	TObjectPtr<UInventoryData> GroundInventoryData;
 
 	UPROPERTY()
-	TMap<FGuid, TWeakObjectPtr<AWorldSpawnedItem>> InstanceIdToWorldItem;
+	TMap<TWeakObjectPtr<UItemInstance>, TWeakObjectPtr<AItemWrapperActor>> ItemToWorldItem;
 
 };

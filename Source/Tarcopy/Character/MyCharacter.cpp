@@ -22,15 +22,16 @@
 #include "Character/ActivateInterface.h"
 #include "Character/CameraObstructionFadeComponent.h"
 #include "Character/CameraObstructionComponent.h"
-#include "Item/WorldSpawnedItem.h"
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "Item/Data/ItemData.h"
 #include "Misc/Guid.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
-#include "UI/InventoryDragDropOp.h"
+#include "UI/Inventory/InventoryDragDropOp.h"
 #include "Components/SizeBox.h"
 #include "Inventory/InventoryData.h"
-#include "UI/UW_Inventory.h"
+#include "UI/Inventory/UW_Inventory.h"
 #include "Tarcopy.h"
+#include "Engine/DamageEvents.h"
 #include "Character/CameraObstructionComponent.h"
 
 // Sets default values
@@ -109,6 +110,7 @@ void AMyCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+
 void AMyCharacter::OnRep_Controller()
 {
 	Super::OnRep_Controller();
@@ -117,6 +119,27 @@ void AMyCharacter::OnRep_Controller()
 	if (!PC) return;
 
 	PC->ChangeIMC(PC->IMC_Character);
+}
+float AMyCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+
+	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	{
+		FPointDamageEvent const& PointDamageEvent = static_cast<FPointDamageEvent const&>(DamageEvent);
+		FHitResult HitResult = PointDamageEvent.HitInfo;
+		FName BoneName = HitResult.BoneName;
+		MultiRPC_Temp(Damage, BoneName);
+	}
+
+	
+
+	return Damage;
+}
+
+void AMyCharacter::MultiRPC_Temp_Implementation(float Damage, const FName& BoneName)
+{
+	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("TakeDamage : %f, BoneName : %s"), Damage, *BoneName.ToString()), true, true, FColor::Red);
 }
 
 void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -717,6 +740,8 @@ void AMyCharacter::ServerRPC_ToggleDoor_Implementation(AActor* DoorActor)
 
 	TArray<FTransform> DoorTransforms;
 	DoorTransforms.Reserve(AffectedDoors.Num());
+	TArray<bool> DoorOpenStates;
+	DoorOpenStates.Reserve(AffectedDoors.Num());
 	for (AActor* AffectedDoor : AffectedDoors)
 	{
 		if (!IsValid(AffectedDoor))
@@ -724,19 +749,42 @@ void AMyCharacter::ServerRPC_ToggleDoor_Implementation(AActor* DoorActor)
 			continue;
 		}
 		DoorTransforms.Add(AffectedDoor->GetActorTransform());
+
+		bool bIsOpen = false;
+		if (UDoorInteractComponent* DoorComp = AffectedDoor->FindComponentByClass<UDoorInteractComponent>())
+		{
+			bIsOpen = DoorComp->IsDoorOpen();
+		}
+		DoorOpenStates.Add(bIsOpen);
 	}
 
-	MulticastRPC_ApplyDoorTransforms(AffectedDoors, DoorTransforms);
+	MulticastRPC_ApplyDoorTransforms(AffectedDoors, DoorTransforms, DoorOpenStates);
 }
 
-void AMyCharacter::MulticastRPC_ApplyDoorTransforms_Implementation(const TArray<AActor*>& DoorActors, const TArray<FTransform>& DoorTransforms)
+void AMyCharacter::MulticastRPC_ApplyDoorTransforms_Implementation(const TArray<AActor*>& DoorActors, const TArray<FTransform>& DoorTransforms, const TArray<bool>& DoorOpenStates)
 {
-	const int32 Count = FMath::Min(DoorActors.Num(), DoorTransforms.Num());
+	const int32 Count = FMath::Min3(DoorActors.Num(), DoorTransforms.Num(), DoorOpenStates.Num());
 	for (int32 i = 0; i < Count; ++i)
 	{
 		AActor* DoorActor = DoorActors[i];
 		if (!IsValid(DoorActor))
 		{
+			continue;
+		}
+
+		UDoorInteractComponent* DoorComp = DoorActor->FindComponentByClass<UDoorInteractComponent>();
+		if (!DoorComp)
+		{
+			DoorComp = NewObject<UDoorInteractComponent>(DoorActor);
+			if (IsValid(DoorComp))
+			{
+				DoorComp->RegisterComponent();
+			}
+		}
+
+		if (IsValid(DoorComp))
+		{
+			DoorComp->ApplyDoorStateFromServer(DoorOpenStates[i]);
 			continue;
 		}
 
@@ -763,10 +811,11 @@ void AMyCharacter::OnRotateInventoryItem()
 
 	Op->bRotated = !Op->bRotated;
 
-	if (IsValid(Op->DragBox) && IsValid(Op->SourceInventoryWidget))
+	const UItemInstance* ItemPtr = Op->Item.Get();
+	if (ItemPtr && IsValid(Op->DragBox) && IsValid(Op->SourceInventoryWidget))
 	{
 		const int32 CellPx = Op->SourceInventoryWidget->GetCellSizePx();
-		const FIntPoint SizeCells = Op->SourceInventory->GetItemSizeByID(Op->ItemId, Op->bRotated);
+		const FIntPoint SizeCells = Op->SourceInventory->GetItemSize(ItemPtr, Op->bRotated);
 
 		if (SizeCells != FIntPoint::ZeroValue)
 		{

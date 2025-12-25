@@ -30,6 +30,9 @@ public:
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 
+	void ApplyDoorStateFromServer(bool bOpen);
+	bool IsDoorOpen() const { return bIsOpen; }
+
 protected:
 	virtual void BeginPlay() override;
 

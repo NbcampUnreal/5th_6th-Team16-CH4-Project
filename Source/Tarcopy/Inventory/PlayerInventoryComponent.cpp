@@ -5,19 +5,18 @@
 
 #include "Inventory/InventoryData.h"
 #include "Inventory/LootScannerComponent.h"
-#include "Item/WorldSpawnedItem.h"
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Item/ItemInstance.h"
+#include "Net/UnrealNetwork.h"
+#include "Engine/ActorChannel.h"
 
 // Sets default values for this component's properties
 UPlayerInventoryComponent::UPlayerInventoryComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
-
-	// ...
+	SetIsReplicatedByDefault(true);
 }
 
 
@@ -26,13 +25,43 @@ void UPlayerInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	PlayerInventoryData = NewObject<UInventoryData>(this);
-	PlayerInventoryData->Init(DefaultInventorySize);
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		PlayerInventoryData = NewObject<UInventoryData>(this);
+		PlayerInventoryData->Init(DefaultInventorySize);
 
-	OnInventoryReady.Broadcast();
+		OnInventoryReady.Broadcast();
+	}
 }
 
-void UPlayerInventoryComponent::HandleRelocatePostProcess(UInventoryData* SourceInventory, const FGuid& ItemId)
+void UPlayerInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UPlayerInventoryComponent, PlayerInventoryData);
+}
+
+bool UPlayerInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool bWrote = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	if (IsValid(PlayerInventoryData))
+	{
+		bWrote |= Channel->ReplicateSubobject(PlayerInventoryData, *Bunch, *RepFlags);
+
+		for (const FInventoryItemEntry& Entry : PlayerInventoryData->GetReplicatedItems().Items)
+		{
+			if (IsValid(Entry.Item))
+			{
+				bWrote |= Channel->ReplicateSubobject(Entry.Item, *Bunch, *RepFlags);
+			}
+		}
+	}
+
+	return bWrote;
+}
+
+void UPlayerInventoryComponent::HandleRelocatePostProcess(UInventoryData* SourceInventory, UItemInstance* Item)
 {
 	if (!SourceInventory)
 	{
@@ -49,52 +78,61 @@ void UPlayerInventoryComponent::HandleRelocatePostProcess(UInventoryData* Source
 	{
 		if (GetOwner() && GetOwner()->HasAuthority())
 		{
-			Scanner->ConsumeGroundWorldItemByInstanceId(ItemId);
+			Scanner->ConsumeGroundWorldItem(Item);
 		}
 		else
 		{
-			Server_ConsumeGroundWorldItem(ItemId);
+			Server_ConsumeGroundWorldItem(Item);
 		}
 	}
 }
 
-void UPlayerInventoryComponent::RequestDropItemToWorld(UInventoryData* SourceInventory, const FGuid& ItemId, bool bRotated)
+void UPlayerInventoryComponent::RequestDropItemToWorld(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated)
 {
-	if (!SourceInventory)
+	if (!IsValid(SourceInventory) || !IsValid(Item))
 	{
 		return;
 	}
 
-	DropItemToWorld_Internal(SourceInventory, ItemId, bRotated);
-	//if (GetOwner() && GetOwner()->HasAuthority())
-	//{
-	//	DropItemToWorld_Internal(SourceInventory, ItemId, bRotated);
-	//}
-	//else
-	//{
-	//	Server_DropItemToWorld(SourceInventory, ItemId, bRotated);
-	//}
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		DropItemToWorld_Internal(SourceInventory, Item, bRotated);
+	}
+	else
+	{
+		Server_DropItemToWorld(SourceInventory, Item, bRotated);
+	}
 }
 
-void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceInventory, const FGuid& ItemId, bool bRotated)
+void UPlayerInventoryComponent::RequestMoveItem(UInventoryData* Source, UItemInstance* Item, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated)
+{
+	if (!IsValid(Source) || !IsValid(Dest) || !IsValid(Item))
+	{
+		return;
+	}
+
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		Server_RequestMoveItem(Source, Item, Dest, NewOrigin, bRotated);
+		return;
+	}
+
+	MoveItem_Internal(Source, Item, Dest, NewOrigin, bRotated);
+}
+
+void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated)
 {
 	//if (!GetOwner() || !GetOwner()->HasAuthority())
 	//{
 	//	return;
 	//}
 
-	if (!SourceInventory)
-	{
-		return;
-	}
+	if (!IsValid(SourceInventory) || !IsValid(Item))
+    {
+        return;
+    }
 
-	UItemInstance* ItemInst = SourceInventory->FindItemByID(ItemId);
-	if (!IsValid(ItemInst))
-	{
-		return;
-	}
-
-	SourceInventory->RemoveItemByInstanceId(ItemId);
+	SourceInventory->RemoveItem(Item);
 
 	if (!WorldItemClass)
 	{
@@ -111,7 +149,7 @@ void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceI
 
 	FTransform SpawnTM(SpawnRot, SpawnLoc);
 
-	AWorldSpawnedItem* Spawned = GetWorld()->SpawnActorDeferred<AWorldSpawnedItem>(
+	AItemWrapperActor* Spawned = GetWorld()->SpawnActorDeferred<AItemWrapperActor>(
 		WorldItemClass,
 		SpawnTM,
 		GetOwner(),
@@ -124,13 +162,34 @@ void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceI
 		return;
 	}
 
-	Spawned->SetItemInstance(ItemInst);
+	Spawned->SetItemInstance(Item);
 	UGameplayStatics::FinishSpawningActor(Spawned, SpawnTM);
 
 	if (ULootScannerComponent* Scanner = FindLootScanner())
 	{
 		Scanner->RebuildGroundInventory();
 	}
+}
+
+void UPlayerInventoryComponent::MoveItem_Internal(UInventoryData* Source, UItemInstance* Item, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated)
+{
+	if (!IsValid(Source) || !IsValid(Dest) || !IsValid(Item))
+	{
+		return;
+	}
+
+	const bool bOk = Source->TryRelocateItem(Item, Dest, NewOrigin, bRotated);
+	if (!bOk)
+	{
+		return;
+	}
+
+	HandleRelocatePostProcess(Source, Item);
+}
+
+void UPlayerInventoryComponent::Server_RequestMoveItem_Implementation(UInventoryData* Source, UItemInstance* Item, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated)
+{
+	MoveItem_Internal(Source, Item, Dest, NewOrigin, bRotated);
 }
 
 ULootScannerComponent* UPlayerInventoryComponent::FindLootScanner() const
@@ -142,7 +201,12 @@ ULootScannerComponent* UPlayerInventoryComponent::FindLootScanner() const
 	return nullptr;
 }
 
-void UPlayerInventoryComponent::Server_ConsumeGroundWorldItem_Implementation(const FGuid& ItemId)
+void UPlayerInventoryComponent::OnRep_PlayerInventoryData()
+{
+	OnInventoryReady.Broadcast();
+}
+
+void UPlayerInventoryComponent::Server_ConsumeGroundWorldItem_Implementation(UItemInstance* Item)
 {
 	ULootScannerComponent* Scanner = FindLootScanner();
 	if (!Scanner)
@@ -150,10 +214,10 @@ void UPlayerInventoryComponent::Server_ConsumeGroundWorldItem_Implementation(con
 		return;
 	}
 
-	Scanner->ConsumeGroundWorldItemByInstanceId(ItemId);
+	Scanner->ConsumeGroundWorldItem(Item);
 }
 
-void UPlayerInventoryComponent::Server_DropItemToWorld_Implementation(UInventoryData* SourceInventory, const FGuid& ItemId, bool bRotated)
+void UPlayerInventoryComponent::Server_DropItemToWorld_Implementation(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated)
 {
-	DropItemToWorld_Internal(SourceInventory, ItemId, bRotated);
+	DropItemToWorld_Internal(SourceInventory, Item, bRotated);
 }

@@ -7,7 +7,7 @@
 #include "PlayerInventoryComponent.generated.h"
 
 class UInventoryData;
-class AWorldSpawnedItem;
+class AItemWrapperActor;
 class ULootScannerComponent;
 class UItemInstance;
 
@@ -19,43 +19,55 @@ class TARCOPY_API UPlayerInventoryComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:	
-	// Sets default values for this component's properties
 	UPlayerInventoryComponent();
 
 protected:
-	// Called when the game starts
 	virtual void BeginPlay() override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
 public:
 	UInventoryData* GetPlayerInventoryData() const { return PlayerInventoryData; }
 
-	void HandleRelocatePostProcess(UInventoryData* SourceInventory, const FGuid& ItemId);
+	void HandleRelocatePostProcess(UInventoryData* SourceInventory, UItemInstance* Item);
 
-	void RequestDropItemToWorld(UInventoryData* SourceInventory, const FGuid& ItemId, bool bRotated);
+	void RequestDropItemToWorld(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated);
+
+	void RequestMoveItem(UInventoryData* Source, UItemInstance* Item, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated);
 
 private:
-	void DropItemToWorld_Internal(UInventoryData* SourceInventory, const FGuid& ItemId, bool bRotated);
+	void DropItemToWorld_Internal(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated);
+
+	void MoveItem_Internal(UInventoryData* Source, UItemInstance* Item, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated);
 
 	UFUNCTION(Server, Reliable)
-	void Server_DropItemToWorld(UInventoryData* SourceInventory, const FGuid& ItemId, bool bRotated);
+	void Server_DropItemToWorld(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated);
 
 	UFUNCTION(Server, Reliable)
-	void Server_ConsumeGroundWorldItem(const FGuid& ItemId);
+	void Server_ConsumeGroundWorldItem(UItemInstance* Item);
+
+	UFUNCTION(Server, Reliable)
+	void Server_RequestMoveItem(UInventoryData* Source, UItemInstance* Item, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated);
 
 	ULootScannerComponent* FindLootScanner() const;
+
+	UFUNCTION()
+	void OnRep_PlayerInventoryData();
 
 public:
 	FOnPlayerInventoryReady OnInventoryReady;
 
 private:
-	UPROPERTY()
+	UPROPERTY(ReplicatedUsing = OnRep_PlayerInventoryData)
 	TObjectPtr<UInventoryData> PlayerInventoryData;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	FIntPoint DefaultInventorySize = FIntPoint(5, 2);
 
 	UPROPERTY(EditDefaultsOnly, Category = "World Drop")
-	TSubclassOf<AWorldSpawnedItem> WorldItemClass;
+	TSubclassOf<AItemWrapperActor> WorldItemClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "World Drop")
 	float DropForwardOffset = 80.f;
