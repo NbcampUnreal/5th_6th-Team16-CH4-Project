@@ -1,14 +1,15 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/InventoryDragDropOp.h"
+#include "UI/Inventory/InventoryDragDropOp.h"
 
 #include "Inventory/PlayerInventoryComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
 #include "Inventory/InventoryData.h"
-#include "UI/UW_Inventory.h"
+#include "UI/Inventory/UW_Inventory.h"
 #include "Inventory/LootScannerComponent.h"
+#include "Item/ItemInstance.h"
 
 void UInventoryDragDropOp::DragCancelled_Implementation(const FPointerEvent& PointerEvent)
 {
@@ -54,7 +55,13 @@ void UInventoryDragDropOp::DragCancelled_Implementation(const FPointerEvent& Poi
 		}
 	}
 
-	InvComp->RequestDropItemToWorld(SourceInventory, ItemId, bRotated);
+	UItemInstance* ItemPtr = Item.Get();
+	if (!IsValid(ItemPtr))
+	{
+		return;
+	}
+
+	InvComp->RequestDropItemToWorld(SourceInventory, ItemPtr, bRotated);
 
 	if (SourceInventoryWidget)
 	{

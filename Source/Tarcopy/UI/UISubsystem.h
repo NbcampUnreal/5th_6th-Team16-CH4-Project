@@ -11,6 +11,9 @@ class UUW_RootHUD;
 class UCanvasPanelSlot;
 class UInventoryData;
 class UUW_InventoryBorder;
+class UItemInstance;
+class UUW_ItemCommandMenu;
+
 struct FGuid;
 
 /**
@@ -34,6 +37,9 @@ public:
 
 	void ResetAllUI();
 
+	UUW_ItemCommandMenu* ShowItemCommandMenu(UItemInstance* Item, const FVector2D& ScreenPos);
+	void CloseItemCommandMenu();
+
 private:
 	void InitRootHUD();
 
@@ -50,4 +56,7 @@ private:
 
 	UPROPERTY()
 	TMap<FGuid, TObjectPtr<UUW_InventoryBorder>> InventoryWidgets;
+
+	UPROPERTY()
+	TObjectPtr<UUW_ItemCommandMenu> ActiveItemCommandMenu;
 };

@@ -8,8 +8,7 @@
 #include "UI/UW_TitleScreen.h"
 
 ATitlePlayerController::ATitlePlayerController()
-	: TitleWidgetClass(nullptr)
-	, TitleWidget(nullptr)
+	: TitleWidget(nullptr)
 {
 	bShowMouseCursor = true;
 }
@@ -55,33 +54,10 @@ void ATitlePlayerController::BeginPlay()
 		}
 	}
 
-	// Fallback to class property if subsystem path failed.
-	if (!TitleWidgetInstance && IsValid(TitleWidgetClass) == true)
-	{
-		TitleWidgetInstance = CreateWidget<UUserWidget>(this, TitleWidgetClass); 
-		if (IsValid(TitleWidgetInstance) == true)
-		{
-			TitleWidgetInstance->AddToViewport();
-
-			TitleScreenWidget = Cast<UUW_TitleScreen>(TitleWidgetInstance.Get());
-			if (IsValid(TitleScreenWidget))
-			{
-				TitleScreenWidget->OnJoinButtonClicked.AddDynamic(this, &ThisClass::HandleJoinRequested);
-				TitleScreenWidget->OnOptionButtonClicked.AddDynamic(this, &ThisClass::HandleOptionRequested);
-			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("ATitlePlayerController: TitleWidgetClass is set but widget creation failed."));
-		}
-	}
-
 	if (IsValid(TitleWidgetInstance))
 	{
 		FInputModeUIOnly Mode;
-		Mode.SetWidgetToFocus(TitleWidgetInstance->GetCachedWidget());
 		SetInputMode(Mode);
-
 		bShowMouseCursor = true;
 	}
 }
@@ -108,34 +84,14 @@ void ATitlePlayerController::HandleJoinRequested(const FText& InIpPort)
 
 void ATitlePlayerController::HandleOptionRequested()
 {
-	if (!OptionsWidgetInstance && IsValid(OptionsWidgetClass))
+	if (auto* Widget = UISubsystem->ShowUI(EUIType::Option))
 	{
-		OptionsWidgetInstance = CreateWidget<UUserWidget>(this, OptionsWidgetClass);
-		if (IsValid(OptionsWidgetInstance))
-		{
-			OptionsWidgetInstance->AddToViewport();
-		}
-	}
-
-	if (!IsValid(OptionsWidgetInstance))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ATitlePlayerController: OptionsWidgetClass is not set or failed to create."));
-		return;
+		OptionsWidgetInstance = Widget;
 	}
 
 	const bool bShow = !OptionsWidgetInstance->IsVisible();
-	OptionsWidgetInstance->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 
 	FInputModeUIOnly Mode;
-	if (bShow)
-	{
-		Mode.SetWidgetToFocus(OptionsWidgetInstance->GetCachedWidget());
-	}
-	else if (IsValid(TitleWidgetInstance))
-	{
-		Mode.SetWidgetToFocus(TitleWidgetInstance->GetCachedWidget());
-	}
-
 	SetInputMode(Mode);
 	bShowMouseCursor = true;
 }

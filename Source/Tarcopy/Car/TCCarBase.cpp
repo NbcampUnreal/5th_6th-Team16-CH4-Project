@@ -28,7 +28,8 @@ ATCCarBase::ATCCarBase() :
 	MaxFuel(100.f),
 	MoveFactor(0.12),
 	RidePawn(nullptr),
-	bPossessed(false)
+	bPossessed(false),
+	bLightOn(false)
 {
 	bReplicates = true;
 	// construct the front camera boom
@@ -45,7 +46,6 @@ ATCCarBase::ATCCarBase() :
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
-
 
 	GetMesh()->SetSimulatePhysics(true);
 	GetMesh()->SetCollisionProfileName(FName("CarProfile"));
@@ -83,6 +83,8 @@ ATCCarBase::ATCCarBase() :
 
 	AIControllerClass = nullptr;
 	AutoPossessAI = EAutoPossessAI::Disabled;
+
+	NetCullDistanceSquared = FMath::Square(15000.f);
 }
 
 void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -151,6 +153,7 @@ void ATCCarBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	DOREPLIFETIME(ThisClass, bPossessed);
 	DOREPLIFETIME(ThisClass, SteeringFactor);
 	DOREPLIFETIME(ThisClass, ThrottleFactor);
+	DOREPLIFETIME(ThisClass, bLightOn);
 }
 
 void ATCCarBase::UnPossessed()
@@ -163,7 +166,7 @@ void ATCCarBase::UnPossessed()
 void ATCCarBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-	if (NewController) 
+	if (NewController)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Possessed %s"), *NewController->GetName());
 	}
@@ -204,8 +207,15 @@ void ATCCarBase::OnRep_Controller()
 {
 	Super::OnRep_Controller();
 
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (!PC) return;
+	AMyPlayerController* PC = Cast<AMyPlayerController>(GetController());
+	if (!PC)
+	{
+		if (CarWidgetInstance)
+		{
+			UISubsystem->HideUI(EUIType::Car);
+		}
+		return;
+	}
 
 	ULocalPlayer* LP = PC->GetLocalPlayer();
 	checkf(LP, TEXT("ATCCarBase::OnRep_Controller() LP"));
@@ -218,22 +228,24 @@ void ATCCarBase::OnRep_Controller()
 
 	ACharacter* PlayerCharacter = Cast<ACharacter>(RidePawn);
 	ServerRPCHideCharacter(PlayerCharacter);
+
+	PC->ChangeIMC(PC->IMC_Car);
 }
 
 
 void ATCCarBase::Steering(const FInputActionValue& Value)
 {
-	DoSteering(Value.Get<float>()*SteeringFactor);
+	DoSteering(Value.Get<float>() * SteeringFactor);
 }
 
 void ATCCarBase::Throttle(const FInputActionValue& Value)
 {
-	DoThrottle(Value.Get<float>()*ThrottleFactor);
+	DoThrottle(Value.Get<float>() * ThrottleFactor);
 }
 
 void ATCCarBase::Brake(const FInputActionValue& Value)
 {
-	DoBrake(Value.Get<float>()*ThrottleFactor);
+	DoBrake(Value.Get<float>() * ThrottleFactor);
 }
 
 void ATCCarBase::StartBrake(const FInputActionValue& Value)
@@ -258,7 +270,7 @@ void ATCCarBase::StopHandbrake(const FInputActionValue& Value)
 
 void ATCCarBase::ToggleLight(const FInputActionValue& Value)
 {
-	DoHandLight();
+	ServerRPCDoHandLight();
 }
 
 void ATCCarBase::StartInterAction(const FInputActionValue& Value)
@@ -311,19 +323,14 @@ void ATCCarBase::DoHandbrakeStop()
 	BrakeLights(false);
 }
 
-void ATCCarBase::DoHandLight()
+void ATCCarBase::ServerRPCDoHandLight_Implementation()
 {
-	DamageOn();
 	if (bLightOn)
 	{
-		HeadLight_R->SetVisibility(false);
-		HeadLight_L->SetVisibility(false);
 		bLightOn = false;
 	}
 	else
 	{
-		HeadLight_R->SetVisibility(true);
-		HeadLight_L->SetVisibility(true);
 		bLightOn = true;
 	}
 }
@@ -338,6 +345,20 @@ void ATCCarBase::OnRep_UpdateGas()
 	CarWidgetInstance->UpdateFuel(CurrentFuel);
 }
 
+void ATCCarBase::OnRep_bLightOn()
+{
+	if (bLightOn)
+	{
+		HeadLight_R->SetVisibility(false);
+		HeadLight_L->SetVisibility(false);
+	}
+	else
+	{
+		HeadLight_R->SetVisibility(true);
+		HeadLight_L->SetVisibility(true);
+	}
+}
+
 void ATCCarBase::EnterVehicle(APawn* InPawn, APlayerController* InPC)
 {
 	AMyPlayerController* PC = Cast<AMyPlayerController>(InPC);
@@ -348,22 +369,12 @@ void ATCCarBase::EnterVehicle(APawn* InPawn, APlayerController* InPC)
 
 	RidePawn = PlayerCharacter;
 
-	PC->ChangeIMC(PC->IMC_Car);
 	PC->ServerRPCChangePossess(this);
 }
 
 void ATCCarBase::ExitVehicle(APawn* InPawn, APlayerController* InPC)
 {
-	AMyPlayerController* PC = Cast<AMyPlayerController>(InPC);
-
 	ServerRPCShowCharacter();
-	
-	PC->ChangeIMC(PC->IMC_Character);
-
-	if (CarWidgetInstance) 
-	{
-		UISubsystem->HideUI(EUIType::Car);
-	}
 }
 
 void ATCCarBase::DecreaseGas(float InDecreaseGas)
@@ -406,8 +417,8 @@ bool ATCCarBase::FindDismountLocation(FVector& OutLocation) const
 
 	TArray<FVector> Directions = {
 	-CarRotation.RotateVector(FVector::RightVector),
-	 CarRotation.RotateVector(FVector::RightVector),
-	-CarRotation.RotateVector(FVector::ForwardVector)
+	 CarRotation.RotateVector(FVector::RightVector)/*,
+	-CarRotation.RotateVector(FVector::ForwardVector)*/
 	};
 
 	UWorld* World = GetWorld();
@@ -419,7 +430,7 @@ bool ATCCarBase::FindDismountLocation(FVector& OutLocation) const
 
 	for (const FVector& Dir : Directions)
 	{
-		const FVector Candidate = CarLocation + Dir * (CapsuleRadius + 80.f);
+		const FVector Candidate = CarLocation + Dir * (CapsuleRadius + 200.f);
 
 		const FVector SweepStart = Candidate + FVector(0, 0, CapsuleHalfHeight + 50.f);
 		const FVector SweepEnd = SweepStart;
@@ -436,7 +447,7 @@ bool ATCCarBase::FindDismountLocation(FVector& OutLocation) const
 		);
 
 		if (bBlocked) continue;
-		
+
 		const FVector FloorStart = Candidate + FVector(0, 0, 50.f);
 		const FVector FloorEnd = Candidate - FVector(0, 0, 300.f);
 
@@ -478,8 +489,8 @@ void ATCCarBase::ServerRPCShowCharacter_Implementation()
 
 	FVector OutLocation = FVector::ZeroVector;
 	FRotator OutRotation = GetActorRotation();
-	bool bCanDimount = FindDismountLocation(OutLocation);
-	if (!bCanDimount) return;
+	bool bCanDismount = FindDismountLocation(OutLocation);
+	if (!bCanDismount) return;
 	PlayerCharacter->TeleportTo(OutLocation, OutRotation);
 
 	bPossessed = false;
@@ -503,7 +514,7 @@ void ATCCarBase::ServerRPCHideCharacter_Implementation(ACharacter* InCharacter)
 	UCapsuleComponent* Capsule = InCharacter->GetCapsuleComponent();
 	TempSaveCollision = Capsule->GetCollisionEnabled();
 	Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	
+
 	InCharacter->SetActorHiddenInGame(true);
 
 	InCharacter->GetCharacterMovement()->DisableMovement();

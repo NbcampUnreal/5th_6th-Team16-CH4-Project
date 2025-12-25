@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/UW_PlayerPanel.h"
+#include "UI/Inventory/UW_PlayerPanel.h"
 
 #include "Components/ScrollBox.h"
 #include "GameFramework/PlayerController.h"
@@ -9,7 +9,7 @@
 #include "Inventory/PlayerInventoryComponent.h"
 #include "Inventory/InventoryData.h"
 #include "UI/UISubsystem.h"
-#include "UI/UW_InventoryBorder.h"
+#include "UI/Inventory/UW_InventoryBorder.h"
 
 void UUW_PlayerPanel::NativeConstruct()
 {

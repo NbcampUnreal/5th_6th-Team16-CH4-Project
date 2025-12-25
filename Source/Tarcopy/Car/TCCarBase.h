@@ -42,9 +42,6 @@ class ATCCarBase : public AWheeledVehiclePawn, public IActivateInterface
  
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> ChaosVehicleMovement;
 
-
-
-
 protected:
 
 	UPROPERTY(EditAnywhere, Category = "Input")
@@ -80,7 +77,6 @@ public:
 
 	virtual void UnPossessed() override;
 
-
 protected:
 
 	void Steering(const FInputActionValue& Value);
@@ -98,7 +94,6 @@ protected:
 	void ToggleLight(const FInputActionValue& Value);
 
 	void StartInterAction(const FInputActionValue& Value);
-
 
 public:
 
@@ -123,8 +118,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoHandbrakeStop();
 
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	void DoHandLight();
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Input")
+	void ServerRPCDoHandLight();
 
 protected:
 
@@ -140,6 +135,9 @@ protected:
 	UFUNCTION()
 	void OnRep_UpdateGas();
 
+	UFUNCTION()
+	void OnRep_bLightOn();
+
 public:
 	UPROPERTY(Replicated, ReplicatedUsing = OnRep_UpdateGas)
 	float CurrentFuel;
@@ -147,6 +145,7 @@ public:
 	UPROPERTY()
 	float MaxFuel;
 
+	UPROPERTY(ReplicatedUsing = OnRep_bLightOn)
 	bool bLightOn;
 
 	FTimerHandle GasHandler;
@@ -200,6 +199,7 @@ public:
 
 	UPROPERTY(ReplicatedUsing = OnRep_bPossessed)
 	uint8 bPossessed : 1;
+
 #pragma endregion
 
 #pragma region Damage

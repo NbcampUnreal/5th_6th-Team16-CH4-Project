@@ -12,6 +12,7 @@ class UUW_InventoryCell;
 class UUniformGridPanel;
 class UCanvasPanel;
 class UInventoryDragDropOp;
+class UItemInstance;
 
 /**
  * 
@@ -26,10 +27,12 @@ protected:
 	virtual bool NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
+	virtual void NativeDestruct() override;
+
 public:
 	void BindInventory(UInventoryData* InData);
 
-	void AddItemWidget(FGuid NewItemID, const FIntPoint& Origin, bool bRotated);
+	void AddItemWidget(UItemInstance* Item, const FIntPoint& Origin, bool bRotated);
 
 	void RefreshItems();
 
@@ -54,7 +57,7 @@ private:
 	TObjectPtr<UInventoryData> BoundInventory;
 
 	UPROPERTY()
-	TMap<FGuid, UUW_InventoryItem*> ItemWidgets;
+	TMap<TWeakObjectPtr<UItemInstance>, TObjectPtr<UUW_InventoryItem>> ItemWidgets;
 
 
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory|UI")

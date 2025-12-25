@@ -1,14 +1,18 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/UW_InventoryItem.h"
+#include "UI/Inventory/UW_InventoryItem.h"
 
-#include "UI/UW_Inventory.h"
-#include "UI/InventoryDragDropOp.h"
+#include "UI/Inventory/UW_Inventory.h"
+#include "UI/Inventory/InventoryDragDropOp.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Inventory/InventoryData.h"
 #include "Components/SizeBox.h"
 #include "Components/Border.h"
+#include "UI/Inventory/UW_ItemCommandMenu.h"
+#include "Item/ItemInstance.h"
+#include "UI/UISubsystem.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 
 FReply UUW_InventoryItem::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
@@ -16,13 +20,20 @@ FReply UUW_InventoryItem::NativeOnMouseButtonDown(const FGeometry& InGeometry, c
 	{
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
 	}
+
+	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		OpenCommandMenu(InMouseEvent);
+		return FReply::Handled();
+	}
+
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
 void UUW_InventoryItem::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)
 {
 	UInventoryDragDropOp* Op = NewObject<UInventoryDragDropOp>(GetOwningPlayer());
-	Op->ItemId = ItemId;
+	Op->Item = Item;
 	Op->SourceInventory = SourceInventory;
 	Op->SourceInventoryWidget = SourceInventoryWidget;
 	Op->bRotated = bRotated;
@@ -32,7 +43,7 @@ void UUW_InventoryItem::NativeOnDragDetected(const FGeometry& InGeometry, const 
 	UUW_InventoryItem* Proxy = CreateWidget<UUW_InventoryItem>(GetOwningPlayer(), GetClass());
 	if (Proxy)
 	{
-		Proxy->InitItem(ItemId, SourceInventory, SourceInventoryWidget, bRotated);
+		Proxy->InitItem(Item.Get(), SourceInventory, SourceInventoryWidget, bRotated);
 		Proxy->ApplyProxyVisual();
 		Proxy->SetRenderOpacity(0.4f);
 
@@ -56,9 +67,9 @@ void UUW_InventoryItem::NativeOnDragDetected(const FGeometry& InGeometry, const 
 	OutOperation = Op;
 }
 
-void UUW_InventoryItem::InitItem(const FGuid& InItemId, UInventoryData* InSourceInventory, UUW_Inventory* InSourceWidget, bool bInRotated)
+void UUW_InventoryItem::InitItem(UItemInstance* InItem, UInventoryData* InSourceInventory, UUW_Inventory* InSourceWidget, bool bInRotated)
 {
-	ItemId = InItemId;
+	Item = InItem;
 	SourceInventory = InSourceInventory;
 	SourceInventoryWidget = InSourceWidget;
 	bRotated = bInRotated;
@@ -84,7 +95,42 @@ FVector2D UUW_InventoryItem::GetItemPixelSize() const
 	}
 
 	const int32 CellPx = SourceInventoryWidget->GetCellSizePx();
-	const FIntPoint SizeCells = SourceInventory->GetItemSizeByID(ItemId, bRotated);
+	const FIntPoint SizeCells = SourceInventory->GetItemSize(Item.Get(), bRotated);
 
 	return FVector2D(SizeCells.X * CellPx, SizeCells.Y * CellPx);
+}
+
+void UUW_InventoryItem::OpenCommandMenu(const FPointerEvent& InMouseEvent)
+{
+	if (!IsValid(SourceInventory))
+	{
+		return;
+	}
+
+	UItemInstance* ItemInst = Item.Get();
+	if (!IsValid(ItemInst))
+	{
+		return;
+	}
+
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC)
+	{
+		return;
+	}
+
+	ULocalPlayer* LP = PC->GetLocalPlayer();
+	if (!LP)
+	{
+		return;
+	}
+
+	UUISubsystem* UIS = LP->GetSubsystem<UUISubsystem>();
+	if (!UIS)
+	{
+		return;
+	}
+
+	const FVector2D ViewportPos = UWidgetLayoutLibrary::GetMousePositionOnViewport(PC);
+	UIS->ShowItemCommandMenu(ItemInst, ViewportPos);
 }

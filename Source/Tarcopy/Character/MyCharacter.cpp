@@ -21,14 +21,15 @@
 #include "AI/MyAICharacter.h"
 #include "Character/ActivateInterface.h"
 #include "Character/CameraObstructionFadeComponent.h"
-#include "Item/WorldSpawnedItem.h"
+#include "Character/CameraObstructionComponent.h"
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "Item/Data/ItemData.h"
 #include "Misc/Guid.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
-#include "UI/InventoryDragDropOp.h"
+#include "UI/Inventory/InventoryDragDropOp.h"
 #include "Components/SizeBox.h"
 #include "Inventory/InventoryData.h"
-#include "UI/UW_Inventory.h"
+#include "UI/Inventory/UW_Inventory.h"
 #include "Tarcopy.h"
 #include "Engine/DamageEvents.h"
 #include "Character/CameraObstructionComponent.h"
@@ -114,6 +115,16 @@ void AMyCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+
+void AMyCharacter::OnRep_Controller()
+{
+	Super::OnRep_Controller();
+
+	AMyPlayerController* PC = Cast<AMyPlayerController>(GetController());
+	if (!PC) return;
+
+	PC->ChangeIMC(PC->IMC_Character);
+}
 float AMyCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
@@ -834,10 +845,11 @@ void AMyCharacter::OnRotateInventoryItem()
 
 	Op->bRotated = !Op->bRotated;
 
-	if (IsValid(Op->DragBox) && IsValid(Op->SourceInventoryWidget))
+	const UItemInstance* ItemPtr = Op->Item.Get();
+	if (ItemPtr && IsValid(Op->DragBox) && IsValid(Op->SourceInventoryWidget))
 	{
 		const int32 CellPx = Op->SourceInventoryWidget->GetCellSizePx();
-		const FIntPoint SizeCells = Op->SourceInventory->GetItemSizeByID(Op->ItemId, Op->bRotated);
+		const FIntPoint SizeCells = Op->SourceInventory->GetItemSize(ItemPtr, Op->bRotated);
 
 		if (SizeCells != FIntPoint::ZeroValue)
 		{

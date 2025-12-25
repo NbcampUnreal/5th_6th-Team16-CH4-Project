@@ -12,6 +12,20 @@ void UTCCarWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	if (!ImageFuel) return;
+
+	UMaterialInterface* BaseMat =
+		Cast<UMaterialInterface>(ImageFuel->GetBrush().GetResourceObject());
+
+	if (!BaseMat)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Fuel Image has no material"));
+		return;
+	}
+
+	MIDFuel = UMaterialInstanceDynamic::Create(BaseMat, this);
+	ImageFuel->SetBrushFromMaterial(MIDFuel);
+
 	TWeakObjectPtr<UTCCarWidget> WeakThis(this);
 
 	if (UWorld* World = GetWorld())
@@ -66,12 +80,7 @@ void UTCCarWidget::UpdateRPM(float InValue)
 void UTCCarWidget::UpdateFuel(float InValue)
 {
 	if (!ImageFuel) return;
-
-	if (!MIDFuel)
-	{
-		MIDFuel = ImageFuel->GetDynamicMaterial();
-		if (!MIDFuel) return;
-	}
+	if (!MIDFuel) return;
 
 	float Ratio = InValue / 100.f;
 	Ratio = FMath::Clamp(Ratio, 0.f, 1.f);

@@ -10,6 +10,18 @@
 class UStaticMeshComponent;
 class UBoxComponent;
 
+USTRUCT()
+struct FCarPartHP
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FName PartName = "None";
+
+	UPROPERTY()
+	float PartHP = 0.f;
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class TARCOPY_API UTCCarCombatComponent : public UActorComponent
 {
@@ -18,11 +30,13 @@ class TARCOPY_API UTCCarCombatComponent : public UActorComponent
 public:	
 	UTCCarCombatComponent();
 
-	void ApplyDamage(UBoxComponent* InBox, float Damage, const FVector& WorldPoint);
-
-protected:
 	virtual void BeginPlay() override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	void ApplyDamage(UBoxComponent* InBox, float Damage, const FVector& WorldPoint);
+protected:
+	
 	void DestroyPart(UPrimitiveComponent* DestroyComponent);
 
 	void DestroyWindow(UPrimitiveComponent* DestroyComponent);
@@ -77,9 +91,15 @@ public:
 	UPROPERTY(EditAnywhere)
 	TMap<TObjectPtr<UPrimitiveComponent>, FCarPartStat> PartDataMap;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
-	TMap<TObjectPtr<UPrimitiveComponent>, float> ComponentHealth;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	//TMap<TObjectPtr<UPrimitiveComponent>, float> ComponentHealth;
 
+	UPROPERTY()
+	TMap<FName, TObjectPtr<UPrimitiveComponent>> ComponentName;
+
+	UPROPERTY(Replicated)
+	TArray<FCarPartHP> PartsHP;
+	
 	float DistanceRatio;
 
 	//Test
