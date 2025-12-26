@@ -8,5 +8,4 @@ void UCraftCommand::OnExecute(const FItemCommandContext& Context)
 	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
 	if (IsValid(DataTableSubsystem) == false)
 		return;
-
 }

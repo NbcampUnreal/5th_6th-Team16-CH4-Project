@@ -4,6 +4,7 @@
 #include "Item/Data/ItemData.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
+#include "Item/ItemComponent/ItemComponentBase.h"
 
 AItemWrapperActor::AItemWrapperActor()
 {
@@ -47,6 +48,15 @@ bool AItemWrapperActor::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* B
 	if (IsValid(ItemInstance) == true)
 	{
 		bWroteSomething |= Channel->ReplicateSubobject(ItemInstance, *Bunch, *RepFlags);
+
+		const auto& ItemComponents = ItemInstance->GetItemComponents();
+		for (const auto& ItemComponent : ItemComponents)
+		{
+			if (IsValid(ItemComponent) == false)
+				continue;
+
+			bWroteSomething |= Channel->ReplicateSubobject(ItemComponent, *Bunch, *RepFlags);
+		}
 	}
 	return bWroteSomething;
 }
@@ -60,6 +70,8 @@ void AItemWrapperActor::SetItemInstance(UItemInstance* InItemInstance)
 		return;
 
 	ItemInstance = InItemInstance;
+	ItemInstance->SetOwnerObject(this);
+
 	const FItemData* ItemData = ItemInstance->GetData();
 	if (ItemData == nullptr)
 		return;

@@ -14,6 +14,8 @@ class UDoorInteractComponent;
 struct FInputActionValue;
 class UMoodleComponent;
 class UCameraObstructionComponent;
+enum class EHoldableType : uint8;
+class UAnimPresetMap;
 
 UCLASS()
 class TARCOPY_API AMyCharacter : public ACharacter
@@ -219,14 +221,22 @@ protected:
 #pragma region TestItem
 
 public:
-	UPROPERTY(EditAnywhere)
-	FName ItemId;
-
 	UFUNCTION()
 	void SetItem();
 
 	UFUNCTION()
 	bool GetAimTarget(AActor*& OutTargetActor, FName& OutBone);
+
+	void SetHoldingItemMesh(UStaticMesh* ItemMeshAsset, const FName& SocketName = NAME_None);
+	void SetAnimPreset(EHoldableType Type);
+
+	void GetNearbyInventoryDatas(TArray<class UInventoryData*>& InventoryDatas);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<class UStaticMeshComponent> HoldingItemMeshComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UAnimPresetMap> AnimPresetMap;
 
 #pragma endregion
 

@@ -1,11 +1,11 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Item/ItemComponent/ItemComponentBase.h"
+#include "Item/ItemComponent/HoldableComponent.h"
 #include "WeaponComponent.generated.h"
 
 UCLASS(Abstract)
-class TARCOPY_API UWeaponComponent : public UItemComponentBase
+class TARCOPY_API UWeaponComponent : public UHoldableComponent
 {
 	GENERATED_BODY()
 
@@ -13,11 +13,15 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:
-	virtual void ExecuteAttack() PURE_VIRTUAL(UWeaponComponent::Attack, );
+	void ExecuteAttack();
+	virtual void OnExecuteAttack() PURE_VIRTUAL(UWeaponComponent::Attack, );
+
+protected:
+	void EnableOwnerMovement();
 
 protected:
 	FTimerHandle EnableMovementTimerHandle;
 
 	UPROPERTY(Replicated)
-	uint8 bIsAttacking = false;
+	uint8 bIsAttacking : 1 = false;
 };

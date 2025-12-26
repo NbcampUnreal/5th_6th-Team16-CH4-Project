@@ -6,15 +6,26 @@
 #include "Misc/Guid.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/Actor.h"
+#include "Item/ItemInstance.h"
+#include "Net/UnrealNetwork.h"
+#include "Engine/ActorChannel.h"
+#include "Item/ItemComponent/ItemComponentBase.h"
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
 
 UWorldContainerComponent::UWorldContainerComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+    PrimaryComponentTick.bCanEverTick = false;
+    SetIsReplicatedByDefault(true);
 }
 
 void UWorldContainerComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+    if (!GetOwner() || !GetOwner()->HasAuthority())
+    {
+        return;
+    }
 
     AActor* Owner = GetOwner();
     if (!Owner)
@@ -52,4 +63,63 @@ void UWorldContainerComponent::BeginPlay()
 
 	InventoryData = NewObject<UInventoryData>(this);
 	InventoryData->Init(GridSize);
+
+    /*UItemInstance* NewItem = NewObject<UItemInstance>(InventoryData);
+    NewItem->SetItemId(TEXT("Axe1"));
+
+    InventoryData->TryAddItem(NewItem, FIntPoint::ZeroValue, false);*/
+
+    AItemWrapperActor* ItemActor = GetWorld()->SpawnActor<AItemWrapperActor>(Owner->GetActorLocation(), FRotator::ZeroRotator);
+
+    UItemInstance* NewItem = NewObject<UItemInstance>(ItemActor);
+    NewItem->SetItemId(FName("Axe1"));
+
+    ItemActor->SetItemInstance(NewItem);
+
+    GetOwner()->ForceNetUpdate();
+}
+
+void UWorldContainerComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+    DOREPLIFETIME(ThisClass, InventoryData);
+}
+
+bool UWorldContainerComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+    bool bWrote = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+    if (IsValid(InventoryData))
+    {
+        bWrote |= Channel->ReplicateSubobject(InventoryData, *Bunch, *RepFlags);
+
+        for (const FInventoryItemEntry& Entry : InventoryData->GetReplicatedItems().Items)
+        {
+            if (IsValid(Entry.Item))
+            {
+                bWrote |= Channel->ReplicateSubobject(Entry.Item, *Bunch, *RepFlags);
+
+                const auto& ItemComponents = Entry.Item->GetItemComponents();
+                for (const auto& ItemComponent : ItemComponents)
+                {
+                    if (IsValid(ItemComponent) == false)
+                    {
+                        continue;
+                    }
+
+                    bWrote |= Channel->ReplicateSubobject(ItemComponent, *Bunch, *RepFlags);
+                }
+            }
+        }
+    }
+    return bWrote;
+}
+
+void UWorldContainerComponent::OnRep_InventoryData()
+{
+    if (InventoryData)
+    {
+        InventoryData->FixupAfterReplication();
+    }
 }

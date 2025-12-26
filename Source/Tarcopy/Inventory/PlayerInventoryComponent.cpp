@@ -11,6 +11,7 @@
 #include "Item/ItemInstance.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
+#include "Item/ItemComponent/ItemComponentBase.h"
 
 // Sets default values for this component's properties
 UPlayerInventoryComponent::UPlayerInventoryComponent()
@@ -27,7 +28,7 @@ void UPlayerInventoryComponent::BeginPlay()
 
 	if (GetOwner() && GetOwner()->HasAuthority())
 	{
-		PlayerInventoryData = NewObject<UInventoryData>(this);
+		PlayerInventoryData = NewObject<UInventoryData>(GetOwner());
 		PlayerInventoryData->Init(DefaultInventorySize);
 
 		OnInventoryReady.Broadcast();
@@ -54,6 +55,17 @@ bool UPlayerInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOut
 			if (IsValid(Entry.Item))
 			{
 				bWrote |= Channel->ReplicateSubobject(Entry.Item, *Bunch, *RepFlags);
+
+				const auto& ItemComponents = Entry.Item->GetItemComponents();
+				for (const auto& ItemComponent : ItemComponents)
+				{
+					if (IsValid(ItemComponent) == false)
+					{
+						continue;
+					}
+
+					bWrote |= Channel->ReplicateSubobject(ItemComponent, *Bunch, *RepFlags);
+				}
 			}
 		}
 	}
@@ -120,6 +132,22 @@ void UPlayerInventoryComponent::RequestMoveItem(UInventoryData* Source, UItemIns
 	MoveItem_Internal(Source, Item, Dest, NewOrigin, bRotated);
 }
 
+void UPlayerInventoryComponent::RequestLootFromWorld(AItemWrapperActor* WorldActor, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated)
+{
+	if (!IsValid(WorldActor) || !IsValid(Dest))
+	{
+		return;
+	}
+
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		Server_RequestLootFromWorld(WorldActor, Dest, NewOrigin, bRotated);
+		return;
+	}
+
+	Server_RequestLootFromWorld_Implementation(WorldActor, Dest, NewOrigin, bRotated);
+}
+
 void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated)
 {
 	//if (!GetOwner() || !GetOwner()->HasAuthority())
@@ -179,6 +207,9 @@ void UPlayerInventoryComponent::MoveItem_Internal(UInventoryData* Source, UItemI
 	}
 
 	const bool bOk = Source->TryRelocateItem(Item, Dest, NewOrigin, bRotated);
+	UE_LOG(LogTemp, Warning, TEXT("[Move][Server] TryRelocate=%d Src=%s Dest=%s Item=%s Origin=%s Rot=%d"),
+		bOk, *GetNameSafe(Source), *GetNameSafe(Dest), *GetNameSafe(Item),
+		*NewOrigin.ToString(), (int32)bRotated);
 	if (!bOk)
 	{
 		return;
@@ -189,7 +220,57 @@ void UPlayerInventoryComponent::MoveItem_Internal(UInventoryData* Source, UItemI
 
 void UPlayerInventoryComponent::Server_RequestMoveItem_Implementation(UInventoryData* Source, UItemInstance* Item, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[MoveReq][Server] Src=%s Dest=%s Item=%s Origin=%s Rot=%d"),
+		*GetNameSafe(Source), *GetNameSafe(Dest), *GetNameSafe(Item),
+		*NewOrigin.ToString(), (int32)bRotated);
 	MoveItem_Internal(Source, Item, Dest, NewOrigin, bRotated);
+}
+
+void UPlayerInventoryComponent::Server_RequestLootFromWorld_Implementation(AItemWrapperActor* WorldActor, UInventoryData* Dest, FIntPoint NewOrigin, bool bRotated)
+{
+	if (!IsValid(WorldActor) || !IsValid(Dest) || !IsValid(PlayerInventoryData))
+	{
+		return;
+	}
+
+	UItemInstance* Item = WorldActor->GetItemInstance();
+
+	UE_LOG(LogTemp, Warning, TEXT("[Loot][Server] WorldActor=%s Item=%s Outer=%s"),
+		*GetNameSafe(WorldActor), *GetNameSafe(Item), *GetNameSafe(Item ? Item->GetOuter() : nullptr));
+
+	if (!IsValid(Item) || Item->GetData() == nullptr)
+	{
+		return;
+	}
+	Item->Rename(nullptr, PlayerInventoryData);
+	UE_LOG(LogTemp, Warning, TEXT("[Loot][Server] AfterRename Outer=%s"),
+		*GetNameSafe(Item->GetOuter()));
+	const bool bOk = PlayerInventoryData->TryAddItem(Item, NewOrigin, bRotated);
+
+	UE_LOG(LogTemp, Warning, TEXT("[Loot][Server] TryAdd=%d InvCount=%d"),
+		bOk, PlayerInventoryData->GetReplicatedItems().Items.Num());
+
+	UE_LOG(LogTemp, Warning, TEXT("[Server] InvData=%s HasAuthority=%d Items=%d"),
+		*GetNameSafe(PlayerInventoryData),
+		PlayerInventoryData->HasAnyFlags(RF_ClassDefaultObject),
+		PlayerInventoryData->GetReplicatedItems().Items.Num());
+
+	UE_LOG(LogTemp, Warning, TEXT("[Loot][Server] AddedTo=%s Num=%d"),
+		*GetNameSafe(PlayerInventoryData),
+		PlayerInventoryData->GetReplicatedItems().Items.Num());
+
+	if (!bOk)
+	{
+		return;
+	}
+
+	WorldActor->Destroy();
+
+	if (AActor* OwnerActor = GetOwner())
+	{
+		OwnerActor->ForceNetUpdate();
+	}
+	Client_ForceRefreshInventoryUI();
 }
 
 ULootScannerComponent* UPlayerInventoryComponent::FindLootScanner() const
@@ -203,6 +284,26 @@ ULootScannerComponent* UPlayerInventoryComponent::FindLootScanner() const
 
 void UPlayerInventoryComponent::OnRep_PlayerInventoryData()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[Client] InvData=%s Items=%d"),
+		*GetNameSafe(PlayerInventoryData),
+		PlayerInventoryData->GetReplicatedItems().Items.Num());
+
+	if (PlayerInventoryData)
+	{
+		PlayerInventoryData->FixupAfterReplication();
+	}
+
+	OnInventoryReady.Broadcast();
+}
+
+void UPlayerInventoryComponent::Client_ForceRefreshInventoryUI_Implementation()
+{
+	if (PlayerInventoryData)
+	{
+		PlayerInventoryData->FixupAfterReplication();
+		PlayerInventoryData->OnInventoryChanged.Broadcast();
+	}
+
 	OnInventoryReady.Broadcast();
 }
 

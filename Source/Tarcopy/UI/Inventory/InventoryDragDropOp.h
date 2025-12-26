@@ -10,6 +10,7 @@ class UInventoryData;
 class UUW_Inventory;
 class USizeBox;
 class UItemInstance;
+class AItemWrapperActor;
 
 /**
  * 
@@ -25,6 +26,9 @@ public:
 public:
 	UPROPERTY()
 	TWeakObjectPtr<UItemInstance> Item;
+
+	UPROPERTY()
+	TWeakObjectPtr<AItemWrapperActor> SourceWorldActor;
 
 	UPROPERTY()
 	TObjectPtr<UInventoryData> SourceInventory;

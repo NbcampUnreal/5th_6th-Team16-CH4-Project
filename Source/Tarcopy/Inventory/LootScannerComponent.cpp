@@ -130,6 +130,17 @@ bool ULootScannerComponent::ConsumeGroundWorldItem(UItemInstance* Item)
 	return true;
 }
 
+AItemWrapperActor* ULootScannerComponent::FindWorldActorByItem(UItemInstance* Item) const
+{
+	if (!IsValid(Item))
+	{
+		return nullptr;
+	}
+
+	const TWeakObjectPtr<AItemWrapperActor>* Found = ItemToWorldItem.Find(Item);
+	return Found ? Found->Get() : nullptr;
+}
+
 void ULootScannerComponent::OnContainerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (!OtherActor || OtherActor == GetOwner())

@@ -25,7 +25,13 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+
 private:
+	UFUNCTION()
+	void OnRep_InventoryData();
+
 	UPROPERTY(EditAnywhere, Category = "Container")
 	FText DisplayName = FText::FromString(TEXT("Container"));
 
@@ -35,7 +41,7 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Container")
 	FGuid ContainerId;
 
-	UPROPERTY(Transient)
+	UPROPERTY(ReplicatedUsing = OnRep_InventoryData)
 	TObjectPtr<UInventoryData> InventoryData;
 
 	UPROPERTY()

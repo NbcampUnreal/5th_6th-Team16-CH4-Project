@@ -40,13 +40,18 @@ public:
 public:
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_EquipItem(EBodyLocation BodyLocation, UItemInstance* Item);
-	void EquipItem(EBodyLocation BodyLocation, UItemInstance* Item);
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_UnequipItem(UItemInstance* Item);
-	void UnequipItem(UItemInstance* Item);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void NetMulticast_SetOwnerHoldingItemEmpty();
 
 	void ExecuteAttack();
 	void CancelActions();
+
+protected:
+	void EquipItem(EBodyLocation BodyLocation, UItemInstance* Item);
+	void UnequipItem(UItemInstance* Item);
 	
 private:
 	const struct FItemData* GetItemData(const FName& InItemId) const;
@@ -56,6 +61,10 @@ protected:
 	TArray<FEquippedItemInfo> EquippedItemInfos;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float TotalWeight;
+
+	// For Test
+	UPROPERTY(EditAnywhere)
+	FName TestEquippedItem = FName(TEXT("Axe1"));
 
 	static const float WeightMultiplier;
 };

@@ -34,6 +34,10 @@ void UHealthComponent::TakeDamage(float Damage, const FName& BoneName)
 		}
 	}
 
-	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("Hit: %.2f/%.2f"), CurrentHP, MaxHP));
+	OnRep_PrintHP();
 }
 
+void UHealthComponent::OnRep_PrintHP()
+{
+	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("Hit: %.2f/%.2f"), CurrentHP, MaxHP));
+}

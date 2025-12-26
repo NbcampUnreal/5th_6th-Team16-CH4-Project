@@ -15,7 +15,10 @@ public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
 
-	virtual void ExecuteAttack() override;
+	virtual void SetOwnerHoldingItemMesh() override;
+	virtual void SetOwnerAnimPreset() override;
+
+	virtual void OnExecuteAttack() override;
 
 	virtual void CancelAction() override;
 
@@ -25,7 +28,10 @@ protected:
 private:
 	void CheckHit(const FVector& StartLocation, const FVector& EndLocation);
 
-	void EnableOwnerMovement();
+	UFUNCTION(NetMulticast, Reliable)
+	void NetMulticast_PlayAttackMontage();
+	UFUNCTION(NetMulticast, Reliable)
+	void NetMulticast_StopAttackMontage();
 
 protected:
 	const FFirearmData* Data;

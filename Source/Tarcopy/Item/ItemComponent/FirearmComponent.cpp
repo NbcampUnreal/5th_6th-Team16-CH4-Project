@@ -42,7 +42,23 @@ void UFirearmComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& 
 	OutCommands.Add(EquipCommand);
 }
 
-void UFirearmComponent::ExecuteAttack()
+void UFirearmComponent::SetOwnerHoldingItemMesh()
+{
+	if (Data == nullptr)
+		return;
+
+	SetOwnerHoldingItemMeshAtSocket(Data->Socket);
+}
+
+void UFirearmComponent::SetOwnerAnimPreset()
+{
+	if (Data == nullptr)
+		return;
+
+	SetOwnerAnimPresetByHoldableType(Data->HoldableType);
+}
+
+void UFirearmComponent::OnExecuteAttack()
 {
 	if (Data == nullptr)
 		return;
@@ -57,10 +73,7 @@ void UFirearmComponent::ExecuteAttack()
 
 	bIsAttacking = true;
 
-	if (IsValid(Data->Montage) == true)
-	{
-		MyCharacter->PlayAnimMontage(Data->Montage);
-	}
+	NetMulticast_PlayAttackMontage();
 
 	float AttackDuration = IsValid(Data->Montage) == true ? Data->Montage->GetPlayLength() : 1.0f;
 	CharacterMovement->DisableMovement();
@@ -103,6 +116,7 @@ void UFirearmComponent::CancelAction()
 		World->GetTimerManager().ClearTimer(EnableMovementTimerHandle);
 	}
 
+	NetMulticast_StopAttackMontage();
 	EnableOwnerMovement();
 }
 
@@ -192,19 +206,26 @@ void UFirearmComponent::CheckHit(const FVector& StartLocation, const FVector& En
 	}
 }
 
-void UFirearmComponent::EnableOwnerMovement()
+void UFirearmComponent::NetMulticast_PlayAttackMontage_Implementation()
 {
-	if (bIsAttacking == false)
-		return;
-
 	ACharacter* OwnerCharacter = GetOwnerCharacter();
 	if (IsValid(OwnerCharacter) == false)
 		return;
 
-	UCharacterMovementComponent* CharacterMovement = OwnerCharacter->GetCharacterMovement();
-	if (IsValid(CharacterMovement) == false)
+	if (IsValid(Data->Montage) == false)
 		return;
 
-	bIsAttacking = false;
-	CharacterMovement->SetMovementMode(EMovementMode::MOVE_Walking);
+	OwnerCharacter->PlayAnimMontage(Data->Montage);
+}
+
+void UFirearmComponent::NetMulticast_StopAttackMontage_Implementation()
+{
+	ACharacter* OwnerCharacter = GetOwnerCharacter();
+	if (IsValid(OwnerCharacter) == false)
+		return;
+
+	if (IsValid(Data->Montage) == false)
+		return;
+
+	OwnerCharacter->StopAnimMontage(Data->Montage);
 }

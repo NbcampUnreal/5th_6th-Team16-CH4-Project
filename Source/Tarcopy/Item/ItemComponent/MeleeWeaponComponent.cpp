@@ -12,8 +12,10 @@
 #include "Kismet/GameplayStatics.h"
 #include "Item/ItemCommand/EquipCommand.h"
 #include "Item/ItemComponent/DurabilityComponent.h"
+#include "Character/MyCharacter.h"
+#include "HoldableComponent.h"
 
-const float UMeleeWeaponComponent::CheckHitDelay = 0.6f;
+const float UMeleeWeaponComponent::CheckHitDelay = 0.5f;
 
 void UMeleeWeaponComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
@@ -41,7 +43,23 @@ void UMeleeWeaponComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase
 	OutCommands.Add(EquipCommand);
 }
 
-void UMeleeWeaponComponent::ExecuteAttack()
+void UMeleeWeaponComponent::SetOwnerHoldingItemMesh()
+{
+	if (Data == nullptr)
+		return;
+
+	SetOwnerHoldingItemMeshAtSocket(Data->Socket);
+}
+
+void UMeleeWeaponComponent::SetOwnerAnimPreset()
+{
+	if (Data == nullptr)
+		return;
+
+	SetOwnerAnimPresetByHoldableType(Data->HoldableType);
+}
+
+void UMeleeWeaponComponent::OnExecuteAttack()
 {
 	if (Data == nullptr)
 		return;
@@ -56,10 +74,7 @@ void UMeleeWeaponComponent::ExecuteAttack()
 
 	bIsAttacking = true;
 
-	if (IsValid(Data->Montage) == true)
-	{
-		OwnerCharacter->PlayAnimMontage(Data->Montage);
-	}
+	NetMulticast_PlayAttackMontage();
 
 	float AttackDuration = IsValid(Data->Montage) == true ? Data->Montage->GetPlayLength() : 1.0f;
 	CharacterMovement->DisableMovement();
@@ -87,6 +102,7 @@ void UMeleeWeaponComponent::CancelAction()
 		World->GetTimerManager().ClearTimer(EnableMovementTimerHandle);
 	}
 
+	NetMulticast_StopAttackMontage();
 	EnableOwnerMovement();
 }
 
@@ -113,8 +129,6 @@ void UMeleeWeaponComponent::CheckHit()
 	ACharacter* OwnerCharacter = GetOwnerCharacter();
 	if (IsValid(OwnerCharacter) == false)
 		return;
-
-	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Check Hit"));
 
 	HitActors.Empty();
 
@@ -206,19 +220,26 @@ bool UMeleeWeaponComponent::CheckIsAttackableTarget(AActor* TargetActor)
 	return !GetWorld()->LineTraceSingleByObjectType(HitResult, Origin, TargetLocation, ECC_WorldStatic);
 }
 
-void UMeleeWeaponComponent::EnableOwnerMovement()
+void UMeleeWeaponComponent::NetMulticast_PlayAttackMontage_Implementation()
 {
-	if (bIsAttacking == false)
-		return;
-
 	ACharacter* OwnerCharacter = GetOwnerCharacter();
 	if (IsValid(OwnerCharacter) == false)
 		return;
 
-	UCharacterMovementComponent* CharacterMovement = OwnerCharacter->GetCharacterMovement();
-	if (IsValid(CharacterMovement) == false)
+	if (IsValid(Data->Montage) == false)
 		return;
 
-	bIsAttacking = false;
-	CharacterMovement->SetMovementMode(EMovementMode::MOVE_Walking);
+	OwnerCharacter->PlayAnimMontage(Data->Montage);
+}
+
+void UMeleeWeaponComponent::NetMulticast_StopAttackMontage_Implementation()
+{
+	ACharacter* OwnerCharacter = GetOwnerCharacter();
+	if (IsValid(OwnerCharacter) == false)
+		return;
+
+	if (IsValid(Data->Montage) == false)
+		return;
+
+	OwnerCharacter->StopAnimMontage(Data->Montage);
 }

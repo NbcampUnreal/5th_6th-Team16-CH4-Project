@@ -8,6 +8,8 @@
 #include "Engine/ActorChannel.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Item/ItemWrapperActor/ItemWrapperActor.h"
+#include "Character/MyCharacter.h"
+#include "Inventory/InventoryData.h"
 
 const float UEquipComponent::WeightMultiplier = 0.3f;
 
@@ -33,7 +35,7 @@ void UEquipComponent::BeginPlay()
 
 	// 인벤토리 없어서 임시 테스트용으로 부위 아무데나 정해서 Equip에 넣고 캐릭터에서 Equip에 장착된 아이템 표시되게 해서 테스트 중
 	UItemInstance* NewItem = NewObject<UItemInstance>(this);
-	NewItem->SetItemId(TEXT("Axe1"));
+	NewItem->SetItemId(TestEquippedItem);
 	EquipItem(EBodyLocation::RightHand, NewItem);
 }
 
@@ -76,6 +78,31 @@ UItemInstance* UEquipComponent::GetEquippedItem(EBodyLocation Bodylocation) cons
 
 void UEquipComponent::ServerRPC_EquipItem_Implementation(EBodyLocation BodyLocation, UItemInstance* Item)
 {
+	// 임시 나중에 Inventory에서 서버작업 해주면 거기서 해야 함
+	AMyCharacter* Character = Cast<AMyCharacter>(GetOwner());
+	if (IsValid(Character) == false)
+	{
+		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("No Owner MyCharacter"));
+		return;
+	}
+
+	TArray<UInventoryData*> InventoryDatas;
+	Character->GetNearbyInventoryDatas(InventoryDatas);
+	bool bIsExist = false;
+	for (const auto& InventoryData : InventoryDatas)
+	{
+		if (InventoryData->RemoveItem(Item) == true)
+		{
+			bIsExist = true;
+			break;
+		}
+	}
+
+	UKismetSystemLibrary::PrintString(GetWorld(), bIsExist ? TEXT("bIsExist = true") : TEXT("bIsExist = false"));
+	if (bIsExist == false)
+		return;
+	// 여기까지
+
 	EquipItem(BodyLocation, Item);
 }
 
@@ -88,10 +115,14 @@ void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item)
 	if (IsValid(Item) == false)
 		return;
 
+	Item->SetOwnerObject(this);
+	Item->SetOwnerCharacter(OwnerCharacter);
+
 	const FItemData* ItemData = Item->GetData();
 	if (ItemData == nullptr)
 		return;
 
+	UKismetSystemLibrary::PrintString(GetWorld(), *ItemData->ItemId.ToString());
 	for (auto& EquippedItemInfo : EquippedItemInfos)
 	{
 		if (Exclusive(EquippedItemInfo.Location, BodyLocation) == true)
@@ -103,10 +134,9 @@ void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item)
 
 	TotalWeight += ItemData->Weight * WeightMultiplier;
 
-	Item->SetOwnerCharacter(OwnerCharacter);
-	UKismetSystemLibrary::PrintString(GetWorld(),
+	/*UKismetSystemLibrary::PrintString(GetWorld(),
 		IsValid(Item->GetOwnerCharacter()) == true ?
-		*Item->GetOwnerCharacter()->GetName() : TEXT("Item No Owner"));
+		*Item->GetOwnerCharacter()->GetName() : TEXT("Item No Owner"));*/
 }
 
 void UEquipComponent::ServerRPC_UnequipItem_Implementation(UItemInstance* Item)
@@ -116,8 +146,8 @@ void UEquipComponent::ServerRPC_UnequipItem_Implementation(UItemInstance* Item)
 
 void UEquipComponent::UnequipItem(UItemInstance* Item)
 {
-	AActor* Owner = GetOwner();
-	if (IsValid(Owner) == false || Owner->HasAuthority() == false)
+	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwner());
+	if (IsValid(OwnerCharacter) == false || OwnerCharacter->HasAuthority() == false)
 		return;
 
 	if (IsValid(Item) == false)
@@ -127,10 +157,12 @@ void UEquipComponent::UnequipItem(UItemInstance* Item)
 	checkf(ItemData != nullptr, TEXT("EquipComponent => There's no equipped item's data"));
 
 	Item->SetOwnerCharacter(nullptr);
+
 	UKismetSystemLibrary::PrintString(GetWorld(),
 		IsValid(Item->GetOwnerCharacter()) == true ?
 		*Item->GetOwnerCharacter()->GetName() : TEXT("Item No Owner"));
 
+	TSet<UItemInstance*> ItemsToDrop;
 	for (auto& EquippedItemInfo : EquippedItemInfos)
 	{
 		if (IsValid(EquippedItemInfo.Item) == true)
@@ -142,10 +174,46 @@ void UEquipComponent::UnequipItem(UItemInstance* Item)
 
 		// Equipment에 이상한 값 들어있거나 유효하지 않은 상태면 정리
 		// 장착한 아이템이 지울 아이템이면 정리
+		if (ItemsToDrop.Find(EquippedItemInfo.Item) == nullptr)
+		{
+			ItemsToDrop.Add(EquippedItemInfo.Item);
+		}
 		EquippedItemInfo.Item = nullptr;
 	}
 
 	TotalWeight -= ItemData->Weight * WeightMultiplier;
+
+	// test
+	for (const auto& ItemToDrop : ItemsToDrop)
+	{
+		FVector SpawnLocation = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 40.0f;
+		AItemWrapperActor* ItemWrapperActor = GetWorld()->SpawnActor<AItemWrapperActor>(
+			AItemWrapperActor::StaticClass(),
+			SpawnLocation,
+			FRotator::ZeroRotator);
+
+		if (IsValid(ItemWrapperActor) == true)
+		{
+			ItemWrapperActor->SetItemInstance(ItemToDrop);
+		}
+	}
+	// test
+
+	UHoldableComponent* Holdable = Item->GetItemComponent<UHoldableComponent>();
+	if (IsValid(Holdable) == true)
+	{
+		NetMulticast_SetOwnerHoldingItemEmpty();
+	}
+}
+
+void UEquipComponent::NetMulticast_SetOwnerHoldingItemEmpty_Implementation()
+{
+	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwner());
+	if (IsValid(OwnerCharacter) == false)
+		return;
+
+	OwnerCharacter->SetHoldingItemMesh(nullptr);
+	OwnerCharacter->SetAnimPreset(EHoldableType::None);
 }
 
 void UEquipComponent::ExecuteAttack()

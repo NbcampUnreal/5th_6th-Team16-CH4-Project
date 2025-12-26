@@ -13,6 +13,8 @@
 #include "Item/ItemInstance.h"
 #include "UI/UISubsystem.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
+#include "Inventory/LootScannerComponent.h"
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
 
 FReply UUW_InventoryItem::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
@@ -39,6 +41,20 @@ void UUW_InventoryItem::NativeOnDragDetected(const FGeometry& InGeometry, const 
 	Op->bRotated = bRotated;
 
 	Op->GrabOffsetPx = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		if (APawn* P = PC->GetPawn())
+		{
+			if (ULootScannerComponent* Scanner = P->FindComponentByClass<ULootScannerComponent>())
+			{
+				if (SourceInventory == Scanner->GetGroundInventoryData())
+				{
+					Op->SourceWorldActor = MakeWeakObjectPtr(Scanner->FindWorldActorByItem(Item.Get()));
+				}
+			}
+		}
+	}
 
 	UUW_InventoryItem* Proxy = CreateWidget<UUW_InventoryItem>(GetOwningPlayer(), GetClass());
 	if (Proxy)

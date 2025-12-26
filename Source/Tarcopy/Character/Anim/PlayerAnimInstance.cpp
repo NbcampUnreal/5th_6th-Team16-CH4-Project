@@ -1,8 +1,9 @@
-#include "Character/Anim/PlayerAnimInstance.h"
+﻿#include "Character/Anim/PlayerAnimInstance.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Character/Anim/AnimationPreset.h"
 #include "Character/MyCharacter.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 void UPlayerAnimInstance::NativeInitializeAnimation()
 {
@@ -33,4 +34,9 @@ void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	{
 		bIsAiming = MyCharacter->IsAiming();
 	}
+}
+
+void UPlayerAnimInstance::SetAnimDataAsset(UAnimationPreset* InAnimDataAsset)
+{
+	AnimDataAsset = InAnimDataAsset;
 }

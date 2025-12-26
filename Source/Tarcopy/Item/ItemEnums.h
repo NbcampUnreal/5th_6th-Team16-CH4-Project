@@ -54,6 +54,21 @@ enum class EItemComponent : uint8
 	Tool							UMETA(DisplayName = "Tool"),				// 도구류
 };
 
+UENUM(BlueprintType)
+enum class EHoldableSocket : uint8
+{
+	RightHand,
+	LeftHand,
+};
+
+UENUM(BlueprintType)
+enum class EHoldableType : uint8
+{
+	None,					// default AnimPreset으로 설정하기 위해 사용
+	MeleeWeaponR,
+	Pistol,
+};
+
 UENUM()
 enum class EBodyLocation : uint32
 {

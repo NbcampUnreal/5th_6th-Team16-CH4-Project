@@ -1,7 +1,5 @@
 ﻿#include "Item/ItemInstance.h"
 #include "Item/Data/ItemData.h"
-#include "Item/ItemComponent/MeleeWeaponComponent.h"
-#include "Item/Data/MeleeWeaponData.h"
 #include "Item/DataTableSubsystem.h"
 #include "Item/CraftSubsystem.h"
 #include "Item/ItemComponent/CraftComponent.h"
@@ -10,6 +8,7 @@
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/Character.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Item/ItemComponent/HoldableComponent.h"
 
 bool UItemInstance::IsSupportedForNetworking() const
 {
@@ -29,16 +28,12 @@ void UItemInstance::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& 
 int32 UItemInstance::GetFunctionCallspace(UFunction* Function, FFrame* Stack)
 {
 	AActor* Owner = GetTypedOuter<AActor>();
-	if (Owner)
-		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Get Function Call Space"));
 	return IsValid(Owner) == true ? Owner->GetFunctionCallspace(Function, Stack) : FunctionCallspace::Local;
 }
 
 bool UItemInstance::CallRemoteFunction(UFunction* Function, void* Parms, FOutParmRec* OutParms, FFrame* Stack)
 {
 	AActor* Owner = GetTypedOuter<AActor>();
-	if (Owner)
-		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Call Remote Function"));
 	if (UNetDriver* NetDriver = IsValid(Owner) == true ? Owner->GetNetDriver() : nullptr)
 	{
 		NetDriver->ProcessRemoteFunction(Owner, Function, Parms, OutParms, Stack, this);
@@ -73,11 +68,29 @@ void UItemInstance::OnRep_SetData()
 
 void UItemInstance::OnRep_ItemUpdated()
 {
-	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("ItemUpdated"));
 	if (OnItemUpdated.IsBound() == true)
 	{
 		OnItemUpdated.Broadcast();
 	}
+}
+
+void UItemInstance::OnRep_SetOwnerCharacter()
+{
+	UHoldableComponent* HoldableComponent = GetItemComponent<UHoldableComponent>();
+	if (IsValid(HoldableComponent) == true)
+	{
+		HoldableComponent->SetHolding(OwnerCharacter.IsValid());
+	}
+
+	OnRep_ItemUpdated();
+}
+
+void UItemInstance::OnRep_SetOwner()
+{
+	if (OwnerObject.IsValid() == false)
+		return;
+
+	Rename(nullptr, OwnerObject.Get());
 }
 
 void UItemInstance::InitComponents()
@@ -123,6 +136,13 @@ void UItemInstance::InitComponents()
 	OnRep_ItemUpdated();
 }
 
+void UItemInstance::SetOwnerObject(UObject* InOwnerObject)
+{
+	OwnerObject = InOwnerObject;
+
+	OnRep_SetOwner();
+}
+
 const TArray<TObjectPtr<UItemComponentBase>>& UItemInstance::GetItemComponents() const
 {
 	return ItemComponents;
@@ -132,7 +152,7 @@ void UItemInstance::SetOwnerCharacter(ACharacter* InOwnerCharacter)
 {
 	OwnerCharacter = InOwnerCharacter;
 
-	OnRep_ItemUpdated();
+	OnRep_SetOwnerCharacter();
 }
 
 bool UItemInstance::HasAuthority() const

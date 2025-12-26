@@ -15,7 +15,7 @@
 #include "Inventory/LootScannerComponent.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
-
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
 
 bool UUW_Inventory::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
@@ -32,13 +32,14 @@ bool UUW_Inventory::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEve
 		return false;
 	}
 
+	const UInventoryData* Ground = nullptr;
 	if (APlayerController* PC = GetOwningPlayer())
 	{
 		if (APawn* P = PC->GetPawn())
 		{
 			if (ULootScannerComponent* Scanner = P->FindComponentByClass<ULootScannerComponent>())
 			{
-				const UInventoryData* Ground = Scanner->GetGroundInventoryData();
+				Ground = Scanner->GetGroundInventoryData();
 				if (Ground && Op->SourceInventory == Ground && BoundInventory == Ground)
 				{
 					return false;
@@ -72,6 +73,18 @@ bool UUW_Inventory::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEve
 	if (!InvComp)
 	{
 		return false;
+	}
+
+	if (Op->SourceInventory == Ground)
+	{
+		AItemWrapperActor* WorldActor = Op->SourceWorldActor.Get();
+		if (!IsValid(WorldActor))
+		{
+			return false;
+		}
+
+		InvComp->RequestLootFromWorld(WorldActor, BoundInventory, NewOrigin, Op->bRotated);
+		return true;
 	}
 
 	InvComp->RequestMoveItem(Op->SourceInventory, Item, BoundInventory, NewOrigin, Op->bRotated);
@@ -176,6 +189,8 @@ void UUW_Inventory::BindInventory(UInventoryData* InData)
 	}
 
 	BoundInventory->OnInventoryChanged.AddUObject(this, &UUW_Inventory::RefreshItems);
+	UE_LOG(LogTemp, Warning, TEXT("[UI] BindInventory this=%p Inv=%s (%p)"),
+		this, *GetNameSafe(InData), InData);
 
 	BuildGrid(BoundInventory->GetGridSize());
 	BuildItems();
@@ -225,6 +240,15 @@ void UUW_Inventory::RefreshItems()
 	ItemWidgets.Empty();
 
 	BuildItems();
+
+	UE_LOG(LogTemp, Warning, TEXT("[UI] RefreshItems Inv=%s Entries=%d"),
+		*GetNameSafe(BoundInventory), BoundInventory->GetReplicatedItems().Items.Num());
+
+	for (const auto& Entry : BoundInventory->GetReplicatedItems().Items)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[UI] Entry Item=%s Origin=%s"),
+			*GetNameSafe(Entry.Item), *Entry.Origin.ToString());
+	}
 }
 
 void UUW_Inventory::ForceUpdatePreviewFromOp(UInventoryDragDropOp* Op)
@@ -315,15 +339,23 @@ void UUW_Inventory::BuildItems()
 	ItemWidgets.Empty();
 
 	const FInventoryItemList& RepList = BoundInventory->GetReplicatedItems();
+	UE_LOG(LogTemp, Warning, TEXT("[UI] BuildItems Inv=%s Num=%d"),
+		*GetNameSafe(BoundInventory), RepList.Items.Num());
 
+	int32 NullCount = 0;
 	for (const FInventoryItemEntry& Entry : RepList.Items)
 	{
 		if (!IsValid(Entry.Item))
 		{
+			++NullCount;
 			continue;
 		}
+		UE_LOG(LogTemp, Warning, TEXT("[UI] AddItem Try Item=%s Size=%s"),
+			*GetNameSafe(Entry.Item),
+			*BoundInventory->GetItemSize(Entry.Item, Entry.bRotated).ToString());
 		AddItemWidget(Entry.Item, Entry.Origin, Entry.bRotated);
 	}
+	UE_LOG(LogTemp, Warning, TEXT("[UI] BuildItems NullItem=%d"), NullCount);
 }
 
 

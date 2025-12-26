@@ -24,6 +24,7 @@
 #include "Character/CameraObstructionComponent.h"
 #include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "Item/Data/ItemData.h"
+#include "Item/ItemEnums.h"
 #include "Misc/Guid.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "UI/Inventory/InventoryDragDropOp.h"
@@ -32,7 +33,13 @@
 #include "UI/Inventory/UW_Inventory.h"
 #include "Tarcopy.h"
 #include "Engine/DamageEvents.h"
-#include "Character/CameraObstructionComponent.h"
+#include "Character/Anim/AnimPresetMap.h"
+#include "Character/Anim/AnimationPreset.h"
+#include "Character/Anim/PlayerAnimInstance.h"
+#include "Inventory/WorldContainerComponent.h"
+#include "Item/ItemComponent/ContainerComponent.h"
+#include "Inventory/PlayerInventoryComponent.h"
+#include "Inventory/LootScannerComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -58,7 +65,7 @@ AMyCharacter::AMyCharacter() :
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->SetUsingAbsoluteRotation(true);
-	SpringArm->TargetArmLength = 1800.f;
+	SpringArm->TargetArmLength = 1400.f;
 	SpringArm->SetRelativeRotation(FRotator(-50.f, 45.f, 0.f));
 	SpringArm->bDoCollisionTest = false;
 	SpringArm->bEnableCameraLag = true;
@@ -90,6 +97,11 @@ AMyCharacter::AMyCharacter() :
 	CameraObstruction = CreateDefaultSubobject<UCameraObstructionComponent>(TEXT("CameraObstruction"));
 	CameraObstruction->SetCamera(Camera);
 	CameraObstruction->SetCapsule(GetCapsuleComponent());
+
+	HoldingItemMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HoldingItemMeshComponent"));
+	HoldingItemMeshComponent->SetupAttachment(RootComponent);
+	HoldingItemMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HoldingItemMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 }
 
 // Called when the game starts or when spawned
@@ -222,8 +234,14 @@ void AMyCharacter::MoveAction(const FInputActionValue& Value)
 
 	const FVector2D InMovementVector = Value.Get<FVector2D>();
 
-	AddMovementInput(Camera->GetForwardVector(), InMovementVector.X);
-	AddMovementInput(Camera->GetRightVector(), InMovementVector.Y);
+	const FRotator Rotation = Camera->GetComponentRotation();
+	const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+	AddMovementInput(ForwardDirection, InMovementVector.X);
+	AddMovementInput(RightDirection, InMovementVector.Y);
 }
 
 void AMyCharacter::StartSprint(const FInputActionValue& Value)
@@ -308,7 +326,7 @@ void AMyCharacter::Wheel(const FInputActionValue& Value)
 		return;
 
 	const float Input = Value.Get<float>() * -200;
-	SpringArm->TargetArmLength = FMath::Clamp(SpringArm->TargetArmLength + Input, 900.f, 1800.f);
+	SpringArm->TargetArmLength = FMath::Clamp(SpringArm->TargetArmLength + Input, 600.f, 1400.f);
 }
 
 void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
@@ -391,6 +409,9 @@ void AMyCharacter::LeftClick(const FInputActionValue& Value)
 
 void AMyCharacter::ServerRPC_ExecuteAttack_Implementation()
 {
+	if (HasAuthority() == false)
+		return;
+
 	if (IsValid(EquipComponent) == false)
 		return;
 
@@ -571,6 +592,77 @@ bool AMyCharacter::GetAimTarget(AActor*& OutTargetActor, FName& OutBone)
 	OutTargetActor = nullptr;
 	OutBone = NAME_None;
 	return false;
+}
+
+void AMyCharacter::SetHoldingItemMesh(UStaticMesh* ItemMeshAsset, const FName& SocketName)
+{
+	if (IsValid(HoldingItemMeshComponent) == false)
+		return;
+
+	if (IsValid(ItemMeshAsset) == false)
+	{
+		HoldingItemMeshComponent->SetStaticMesh(nullptr);
+		return;
+	}
+
+	HoldingItemMeshComponent->SetStaticMesh(ItemMeshAsset);
+
+	FAttachmentTransformRules AttachRules(EAttachmentRule::SnapToTarget, true);
+	HoldingItemMeshComponent->AttachToComponent(GetMesh(), AttachRules, SocketName);
+	FTransform GripPointTransform = HoldingItemMeshComponent->GetSocketTransform(TEXT("GripPoint"), RTS_Component);
+	FTransform OffsetTransform = GripPointTransform.Inverse();
+	HoldingItemMeshComponent->SetRelativeTransform(OffsetTransform);
+}
+
+void AMyCharacter::SetAnimPreset(EHoldableType Type)
+{
+	if (IsValid(AnimPresetMap) == false)
+		return;
+
+	UPlayerAnimInstance* AnimInstance = Cast<UPlayerAnimInstance>(GetMesh()->GetAnimInstance());
+	if (IsValid(AnimInstance) == false)
+		return;
+
+	const TObjectPtr<UAnimationPreset>* Preset = AnimPresetMap->AnimPresets.Find(Type);
+	if (Preset == nullptr)
+		return;
+
+	AnimInstance->SetAnimDataAsset(*Preset);
+}
+
+void AMyCharacter::GetNearbyInventoryDatas(TArray<class UInventoryData*>& InventoryDatas)
+{
+	UPlayerInventoryComponent* InventoryComponent = FindComponentByClass<UPlayerInventoryComponent>();
+	if (IsValid(InventoryComponent) == true)
+	{
+		InventoryDatas.Add(InventoryComponent->GetPlayerInventoryData());
+	}
+
+	ULootScannerComponent* LootScannerComponent = FindComponentByClass<ULootScannerComponent>();
+	if (IsValid(LootScannerComponent) == true)
+	{
+		InventoryDatas.Add(LootScannerComponent->GetGroundInventoryData());
+		for (const auto& OverlappedContainer : LootScannerComponent->OverlappedContainers)
+		{
+			InventoryDatas.Add(OverlappedContainer->GetInventoryData());
+		}
+
+		for (const auto& OverlappedContainerItem : LootScannerComponent->OverlappedContainerItems)
+		{
+			if (OverlappedContainerItem.IsValid() == false)
+				continue;
+
+			UItemInstance* ItemInstance = OverlappedContainerItem->GetItemInstance();
+			if (IsValid(ItemInstance) == false)
+				continue;
+
+			UContainerComponent* ContainerComponent = ItemInstance->GetItemComponent<UContainerComponent>();
+			if (IsValid(ContainerComponent) == false)
+				continue;
+
+			InventoryDatas.Add(ContainerComponent->GetInventoryData());
+		}
+	}
 }
 
 void AMyCharacter::AddInteractableDoor(AActor* DoorActor)
