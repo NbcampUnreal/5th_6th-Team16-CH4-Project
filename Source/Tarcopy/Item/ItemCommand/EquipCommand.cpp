@@ -1,6 +1,8 @@
 ﻿#include "Item/ItemCommand/EquipCommand.h"
 #include "Item/ItemInstance.h"
 #include "Item/EquipComponent.h"
+#include "Character/MyCharacter.h"
+#include "Inventory/InventoryData.h"
 
 void UEquipCommand::OnExecute(const FItemCommandContext& Context)
 {

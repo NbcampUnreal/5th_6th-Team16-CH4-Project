@@ -166,14 +166,7 @@ void ATCCarBase::UnPossessed()
 void ATCCarBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-	if (NewController)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Possessed %s"), *NewController->GetName());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed"));
-	}
+
 
 	TWeakObjectPtr<ATCCarBase> WeakThis(this);
 
@@ -207,6 +200,7 @@ void ATCCarBase::OnRep_Controller()
 {
 	Super::OnRep_Controller();
 
+	if (!IsLocallyControlled()) return;
 	AMyPlayerController* PC = Cast<AMyPlayerController>(GetController());
 	if (!PC)
 	{
@@ -342,6 +336,7 @@ void ATCCarBase::DamageOn()
 
 void ATCCarBase::OnRep_UpdateGas()
 {
+	if (!IsLocallyControlled()) return;
 	CarWidgetInstance->UpdateFuel(CurrentFuel);
 }
 

@@ -68,7 +68,6 @@ void UItemInstance::OnRep_SetData()
 
 void UItemInstance::OnRep_ItemUpdated()
 {
-	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("ItemUpdated"));
 	if (OnItemUpdated.IsBound() == true)
 	{
 		OnItemUpdated.Broadcast();
@@ -84,6 +83,14 @@ void UItemInstance::OnRep_SetOwnerCharacter()
 	}
 
 	OnRep_ItemUpdated();
+}
+
+void UItemInstance::OnRep_SetOwner()
+{
+	if (OwnerObject.IsValid() == false)
+		return;
+
+	Rename(nullptr, OwnerObject.Get());
 }
 
 void UItemInstance::InitComponents()
@@ -127,6 +134,13 @@ void UItemInstance::InitComponents()
 	InstanceID = FGuid::NewGuid();
 
 	OnRep_ItemUpdated();
+}
+
+void UItemInstance::SetOwnerObject(UObject* InOwnerObject)
+{
+	OwnerObject = InOwnerObject;
+
+	OnRep_SetOwner();
 }
 
 const TArray<TObjectPtr<UItemComponentBase>>& UItemInstance::GetItemComponents() const
