@@ -44,7 +44,7 @@
 // Sets default values
 AMyCharacter::AMyCharacter() :
 	BaseWalkSpeed(400.f),
-	SprintSpeedMultiplier(1.25f),
+	SprintSpeedMultiplier(1.5f),
 	CrouchSpeedMultiplier(0.8f),
 	bIsAttackMode(false)
 {
@@ -135,6 +135,8 @@ void AMyCharacter::OnRep_Controller()
 }
 float AMyCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+	if (!HasAuthority()) return Damage;
+
 	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
 	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
