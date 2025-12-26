@@ -21,6 +21,9 @@ public:
 	virtual void BeginPlay() override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<USceneComponent> RootComp;
 #pragma endregion
 
 #pragma region Vision
@@ -31,13 +34,32 @@ protected:
 
 #pragma endregion
 
-#pragma region State Tree
+#pragma region Combat
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	bool bIsAttack;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	bool bIsHit;
+
 	int32 AttackDamage;
 
 	UFUNCTION(BlueprintCallable)
 	void Attack(AMyAICharacter* ContextActor, AActor* TargetActor);
+
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	void HandleDeath();
+#pragma endregion
+
+#pragma region Animation
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage> AM_Attack;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage> AM_Hit;
 
 #pragma endregion
 };

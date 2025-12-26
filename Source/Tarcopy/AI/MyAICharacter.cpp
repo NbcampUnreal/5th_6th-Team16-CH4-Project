@@ -8,16 +8,24 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Character/MyCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "Engine/DamageEvents.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
-	AttackDamage(40)
+	AttackDamage(40),
+	bIsAttack(false),
+	bIsHit(false)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 
 	AIControllerClass = AZombieController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+	RootComponent = RootComp;
+	GetCapsuleComponent()->SetupAttachment(RootComponent);
 
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	Movement->bOrientRotationToMovement = true;
@@ -46,7 +54,13 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
 {
 	AMyCharacter* DamagedActor = Cast<AMyCharacter>(TargetActor);
 	if (!IsValid(DamagedActor)) return;
+	if (bIsAttack || bIsHit) return;
 
+	bIsAttack = true;	
+	PlayAnimMontage(AM_Attack);
+	bIsAttack = false;
+
+	// Notify로 옮기기
 	FHitResult Hit;
 	FVector StartLocation = ContextActor->GetActorLocation() + FVector({ 0.f, 0.f, 80.f });
 	FVector EndLocation = DamagedActor->GetActorLocation() + FMath::FRandRange(0.f, 80.f);
@@ -72,4 +86,33 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
 											this, 
 											UDamageType::StaticClass());
 	}
+}
+
+float AMyAICharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (!HasAuthority()) return Damage;
+
+	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+
+	bIsHit = true;
+	PlayAnimMontage(AM_Hit);
+	bIsHit = false;
+
+	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	{
+		FPointDamageEvent const& PointDamageEvent = static_cast<FPointDamageEvent const&>(DamageEvent);
+		FHitResult HitResult = PointDamageEvent.HitInfo;
+		FName BoneName = HitResult.BoneName;
+		//MultiRPC_Temp(Damage, BoneName);
+	}
+
+	return Damage;
+}
+
+void AMyAICharacter::HandleDeath()
+{
+	GetCharacterMovement()->DisableMovement();
+	GetMesh()->SetAllBodiesSimulatePhysics(true);
+	// 레그돌, 지면에만 충돌, 다른 물체와는 no collision, 약한 참조자로 참조하고 1분뒤에 제거
+	//GetCapsuleComponent()->Setcollision
 }

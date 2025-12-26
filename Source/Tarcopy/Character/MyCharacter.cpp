@@ -43,9 +43,9 @@
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
-	BaseWalkSpeed(600.f),
+	BaseWalkSpeed(400.f),
 	SprintSpeedMultiplier(1.5f),
-	CrouchSpeedMultiplier(0.7f),
+	CrouchSpeedMultiplier(0.8f),
 	bIsAttackMode(false)
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -61,6 +61,7 @@ AMyCharacter::AMyCharacter() :
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
+	GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed;
 
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
@@ -134,6 +135,8 @@ void AMyCharacter::OnRep_Controller()
 }
 float AMyCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+	if (!HasAuthority()) return Damage;
+
 	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
 	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
