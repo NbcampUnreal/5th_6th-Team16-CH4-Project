@@ -24,10 +24,8 @@ public:
 	FIntPoint InventoryBound = FIntPoint(2, 1);
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float Weight = 0.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TArray<EInteractType> InteractType;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Bitmask, BitmaskEnum = "/Script/Tarcopy.EItemCategory"))
-	int32 ItemCategory = 0;
+	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Bitmask, BitmaskEnum = "/Script/Tarcopy.EItemCategory"))
+	int32 ItemCategory = 0;*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float ToolEfficiency = 1.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

@@ -18,7 +18,7 @@ public:
 	virtual void SetOwnerHoldingItemMesh() override;
 	virtual void SetOwnerAnimPreset() override;
 
-	virtual void OnExecuteAttack() override;
+	virtual void OnExecuteAttack(const FVector& TargetLocation) override;
 
 	virtual void CancelAction() override;
 

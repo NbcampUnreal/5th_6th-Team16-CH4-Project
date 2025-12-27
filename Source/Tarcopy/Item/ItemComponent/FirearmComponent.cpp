@@ -13,6 +13,8 @@
 #include "Item/ItemCommand/EquipCommand.h"
 #include "Item/ItemComponent/DurabilityComponent.h"
 
+const float UFirearmComponent::PerfectShotMultiplier = 1.5f;
+
 void UFirearmComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
@@ -58,7 +60,7 @@ void UFirearmComponent::SetOwnerAnimPreset()
 	SetOwnerAnimPresetByHoldableType(Data->HoldableType);
 }
 
-void UFirearmComponent::OnExecuteAttack()
+void UFirearmComponent::OnExecuteAttack(const FVector& TargetLocation)
 {
 	if (Data == nullptr)
 		return;
@@ -84,28 +86,16 @@ void UFirearmComponent::OnExecuteAttack()
 		AttackDuration,
 		false);
 
-	FHitResult HitResult;
-	AActor* AimTarget = nullptr;
-	FName BoneName = NAME_None;
-	// 마우스 포인터가 적을 포인팅 중이면, 현재 가리키고 있는 적의 Bone으로 공격
-	// 아니라면, 그냥 Muzzle에서 수평하게 마우스 포인터 방향으로 공격
-	bool bHit = MyCharacter->GetAimTarget(AimTarget, BoneName);
-
 	FVector StartLocation = MyCharacter->GetActorLocation();		// 액터 Muzzle 소켓으로 바꿔야 함
-	FVector TargetDir = MyCharacter->GetActorForwardVector();
-
-	if (bHit == true)
-	{
-		USkeletalMeshComponent* TargetSkeletal = AimTarget->FindComponentByClass<USkeletalMeshComponent>();
-		if (IsValid(TargetSkeletal) == true && TargetSkeletal->DoesSocketExist(BoneName) == true)
-		{
-			FVector TargetLocation = TargetSkeletal->GetSocketLocation(BoneName);
-			TargetDir = (TargetLocation - StartLocation).GetSafeNormal();
-		}
-	}
-
+	FVector TargetDir = (TargetLocation - StartLocation).GetSafeNormal();
 	FVector EndLocation = StartLocation + TargetDir * Data->MaxRange;
 	CheckHit(StartLocation, EndLocation);
+
+	UDurabilityComponent* DurabilityComponent = GetOwnerItem()->GetItemComponent<UDurabilityComponent>();
+	if (IsValid(DurabilityComponent) == true)
+	{
+		DurabilityComponent->LoseDurability(Data->LoseCondition);
+	}
 }
 
 void UFirearmComponent::CancelAction()
@@ -146,6 +136,7 @@ void UFirearmComponent::CheckHit(const FVector& StartLocation, const FVector& En
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(OwnerCharacter);
 	Params.bTraceComplex = true;
+	Params.bReturnPhysicalMaterial = true;
 	// 적 캡슐 Visibility 끄고 나머진 켜기
 	FCollisionShape SphereCollision = FCollisionShape::MakeSphere(10.0f);
 	bool bHit = GetWorld()->SweepSingleByChannel(HitResult, StartLocation, EndLocation, FQuat::Identity, ECC_Visibility, SphereCollision, Params);
@@ -163,10 +154,13 @@ void UFirearmComponent::CheckHit(const FVector& StartLocation, const FVector& En
 			return;
 
 		float DistSquared = FVector::DistSquared(StartLocation, ActualEndLocation);
-		float Damage = FMath::GetMappedRangeValueClamped(
-			FVector2D(MinRangeSquared, MaxRangeSquared),
-			FVector2D(Data->MinDamage, Data->MaxDamage),
-			DistSquared);
+		// 기본 데미지는 MinDamage ~ MaxDamage 랜덤값
+		float Damage = FMath::RandRange(Data->MinDamage, Data->MaxDamage);
+		// 총기류는 사거리의 끝(최대 사거리의 0.9 이상에서 맞으면 퍼펙트 사격으로 최대 데미지)
+		if (DistSquared >= MaxRangeSquared * 0.81f)
+		{
+			Damage *= PerfectShotMultiplier;
+		}
 
 		FVector Dir = (ActualEndLocation - StartLocation).GetSafeNormal();
 		UGameplayStatics::ApplyPointDamage(
@@ -177,14 +171,6 @@ void UFirearmComponent::CheckHit(const FVector& StartLocation, const FVector& En
 			OwnerCharacter->GetController(),
 			OwnerCharacter,
 			nullptr);
-
-		UDurabilityComponent* DurabilityComponent = GetOwnerItem()->GetItemComponent<UDurabilityComponent>();
-		if (IsValid(DurabilityComponent) == true)
-		{
-			// 바꿔야 함
-			float TempAmount = 1.0;
-			DurabilityComponent->LoseDurability(TempAmount);
-		}
 	}
 
 	// 충돌 검사 디버그

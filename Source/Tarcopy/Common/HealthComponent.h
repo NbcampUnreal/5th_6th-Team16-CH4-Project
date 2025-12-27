@@ -19,7 +19,7 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:
-	void TakeDamage(float Damage, const FName& BoneName);
+	void TakeDamage(float Damage, const FHitResult& HitResult);
 
 protected:
 	UFUNCTION()
@@ -29,6 +29,9 @@ public:
 	FOnDead OnDead;
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<class UBodyDamageModifierSetting> BodyDamageSetting;
+
 	UPROPERTY(ReplicatedUsing = OnRep_PrintHP)
 	float MaxHP = 100.0f;
 	UPROPERTY(ReplicatedUsing = OnRep_PrintHP)

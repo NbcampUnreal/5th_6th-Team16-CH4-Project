@@ -407,10 +407,10 @@ void AMyCharacter::LeftClick(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Left Click"));
 
-	ServerRPC_ExecuteAttack();
+	ServerRPC_ExecuteAttack(GetAttackTargetLocation());
 }
 
-void AMyCharacter::ServerRPC_ExecuteAttack_Implementation()
+void AMyCharacter::ServerRPC_ExecuteAttack_Implementation(const FVector& TargetLocation)
 {
 	if (HasAuthority() == false)
 		return;
@@ -418,7 +418,27 @@ void AMyCharacter::ServerRPC_ExecuteAttack_Implementation()
 	if (IsValid(EquipComponent) == false)
 		return;
 
-	EquipComponent->ExecuteAttack();
+	EquipComponent->ExecuteAttack(TargetLocation);
+}
+
+FVector AMyCharacter::GetAttackTargetLocation() const
+{
+	FHitResult HitResult;
+	AActor* AimTarget = nullptr;
+	FName BoneName = NAME_None;
+	bool bHit = GetAimTarget(AimTarget, BoneName);
+	// default : 앞을 향한 충분한 먼 거리
+	FVector TargetLocation = GetActorForwardVector() * 10000.0f;
+	if (IsValid(AimTarget) == true)
+	{
+		// 적을 조준 중이라면, 조준 중인 적의 Bone을 향해 공격
+		USkeletalMeshComponent* TargetSkeletal = AimTarget->FindComponentByClass<USkeletalMeshComponent>();
+		if (IsValid(TargetSkeletal) == true && TargetSkeletal->DoesSocketExist(BoneName) == true)
+		{
+			TargetLocation = TargetSkeletal->GetSocketLocation(BoneName);
+		}
+	}
+	return TargetLocation;
 }
 
 void AMyCharacter::ServerRPC_TurnToMouse_Implementation(const FRotator& TargetRot)
@@ -571,7 +591,7 @@ void AMyCharacter::SetItem()
 	}
 }
 
-bool AMyCharacter::GetAimTarget(AActor*& OutTargetActor, FName& OutBone)
+bool AMyCharacter::GetAimTarget(AActor*& OutTargetActor, FName& OutBone) const
 {
 	AMyPlayerController* PC = Cast<AMyPlayerController>(GetController());
 	if (IsValid(PC) == false)

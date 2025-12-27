@@ -183,7 +183,8 @@ protected:
 	UFUNCTION()
 	virtual void LeftClick(const FInputActionValue& Value);
 	UFUNCTION(Server, Reliable)
-	virtual void ServerRPC_ExecuteAttack();
+	virtual void ServerRPC_ExecuteAttack(const FVector& TargetLocation);
+	FVector GetAttackTargetLocation() const;
 
 	UFUNCTION(Server, Reliable)
 	virtual void ServerRPC_TurnToMouse(const FRotator& TargetRot);
@@ -225,7 +226,7 @@ public:
 	void SetItem();
 
 	UFUNCTION()
-	bool GetAimTarget(AActor*& OutTargetActor, FName& OutBone);
+	bool GetAimTarget(AActor*& OutTargetActor, FName& OutBone) const;
 
 	void SetHoldingItemMesh(UStaticMesh* ItemMeshAsset, const FName& SocketName = NAME_None);
 	void SetAnimPreset(EHoldableType Type);

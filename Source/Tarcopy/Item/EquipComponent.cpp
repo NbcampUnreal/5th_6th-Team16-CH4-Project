@@ -10,6 +10,8 @@
 #include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "Character/MyCharacter.h"
 #include "Inventory/InventoryData.h"
+#include "Item/ItemComponent/ClothingComponent.h"
+#include "Item/Data/ClothDefensePreset.h"
 
 const float UEquipComponent::WeightMultiplier = 0.3f;
 
@@ -37,6 +39,15 @@ void UEquipComponent::BeginPlay()
 	UItemInstance* NewItem = NewObject<UItemInstance>(this);
 	NewItem->SetItemId(TestEquippedItem);
 	EquipItem(EBodyLocation::RightHand, NewItem);
+
+	TArray<FName> Clothes = { FName(TEXT("TShirts0")), FName(TEXT("Shirt0")), FName(TEXT("Sweater0")), FName(TEXT("Bottoms0")), FName(TEXT("Back0")) };
+	for (const auto& Cloth : Clothes)
+	{
+		NewItem = NewObject<UItemInstance>(this);
+		NewItem->SetItemId(Cloth);
+		EBodyLocation BodyLocation = NewItem->GetItemComponent<UClothingComponent>()->GetData()->BodyLocation;
+		EquipItem(BodyLocation, NewItem);
+	}
 }
 
 void UEquipComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -112,6 +123,9 @@ void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item)
 	if (IsValid(OwnerCharacter) == false || OwnerCharacter->HasAuthority() == false)
 		return;
 
+	if (OwnerCharacter->HasAuthority() == false)
+		return;
+
 	if (IsValid(Item) == false)
 		return;
 
@@ -134,6 +148,22 @@ void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item)
 
 	TotalWeight += ItemData->Weight * WeightMultiplier;
 
+	UClothingComponent* ClothComponent = Item->GetItemComponent<UClothingComponent>();
+	if (IsValid(ClothComponent) == true)
+	{
+		const FClothData* ClothData = ClothComponent->GetData();
+		if (IsValid(ClothData->DefensePreset) == true)
+		{
+			FItemDamageReduce NewItemDamageReduce;
+			for (const auto& PhysMat : ClothData->DefensePreset->DefenseMats)
+			{
+				NewItemDamageReduce.DamageReduces.Emplace(PhysMat, ClothData->DamageReduce);
+			}
+			ItemDamageReduces.Add(Item, NewItemDamageReduce);
+			CalculateFinalDamageTakenMultiplier();
+		}
+	}
+
 	/*UKismetSystemLibrary::PrintString(GetWorld(),
 		IsValid(Item->GetOwnerCharacter()) == true ?
 		*Item->GetOwnerCharacter()->GetName() : TEXT("Item No Owner"));*/
@@ -148,6 +178,9 @@ void UEquipComponent::UnequipItem(UItemInstance* Item)
 {
 	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwner());
 	if (IsValid(OwnerCharacter) == false || OwnerCharacter->HasAuthority() == false)
+		return;
+
+	if (OwnerCharacter->HasAuthority() == false)
 		return;
 
 	if (IsValid(Item) == false)
@@ -181,6 +214,13 @@ void UEquipComponent::UnequipItem(UItemInstance* Item)
 		EquippedItemInfo.Item = nullptr;
 	}
 
+	UClothingComponent* ClothComponent = Item->GetItemComponent<UClothingComponent>();
+	if (IsValid(ClothComponent) == true)
+	{
+		ItemDamageReduces.Remove(Item);
+		CalculateFinalDamageTakenMultiplier();
+	}
+
 	TotalWeight -= ItemData->Weight * WeightMultiplier;
 
 	// test
@@ -206,6 +246,20 @@ void UEquipComponent::UnequipItem(UItemInstance* Item)
 	}
 }
 
+void UEquipComponent::CalculateFinalDamageTakenMultiplier()
+{
+	FinalDamageTakenMultiplier.Empty();
+
+	for (const auto& Pair : ItemDamageReduces)
+	{
+		for (const auto& DamageReduce : Pair.Value.DamageReduces)
+		{
+			float& RefTargetDamageTaken = FinalDamageTakenMultiplier.FindOrAdd(DamageReduce.PhysMat, 1.0f);
+			RefTargetDamageTaken *= (1.0f - DamageReduce.ReduceAmount);
+		}
+	}
+}
+
 void UEquipComponent::NetMulticast_SetOwnerHoldingItemEmpty_Implementation()
 {
 	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwner());
@@ -216,7 +270,7 @@ void UEquipComponent::NetMulticast_SetOwnerHoldingItemEmpty_Implementation()
 	OwnerCharacter->SetAnimPreset(EHoldableType::None);
 }
 
-void UEquipComponent::ExecuteAttack()
+void UEquipComponent::ExecuteAttack(const FVector& TargetLocation)
 {
 	AActor* Owner = GetOwner();
 	if (IsValid(Owner) == false || Owner->HasAuthority() == false)
@@ -235,7 +289,7 @@ void UEquipComponent::ExecuteAttack()
 	if (IsValid(WeaponComponent) == false)
 		return;
 
-	WeaponComponent->ExecuteAttack();
+	WeaponComponent->ExecuteAttack(TargetLocation);
 }
 
 void UEquipComponent::CancelActions()
@@ -252,15 +306,11 @@ void UEquipComponent::CancelActions()
 	ItemOnHand->CancelAllComponentActions();
 }
 
-const FItemData* UEquipComponent::GetItemData(const FName& InItemId) const
+float UEquipComponent::GetFinalDamageTakenMultiplier(UPhysicalMaterial* PhysMat) const
 {
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return nullptr;
+	if (IsValid(PhysMat) == false)
+		return 1.0f;
 
-	const UDataTable* ItemTable = DataTableSubsystem->GetTable(EDataTableType::ItemTable);
-	if (IsValid(ItemTable) == false)
-		return nullptr;
-
-	return ItemTable->FindRow<FItemData>(InItemId, FString(""));
+	const float* PtrMultiplier = FinalDamageTakenMultiplier.Find(PhysMat);
+	return PtrMultiplier != nullptr ? *PtrMultiplier : 1.0f;
 }

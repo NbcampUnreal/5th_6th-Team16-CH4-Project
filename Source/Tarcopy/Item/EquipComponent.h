@@ -3,9 +3,30 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Item/ItemEnums.h"
+#include "Item/Data/ClothData.h"
 #include "EquipComponent.generated.h"
 
 class UItemInstance;
+
+USTRUCT(BlueprintType)
+struct FDamageReduce
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UPhysicalMaterial> PhysMat;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float ReduceAmount = 0.0f;								// 데미지 경감 (0.1면 받는 데미지 10퍼 감소)
+};
+
+USTRUCT(BlueprintType)
+struct FItemDamageReduce
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FDamageReduce> DamageReduces;
+};
 
 USTRUCT()
 struct FEquippedItemInfo
@@ -46,21 +67,27 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void NetMulticast_SetOwnerHoldingItemEmpty();
 
-	void ExecuteAttack();
+	void ExecuteAttack(const FVector& TargetLocation);
 	void CancelActions();
+
+	float GetFinalDamageTakenMultiplier(UPhysicalMaterial* PhysMat) const;
 
 protected:
 	void EquipItem(EBodyLocation BodyLocation, UItemInstance* Item);
 	void UnequipItem(UItemInstance* Item);
-	
-private:
-	const struct FItemData* GetItemData(const FName& InItemId) const;
+
+	void CalculateFinalDamageTakenMultiplier();
 
 protected:
 	UPROPERTY(VisibleAnywhere, Replicated)
 	TArray<FEquippedItemInfo> EquippedItemInfos;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float TotalWeight;
+
+	UPROPERTY()
+	TMap<TWeakObjectPtr<UItemInstance>, FItemDamageReduce> ItemDamageReduces;
+	UPROPERTY()
+	TMap<TObjectPtr<UPhysicalMaterial>, float> FinalDamageTakenMultiplier;
 
 	// For Test
 	UPROPERTY(EditAnywhere)

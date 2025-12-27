@@ -13,8 +13,8 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:
-	void ExecuteAttack();
-	virtual void OnExecuteAttack() PURE_VIRTUAL(UWeaponComponent::Attack, );
+	void ExecuteAttack(const FVector& TargetLocation);
+	virtual void OnExecuteAttack(const FVector& TargetLocation) PURE_VIRTUAL(UWeaponComponent::Attack, );
 
 protected:
 	void EnableOwnerMovement();
