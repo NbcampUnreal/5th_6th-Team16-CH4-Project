@@ -28,11 +28,6 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UPanelWidget> PanelInteract;
 
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UDataTable> ItemTable;
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UDataTable> InteractTable;
-
 	UPROPERTY()
 	TWeakObjectPtr<UItemInstance> Item;
 };
