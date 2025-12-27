@@ -40,6 +40,7 @@
 #include "Item/ItemComponent/ContainerComponent.h"
 #include "Inventory/PlayerInventoryComponent.h"
 #include "Inventory/LootScannerComponent.h"
+#include "Common/HealthComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -92,6 +93,7 @@ AMyCharacter::AMyCharacter() :
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnInteractionSphereEndOverlap);
 
 	EquipComponent = CreateDefaultSubobject<UEquipComponent>(TEXT("EquipComponent"));
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
 	Moodle = CreateDefaultSubobject<UMoodleComponent>(TEXT("Moodle"));
 
@@ -139,15 +141,14 @@ float AMyCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AC
 
 	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
-	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	if (IsValid(HealthComponent) == true)
 	{
-		FPointDamageEvent const& PointDamageEvent = static_cast<FPointDamageEvent const&>(DamageEvent);
-		FHitResult HitResult = PointDamageEvent.HitInfo;
-		FName BoneName = HitResult.BoneName;
-		MultiRPC_Temp(Damage, BoneName);
+		const FPointDamageEvent* PointDamageEvent = (const FPointDamageEvent*)(&DamageEvent);
+		if (PointDamageEvent != nullptr)
+		{
+			Damage = HealthComponent->TakeDamage(Damage, PointDamageEvent->HitInfo);
+		}
 	}
-
-	
 
 	return Damage;
 }

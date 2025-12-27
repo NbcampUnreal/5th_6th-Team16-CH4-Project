@@ -59,6 +59,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Equip", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UEquipComponent> EquipComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Equip", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UHealthComponent> HealthComponent;
+
 	UFUNCTION()
 	virtual void OnInteractionSphereBeginOverlap(
 		UPrimitiveComponent* OverlappedComp,
