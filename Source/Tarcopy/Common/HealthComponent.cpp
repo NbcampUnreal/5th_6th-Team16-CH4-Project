@@ -25,7 +25,7 @@ void UHealthComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	DOREPLIFETIME(ThisClass, CurrentHP);
 }
 
-void UHealthComponent::TakeDamage(float Damage, const FHitResult& HitResult)
+float UHealthComponent::TakeDamage(float Damage, const FHitResult& HitResult)
 {
 	float ActualDamage = Damage;
 	UPhysicalMaterial* PhysMat = HitResult.PhysMaterial.IsValid() == true ? HitResult.PhysMaterial.Get() : nullptr;
@@ -57,6 +57,8 @@ void UHealthComponent::TakeDamage(float Damage, const FHitResult& HitResult)
 	}
 
 	OnRep_PrintHP();
+
+	return ActualDamage;
 }
 
 void UHealthComponent::OnRep_PrintHP()

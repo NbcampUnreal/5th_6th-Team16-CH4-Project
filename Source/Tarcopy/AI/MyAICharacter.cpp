@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "AI/MyAICharacter.h"
@@ -10,6 +10,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/DamageEvents.h"
 #include "Animation/AnimMontage.h"
+#include "Components/CapsuleComponent.h"
+#include "Common/HealthComponent.h"
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
@@ -90,7 +92,7 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
 		AnimInst->Montage_SetEndDelegate(AttackMontageEnded, AM_Attack);
 	}
 
-	// Notify·Î ¿Å±â±â
+	// Notifyë¡œ ì˜®ê¸°ê¸°
 	FHitResult Hit;
 	FVector StartLocation = ContextActor->GetActorLocation() + FVector({ 0.f, 0.f, 80.f });
 	FVector EndLocation = DamagedActor->GetActorLocation() + FMath::FRandRange(0.f, 80.f);
@@ -136,12 +138,13 @@ float AMyAICharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, 
 		AnimInst->Montage_SetEndDelegate(HitMontageEnded, AM_Hit);
 	}
 
-	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	if (IsValid(HealthComponent) == true)
 	{
-		FPointDamageEvent const& PointDamageEvent = static_cast<FPointDamageEvent const&>(DamageEvent);
-		FHitResult HitResult = PointDamageEvent.HitInfo;
-		FName BoneName = HitResult.BoneName;
-		//MultiRPC_Temp(Damage, BoneName);
+		const FPointDamageEvent* PointDamageEvent = (const FPointDamageEvent*)(&DamageEvent);
+		if (PointDamageEvent != nullptr)
+		{
+			Damage = HealthComponent->TakeDamage(Damage, PointDamageEvent->HitInfo);
+		}
 	}
 
 	return Damage;
@@ -151,7 +154,7 @@ void AMyAICharacter::HandleDeath()
 {
 	GetCharacterMovement()->DisableMovement();
 	GetMesh()->SetAllBodiesSimulatePhysics(true);
-	// ·¹±×µ¹, Áö¸é¿¡¸¸ Ãæµ¹, ´Ù¸¥ ¹°Ã¼¿Í´Â no collision, ¾àÇÑ ÂüÁ¶ÀÚ·Î ÂüÁ¶ÇÏ°í 1ºÐµÚ¿¡ Á¦°Å
+	// ë ˆê·¸ëŒ, ì§€ë©´ì—ë§Œ ì¶©ëŒ, ë‹¤ë¥¸ ë¬¼ì²´ì™€ëŠ” no collision, ì•½í•œ ì°¸ì¡°ìžë¡œ ì°¸ì¡°í•˜ê³  1ë¶„ë’¤ì— ì œê±°
 	//GetCapsuleComponent()->Setcollision
 }
 

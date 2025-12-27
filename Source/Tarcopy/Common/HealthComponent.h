@@ -19,7 +19,7 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:
-	void TakeDamage(float Damage, const FHitResult& HitResult);
+	float TakeDamage(float Damage, const FHitResult& HitResult);
 
 protected:
 	UFUNCTION()
