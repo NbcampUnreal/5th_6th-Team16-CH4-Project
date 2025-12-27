@@ -9,12 +9,13 @@
 #include "Character/MyCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/DamageEvents.h"
+#include "Animation/AnimMontage.h"
 #include "Components/CapsuleComponent.h"
 #include "Common/HealthComponent.h"
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
-	AttackDamage(40),
+	AttackDamage(30),
 	bIsAttack(false),
 	bIsHit(false)
 {
@@ -23,10 +24,6 @@ AMyAICharacter::AMyAICharacter() :
 
 	AIControllerClass = AZombieController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-
-	RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
-	RootComponent = RootComp;
-	GetCapsuleComponent()->SetupAttachment(RootComponent);
 
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	Movement->bOrientRotationToMovement = true;
@@ -49,6 +46,33 @@ void AMyAICharacter::BeginPlay()
 void AMyAICharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, bIsAttack);
+	DOREPLIFETIME(ThisClass, bIsHit);
+}
+
+void AMyAICharacter::OnRep_bIsAttack()
+{
+	if (bIsAttack)
+	{
+		PlayAnimMontage(AM_Attack);
+	}
+	else
+	{
+		StopAnimMontage(AM_Attack);
+	}
+}
+
+void AMyAICharacter::OnRep_bIsHit()
+{
+	if (bIsHit)
+	{
+		PlayAnimMontage(AM_Hit);
+	}
+	else
+	{
+		StopAnimMontage(AM_Hit);
+	}
 }
 
 void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
@@ -57,9 +81,16 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
 	if (!IsValid(DamagedActor)) return;
 	if (bIsAttack || bIsHit) return;
 
-	bIsAttack = true;	
-	PlayAnimMontage(AM_Attack);
-	bIsAttack = false;
+	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
+	if (AnimInst)
+	{
+		PlayAnimMontage(AM_Attack);
+		bIsAttack = true;
+		GetCharacterMovement()->DisableMovement();
+		FOnMontageEnded AttackMontageEnded;
+		AttackMontageEnded.BindUObject(this, &AMyAICharacter::OnAttackMontageEnded);
+		AnimInst->Montage_SetEndDelegate(AttackMontageEnded, AM_Attack);
+	}
 
 	// Notify로 옮기기
 	FHitResult Hit;
@@ -68,6 +99,7 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
 	Params.bTraceComplex = true;
+	Params.bReturnPhysicalMaterial = true;
 
 	bool bIsWallHit = GetWorld()->LineTraceSingleByChannel(
 		Hit,
@@ -95,9 +127,16 @@ float AMyAICharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, 
 
 	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
-	bIsHit = true;
-	PlayAnimMontage(AM_Hit);
-	bIsHit = false;
+	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
+	if (AnimInst)
+	{
+		PlayAnimMontage(AM_Hit);
+		bIsHit = true;
+		GetCharacterMovement()->DisableMovement();
+		FOnMontageEnded HitMontageEnded;
+		HitMontageEnded.BindUObject(this, &AMyAICharacter::OnHitMontageEnded);
+		AnimInst->Montage_SetEndDelegate(HitMontageEnded, AM_Hit);
+	}
 
 	if (IsValid(HealthComponent) == true)
 	{
@@ -117,4 +156,18 @@ void AMyAICharacter::HandleDeath()
 	GetMesh()->SetAllBodiesSimulatePhysics(true);
 	// 레그돌, 지면에만 충돌, 다른 물체와는 no collision, 약한 참조자로 참조하고 1분뒤에 제거
 	//GetCapsuleComponent()->Setcollision
+}
+
+void AMyAICharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	bIsAttack = false;
+	if (bInterrupted) return;
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+}
+
+void AMyAICharacter::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	bIsHit = false;
+	if (bInterrupted) return;
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 }

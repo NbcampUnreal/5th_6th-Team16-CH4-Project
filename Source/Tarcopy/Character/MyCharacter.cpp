@@ -153,11 +153,6 @@ float AMyCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AC
 	return Damage;
 }
 
-void AMyCharacter::MultiRPC_Temp_Implementation(float Damage, const FName& BoneName)
-{
-	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("TakeDamage : %f, BoneName : %s"), Damage, *BoneName.ToString()), true, true, FColor::Red);
-}
-
 void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                             UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
                                             const FHitResult& SweepResult)
