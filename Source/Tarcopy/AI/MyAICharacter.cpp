@@ -15,7 +15,7 @@
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
-	AttackDamage(40),
+	AttackDamage(30),
 	bIsAttack(false),
 	bIsHit(false)
 {
