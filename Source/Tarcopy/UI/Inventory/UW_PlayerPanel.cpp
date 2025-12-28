@@ -9,7 +9,6 @@
 #include "Inventory/PlayerInventoryComponent.h"
 #include "Inventory/InventoryData.h"
 #include "UI/UISubsystem.h"
-#include "UI/Inventory/UW_InventoryBorder.h"
 #include "UI/Inventory/UW_Inventory.h"
 
 void UUW_PlayerPanel::NativeConstruct()
@@ -19,8 +18,17 @@ void UUW_PlayerPanel::NativeConstruct()
 
 void UUW_PlayerPanel::BindPlayerInventory(UPlayerInventoryComponent* InComp)
 {
-	BoundComp = InComp;
+	if (!IsValid(InComp))
+	{
+		return;
+	}
 
+	if (BoundComp)
+	{
+		BoundComp->OnInventoryReady.RemoveAll(this);
+	}
+
+	BoundComp = InComp;
 	BoundComp->OnInventoryReady.AddUObject(this, &UUW_PlayerPanel::HandleInventoryReady);
 
 	RefreshInventories();
@@ -57,18 +65,26 @@ void UUW_PlayerPanel::RefreshInventories()
 		return;
 	}
 
-	if (!CachedPlayerInvBorder)
+	if(!IsValid(PlayerInventoryWidget))
 	{
-		CachedPlayerInvBorder = UIS->ShowInventoryUI(Data);
-		if (!CachedPlayerInvBorder) return;
+		if (!InventoryWidgetClass)
+		{
+			UE_LOG(LogTemp, Error, TEXT("UUW_PlayerPanel: InventoryWidgetClass is null"));
+			return;
+		}
+
+		PlayerInventoryWidget = CreateWidget<UUW_Inventory>(PC, InventoryWidgetClass);
+		if (!IsValid(PlayerInventoryWidget))
+		{
+			return;
+		}
 
 		InventoryScrollBox->ClearChildren();
-		InventoryScrollBox->AddChild(CachedPlayerInvBorder);
+		InventoryScrollBox->AddChild(PlayerInventoryWidget);
 	}
-	else
-	{
-		Cast<UUW_Inventory>(CachedPlayerInvBorder->GetContentWidget())->BindInventory(Data);
-	}
+
+	PlayerInventoryWidget->BindInventory(Data);
+	Data->ForceRefreshNextTick();
 }
 
 void UUW_PlayerPanel::HandleInventoryReady()

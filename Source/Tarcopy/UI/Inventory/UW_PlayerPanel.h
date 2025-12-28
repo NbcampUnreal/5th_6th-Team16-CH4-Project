@@ -8,7 +8,7 @@
 
 class UScrollBox;
 class UPlayerInventoryComponent;
-class UUW_InventoryBorder;
+class UUW_Inventory;
 
 /**
  * 
@@ -36,5 +36,8 @@ private:
 	TObjectPtr<UPlayerInventoryComponent> BoundComp;
 
 	UPROPERTY()
-	TObjectPtr<UUW_InventoryBorder> CachedPlayerInvBorder;
+	TObjectPtr<UUW_Inventory> PlayerInventoryWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUW_Inventory> InventoryWidgetClass;
 };

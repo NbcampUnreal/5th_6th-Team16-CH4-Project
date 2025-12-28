@@ -33,7 +33,7 @@ public:
 	void HideUI(EUIType Type);
 
 	UUW_InventoryBorder* ShowInventoryUI(UInventoryData* InventoryData);
-	void HideInventoryUI(FGuid InventoryID);
+	void HideInventoryUI(UInventoryData* InventoryData);
 
 	void ResetAllUI();
 
@@ -55,7 +55,7 @@ private:
 	TMap<EUIType, TObjectPtr<UUserWidget>> SingleWidgets;
 
 	UPROPERTY()
-	TMap<FGuid, TObjectPtr<UUW_InventoryBorder>> InventoryWidgets;
+	TMap<TWeakObjectPtr<UInventoryData>, TObjectPtr<UUW_InventoryBorder>> InventoryWidgets;
 
 	UPROPERTY()
 	TObjectPtr<UUW_ItemCommandMenu> ActiveItemCommandMenu;
