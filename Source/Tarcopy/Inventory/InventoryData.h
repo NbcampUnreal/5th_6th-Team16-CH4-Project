@@ -91,7 +91,7 @@ public:
 
 	bool TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, const FIntPoint& NewOrigin, bool bRotated);
 
-	int32 GetItemCountByItemId(FName InItemId) const;
+	int32 GetItemCountByItemId(FName InItemId, TArray<UItemInstance*> OutCandidates) const;
 
 	bool TryConsumeItemsByItemId(FName InItemId, int32 Count);
 

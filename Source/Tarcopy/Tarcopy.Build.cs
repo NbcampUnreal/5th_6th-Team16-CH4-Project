@@ -16,6 +16,7 @@ public class Tarcopy : ModuleRules
             "InputCore",
             "ChaosVehicles",
             "EnhancedInput",
+            "PhysicsCore",
         });
 
         PublicIncludePaths.AddRange(new[]

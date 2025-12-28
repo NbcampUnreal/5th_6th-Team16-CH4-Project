@@ -1,6 +1,8 @@
 ﻿#include "Common/HealthComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "Common/BodyDamageModifierSetting.h"
+#include "Item/EquipComponent.h"
 
 UHealthComponent::UHealthComponent()
 {
@@ -23,8 +25,28 @@ void UHealthComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	DOREPLIFETIME(ThisClass, CurrentHP);
 }
 
-void UHealthComponent::TakeDamage(float Damage, const FName& BoneName)
+float UHealthComponent::TakeDamage(float Damage, const FHitResult& HitResult)
 {
+	float ActualDamage = Damage;
+	UPhysicalMaterial* PhysMat = HitResult.PhysMaterial.IsValid() == true ? HitResult.PhysMaterial.Get() : nullptr;
+	if (IsValid(PhysMat) == true)
+	{
+		if (IsValid(BodyDamageSetting) == true)
+		{
+			float* PtrBodyDamageModifier = BodyDamageSetting->BodyMap.Find(PhysMat);
+			if (PtrBodyDamageModifier != nullptr)
+			{
+				ActualDamage = ActualDamage *= *PtrBodyDamageModifier;
+			}
+		}
+
+		UEquipComponent* EquipComponent = GetOwner()->FindComponentByClass<UEquipComponent>();
+		if (IsValid(EquipComponent) == true)
+		{
+			ActualDamage *= EquipComponent->GetFinalDamageTakenMultiplier(PhysMat);
+		}
+	}
+
 	CurrentHP = FMath::Clamp(CurrentHP - Damage, 0.0f, MaxHP);
 	if (CurrentHP <= 0.0f)
 	{
@@ -35,6 +57,8 @@ void UHealthComponent::TakeDamage(float Damage, const FName& BoneName)
 	}
 
 	OnRep_PrintHP();
+
+	return ActualDamage;
 }
 
 void UHealthComponent::OnRep_PrintHP()

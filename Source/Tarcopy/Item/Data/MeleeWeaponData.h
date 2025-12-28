@@ -34,4 +34,6 @@ public:
 	float CritMultiplier = 1.5f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float Knockback = 0.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float LoseCondition = 0.0f;
 };

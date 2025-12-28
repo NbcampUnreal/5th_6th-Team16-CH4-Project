@@ -59,7 +59,7 @@ void UMeleeWeaponComponent::SetOwnerAnimPreset()
 	SetOwnerAnimPresetByHoldableType(Data->HoldableType);
 }
 
-void UMeleeWeaponComponent::OnExecuteAttack()
+void UMeleeWeaponComponent::OnExecuteAttack(const FVector& TargetLocation)
 {
 	if (Data == nullptr)
 		return;
@@ -144,6 +144,7 @@ void UMeleeWeaponComponent::CheckHit()
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(OwnerCharacter);
 	Params.bTraceComplex = true;
+	Params.bReturnPhysicalMaterial = true;
 	FCollisionShape SphereCollision = FCollisionShape::MakeSphere(AttackRadius);
 
 	bool bHit = GetWorld()->SweepMultiByChannel(HitResults, AttackOrigin, AttackOrigin, FQuat::Identity, ECC_Visibility, SphereCollision, Params);
@@ -183,9 +184,7 @@ void UMeleeWeaponComponent::CheckHit()
 		UDurabilityComponent* DurabilityComponent = GetOwnerItem()->GetItemComponent<UDurabilityComponent>();
 		if (IsValid(DurabilityComponent) == true)
 		{
-			// 바꿔야 함
-			float TempAmount = 1.0;
-			DurabilityComponent->LoseDurability(TempAmount);
+			DurabilityComponent->LoseDurability(Data->LoseCondition);
 		}
 	}
 

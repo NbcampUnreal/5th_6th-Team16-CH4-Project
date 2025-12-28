@@ -3,9 +3,30 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Item/ItemEnums.h"
+#include "Item/Data/ClothData.h"
 #include "EquipComponent.generated.h"
 
 class UItemInstance;
+
+USTRUCT(BlueprintType)
+struct FDamageReduce
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UPhysicalMaterial> PhysMat;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float ReduceAmount = 0.0f;								// 데미지 경감 (0.1면 받는 데미지 10퍼 감소)
+};
+
+USTRUCT(BlueprintType)
+struct FItemDamageReduce
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FDamageReduce> DamageReduces;
+};
 
 USTRUCT()
 struct FEquippedItemInfo
@@ -17,6 +38,8 @@ struct FEquippedItemInfo
 	UPROPERTY()
 	TObjectPtr<UItemInstance> Item;
 };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnChangedEquippedItems);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class TARCOPY_API UEquipComponent : public UActorComponent
@@ -46,21 +69,33 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void NetMulticast_SetOwnerHoldingItemEmpty();
 
-	void ExecuteAttack();
+	void ExecuteAttack(const FVector& TargetLocation);
 	void CancelActions();
+
+	float GetFinalDamageTakenMultiplier(UPhysicalMaterial* PhysMat) const;
 
 protected:
 	void EquipItem(EBodyLocation BodyLocation, UItemInstance* Item);
 	void UnequipItem(UItemInstance* Item);
-	
-private:
-	const struct FItemData* GetItemData(const FName& InItemId) const;
+
+	void CalculateFinalDamageTakenMultiplier();
+
+	UFUNCTION()
+	void OnRep_OnChangedEquippedItems();
+
+public:
+	FOnChangedEquippedItems OnChangedEquippedItems;
 
 protected:
-	UPROPERTY(VisibleAnywhere, Replicated)
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_OnChangedEquippedItems)
 	TArray<FEquippedItemInfo> EquippedItemInfos;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float TotalWeight;
+
+	UPROPERTY()
+	TMap<TWeakObjectPtr<UItemInstance>, FItemDamageReduce> ItemDamageReduces;
+	UPROPERTY()
+	TMap<TObjectPtr<UPhysicalMaterial>, float> FinalDamageTakenMultiplier;
 
 	// For Test
 	UPROPERTY(EditAnywhere)

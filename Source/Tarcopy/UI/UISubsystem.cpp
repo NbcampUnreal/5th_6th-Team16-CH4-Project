@@ -93,6 +93,33 @@ void UUISubsystem::HideUI(EUIType Type)
 
 UUW_InventoryBorder* UUISubsystem::ShowInventoryUI(UInventoryData* InventoryData)
 {
+    if (!IsValid(InventoryData))
+    {
+        return nullptr;
+    }
+
+    for (auto It = InventoryWidgets.CreateIterator(); It; ++It)
+    {
+        if (!It.Key().IsValid() || !IsValid(It.Value()))
+        {
+            It.RemoveCurrent();
+        }
+    }
+
+    // 이미 떠 있으면 재사용
+    if (TObjectPtr<UUW_InventoryBorder>* Found = InventoryWidgets.Find(InventoryData))
+    {
+        if (IsValid(*Found))
+        {
+            (*Found)->SetVisibility(ESlateVisibility::Visible);
+
+            InventoryData->ForceRefreshNextTick();
+
+            return Found->Get();
+        }
+        InventoryWidgets.Remove(InventoryData);
+    }
+
     // UI를 생성해야 하는 경우
     APlayerController* PC = GetLocalPlayer()->GetPlayerController(GetWorld());
     if (!PC)
@@ -117,6 +144,8 @@ UUW_InventoryBorder* UUISubsystem::ShowInventoryUI(UInventoryData* InventoryData
 
     InventoryInstance->BindInventory(InventoryData);
 
+    InventoryData->ForceRefreshNextTick();
+
     FUIInfo BorderWidgetInfo;
     if (!UIConfigData->GetInfo(EUIType::InventoryBorder, BorderWidgetInfo))
     {
@@ -132,6 +161,7 @@ UUW_InventoryBorder* UUISubsystem::ShowInventoryUI(UInventoryData* InventoryData
     }
 
     BorderInstance->SetContentWidget(InventoryInstance);
+    BorderInstance->SetInventoryData(InventoryData);
 
     if (!RootHUD)
     {
@@ -143,19 +173,30 @@ UUW_InventoryBorder* UUISubsystem::ShowInventoryUI(UInventoryData* InventoryData
         UE_LOG(LogTemp, Error, TEXT("UUISubsystem::ShowUI: Slot is nullptr!"));
         return nullptr;
     }
-    ApplyLayoutPreset(Slot, WidgetInfo.Layout);
-    Slot->SetPosition(FVector2D(WidgetInfo.Layout.Position.X + InventoryWidgets.Num() * 10, WidgetInfo.Layout.Position.Y + InventoryWidgets.Num() * 10));
+    ApplyLayoutPreset(Slot, BorderWidgetInfo.Layout);
+    Slot->SetPosition(FVector2D(BorderWidgetInfo.Layout.Position.X + InventoryWidgets.Num() * 10, BorderWidgetInfo.Layout.Position.Y + InventoryWidgets.Num() * 10));
 
     FGuid InventoryID = InventoryData->GetID();
-    InventoryWidgets.Add(InventoryID, BorderInstance);
+    InventoryWidgets.Add(InventoryData, BorderInstance);
 
     return BorderInstance;
 }
 
-void UUISubsystem::HideInventoryUI(FGuid InventoryID)
+void UUISubsystem::HideInventoryUI(UInventoryData* InventoryData)
 {
-    InventoryWidgets[InventoryID]->RemoveFromParent();
-    InventoryWidgets.Remove(InventoryID);
+    if (!IsValid(InventoryData))
+    {
+        return;
+    }
+
+    if (TObjectPtr<UUW_InventoryBorder>* Found = InventoryWidgets.Find(InventoryData))
+    {
+        if (IsValid(*Found))
+        {
+            (*Found)->RemoveFromParent();
+        }
+        InventoryWidgets.Remove(InventoryData);
+    }
 }
 
 void UUISubsystem::ResetAllUI()
@@ -269,7 +310,7 @@ void UUISubsystem::InitRootHUD()
         UE_LOG(LogTemp, Error, TEXT("UUISubsystem::InitRootHUD: RootHUD is null!"));
         return;
     }
-
+    RootHUD->OnGlobalMouseDown.AddUObject(this, &ThisClass::CloseItemCommandMenu);
     RootHUD->AddToViewport();
 }
 

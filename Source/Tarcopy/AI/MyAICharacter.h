@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -31,13 +31,44 @@ protected:
 
 #pragma endregion
 
-#pragma region State Tree
+#pragma region Combat
 
 public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Equip", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UHealthComponent> HealthComponent;
+
+	UPROPERTY(Replicated, ReplicatedUsing =  "OnRep_bIsAttack", EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	bool bIsAttack;
+	UFUNCTION()
+	void OnRep_bIsAttack();
+
+	UPROPERTY(Replicated, ReplicatedUsing = "OnRep_bIsHit", EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	bool bIsHit;
+	UFUNCTION()
+	void OnRep_bIsHit();
+
 	int32 AttackDamage;
 
 	UFUNCTION(BlueprintCallable)
 	void Attack(AMyAICharacter* ContextActor, AActor* TargetActor);
 
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	void HandleDeath();
+#pragma endregion
+
+#pragma region Animation
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage> AM_Attack;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage> AM_Hit;
+
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 #pragma endregion
 };

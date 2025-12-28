@@ -62,16 +62,16 @@ void UCraftComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& Ou
 			CraftCommand->bExecutable = true;			
 			for (const auto& Ingredient : CraftData->IngredientItems)
 			{
-				int Count = 0;
+				TArray<UItemInstance*> OutCandidates;
 				for (const auto& InventoryData : InventoryDatas)
 				{
 					if (IsValid(InventoryData) == false)
 						continue;
 
-					Count += InventoryData->GetItemCountByItemId(Ingredient.Key);
+					InventoryData->GetItemCountByItemId(Ingredient.Key, OutCandidates);
 				}
 
-				if (Count < Ingredient.Value)
+				if (OutCandidates.Num() < Ingredient.Value)
 				{
 					CraftCommand->bExecutable = false;
 					break;

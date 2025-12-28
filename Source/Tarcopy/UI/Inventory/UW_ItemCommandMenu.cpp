@@ -12,11 +12,6 @@
 void UUW_ItemCommandMenu::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	SetIsFocusable(true);
-	SetKeyboardFocus();
-
-	RebuildEntries();
 }
 
 void UUW_ItemCommandMenu::InitMenu(UItemInstance* InItem)
@@ -37,10 +32,17 @@ void UUW_ItemCommandMenu::InitMenu(UItemInstance* InItem)
 			Comp->GetCommands(Commands);
 		}
 	}
+
+	bInitialized = true;
+
+	RebuildEntries();
 }
 
 void UUW_ItemCommandMenu::RebuildEntries()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[CmdMenu] RebuildEntries Commands=%d Panel=%s"),
+		Commands.Num(), *GetNameSafe(PanelEntries));
+
 	if (!PanelEntries)
 	{
 		return;
@@ -50,6 +52,11 @@ void UUW_ItemCommandMenu::RebuildEntries()
 
 	for (UItemCommandBase* Cmd : Commands)
 	{
+		if (!bInitialized)
+		{
+			return;
+		}
+
 		if (!IsValid(Cmd) || !EntryClass)
 		{
 			continue;
@@ -65,22 +72,14 @@ void UUW_ItemCommandMenu::RebuildEntries()
 
 		Entry->InitEntry(Cmd);
 		Entry->OnExecuted.AddUObject(this, &ThisClass::HandleEntryExecuted);
-	}
-}
 
-void UUW_ItemCommandMenu::NativeOnFocusLost(const FFocusEvent& InFocusEvent)
-{
-	Super::NativeOnFocusLost(InFocusEvent);
-	CloseSelf();
+
+		UE_LOG(LogTemp, Warning, TEXT("[CmdMenu] Add Entry=%s Cmd=%s"),
+			*GetNameSafe(Entry), *GetNameSafe(Cmd));
+	}
 }
 
 void UUW_ItemCommandMenu::HandleEntryExecuted()
 {
-	CloseSelf();
-}
-
-void UUW_ItemCommandMenu::CloseSelf()
-{
 	RemoveFromParent();
 }
-

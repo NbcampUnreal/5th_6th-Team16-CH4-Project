@@ -35,8 +35,6 @@ void ATempDamageableActor::BeginPlay()
 void ATempDamageableActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(ThisClass, HealthComponent);
 }
 
 float ATempDamageableActor::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -48,7 +46,7 @@ float ATempDamageableActor::TakeDamage(float DamageAmount, FDamageEvent const& D
 		const FPointDamageEvent* PointDamageEvent = (const FPointDamageEvent*)(&DamageEvent);
 		if (PointDamageEvent != nullptr)
 		{
-			HealthComponent->TakeDamage(Damage, PointDamageEvent->HitInfo.BoneName);
+			HealthComponent->TakeDamage(Damage, PointDamageEvent->HitInfo);
 		}
 	}
 	return 0.0f;

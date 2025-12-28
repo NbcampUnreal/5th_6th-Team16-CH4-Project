@@ -40,12 +40,13 @@
 #include "Item/ItemComponent/ContainerComponent.h"
 #include "Inventory/PlayerInventoryComponent.h"
 #include "Inventory/LootScannerComponent.h"
+#include "Common/HealthComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
-	BaseWalkSpeed(600.f),
+	BaseWalkSpeed(400.f),
 	SprintSpeedMultiplier(1.5f),
-	CrouchSpeedMultiplier(0.7f),
+	CrouchSpeedMultiplier(0.8f),
 	bIsAttackMode(false)
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -61,6 +62,7 @@ AMyCharacter::AMyCharacter() :
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
+	GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed;
 
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
@@ -91,6 +93,7 @@ AMyCharacter::AMyCharacter() :
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnInteractionSphereEndOverlap);
 
 	EquipComponent = CreateDefaultSubobject<UEquipComponent>(TEXT("EquipComponent"));
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
 	Moodle = CreateDefaultSubobject<UMoodleComponent>(TEXT("Moodle"));
 
@@ -134,24 +137,20 @@ void AMyCharacter::OnRep_Controller()
 }
 float AMyCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+	if (!HasAuthority()) return Damage;
+
 	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
-	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	if (IsValid(HealthComponent) == true)
 	{
-		FPointDamageEvent const& PointDamageEvent = static_cast<FPointDamageEvent const&>(DamageEvent);
-		FHitResult HitResult = PointDamageEvent.HitInfo;
-		FName BoneName = HitResult.BoneName;
-		MultiRPC_Temp(Damage, BoneName);
+		const FPointDamageEvent* PointDamageEvent = (const FPointDamageEvent*)(&DamageEvent);
+		if (PointDamageEvent != nullptr)
+		{
+			Damage = HealthComponent->TakeDamage(Damage, PointDamageEvent->HitInfo);
+		}
 	}
 
-	
-
 	return Damage;
-}
-
-void AMyCharacter::MultiRPC_Temp_Implementation(float Damage, const FName& BoneName)
-{
-	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("TakeDamage : %f, BoneName : %s"), Damage, *BoneName.ToString()), true, true, FColor::Red);
 }
 
 void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -404,10 +403,10 @@ void AMyCharacter::LeftClick(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Left Click"));
 
-	ServerRPC_ExecuteAttack();
+	ServerRPC_ExecuteAttack(GetAttackTargetLocation());
 }
 
-void AMyCharacter::ServerRPC_ExecuteAttack_Implementation()
+void AMyCharacter::ServerRPC_ExecuteAttack_Implementation(const FVector& TargetLocation)
 {
 	if (HasAuthority() == false)
 		return;
@@ -415,7 +414,27 @@ void AMyCharacter::ServerRPC_ExecuteAttack_Implementation()
 	if (IsValid(EquipComponent) == false)
 		return;
 
-	EquipComponent->ExecuteAttack();
+	EquipComponent->ExecuteAttack(TargetLocation);
+}
+
+FVector AMyCharacter::GetAttackTargetLocation() const
+{
+	FHitResult HitResult;
+	AActor* AimTarget = nullptr;
+	FName BoneName = NAME_None;
+	bool bHit = GetAimTarget(AimTarget, BoneName);
+	// default : 앞을 향한 충분한 먼 거리
+	FVector TargetLocation = GetActorForwardVector() * 10000.0f;
+	if (IsValid(AimTarget) == true)
+	{
+		// 적을 조준 중이라면, 조준 중인 적의 Bone을 향해 공격
+		USkeletalMeshComponent* TargetSkeletal = AimTarget->FindComponentByClass<USkeletalMeshComponent>();
+		if (IsValid(TargetSkeletal) == true && TargetSkeletal->DoesSocketExist(BoneName) == true)
+		{
+			TargetLocation = TargetSkeletal->GetSocketLocation(BoneName);
+		}
+	}
+	return TargetLocation;
 }
 
 void AMyCharacter::ServerRPC_TurnToMouse_Implementation(const FRotator& TargetRot)
@@ -568,7 +587,7 @@ void AMyCharacter::SetItem()
 	}
 }
 
-bool AMyCharacter::GetAimTarget(AActor*& OutTargetActor, FName& OutBone)
+bool AMyCharacter::GetAimTarget(AActor*& OutTargetActor, FName& OutBone) const
 {
 	AMyPlayerController* PC = Cast<AMyPlayerController>(GetController());
 	if (IsValid(PC) == false)
@@ -679,42 +698,6 @@ void AMyCharacter::RemoveInteractableDoor(AActor* DoorActor)
 	{
 		OverlappingDoors.Remove(DoorActor);
 	}
-}
-
-float AMyCharacter::GetCurrentHunger() 
-{
-	return  Moodle->GetCurrentHunger(); 
-}
-float AMyCharacter::GetCurrentThirst()
-{
-	return Moodle->GetCurrentThirst();
-}
-float AMyCharacter::GetCurrentStamina()
-{
-	return Moodle->GetCurrentStamina();
-}
-float AMyCharacter::GetMaxStamina()
-{
-	return Moodle->GetMaxStamina();
-}
-
-void AMyCharacter::SetCurrentHunger(float InHunger)
-{
-	Moodle->SetCurrentHunger(InHunger);
-}
-void AMyCharacter::SetCurrentThirst(float InThirst)
-{
-	Moodle->SetCurrentThirst(InThirst);
-}
-
-void AMyCharacter::SetCurrentStamina(float InStamina)
-{
-	Moodle->SetCurrentStamina(InStamina);
-}
-
-void AMyCharacter::SetMaxStamina(float InStamina)
-{
-	Moodle->SetMaxStamina(InStamina);
 }
 
 void AMyCharacter::Interact(const FInputActionValue& Value)

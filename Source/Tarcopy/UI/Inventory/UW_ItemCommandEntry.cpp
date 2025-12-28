@@ -30,10 +30,14 @@ void UUW_ItemCommandEntry::InitEntry(UItemCommandBase* InCommand)
 
 	Btn->OnClicked.RemoveAll(this);
 	Btn->OnClicked.AddDynamic(this, &ThisClass::HandleClicked);
+
+	UE_LOG(LogTemp, Warning, TEXT("[CmdEntry] InitEntry this=%p Btn=%s Txt=%s Cmd=%s Exec=%d"),
+		this, *GetNameSafe(Btn), *GetNameSafe(Txt), *GetNameSafe(Command), Command ? (int32)Command->bExecutable : -1);
 }
 
 void UUW_ItemCommandEntry::HandleClicked()
 {
+	UE_LOG(LogTemp, Warning, TEXT("UUW_ItemCommandEntry : HandleClicked"));
 	if (!IsValid(Command))
 	{
 		return;

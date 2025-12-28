@@ -12,7 +12,7 @@ enum class EItemComponent : uint8;
 struct FItemData;
 class UItemComponentBase;
 
-DECLARE_MULTICAST_DELEGATE(FOnItemUpdated)
+DECLARE_MULTICAST_DELEGATE(FOnItemUpdated);
 
 UCLASS(BlueprintType)
 class TARCOPY_API UItemInstance : public UObject
