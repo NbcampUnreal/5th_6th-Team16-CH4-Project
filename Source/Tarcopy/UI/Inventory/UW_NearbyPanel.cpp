@@ -7,7 +7,6 @@
 #include "Inventory/LootScannerComponent.h"
 #include "Inventory/WorldContainerComponent.h"
 #include "UI/UISubsystem.h"
-#include "UI/Inventory/UW_InventoryBorder.h"
 #include "UI/Inventory/UW_Inventory.h"
 #include "Components/NamedSlot.h"
 #include "Components/Button.h"
@@ -37,17 +36,14 @@ void UUW_NearbyPanel::NativeConstruct()
 	{
 		if (auto* UIS = LP->GetSubsystem<UUISubsystem>())
 		{
-			if (auto* Border = UIS->ShowUI(EUIType::InventoryBorder))
+			InventoryWidget = CreateWidget<UUW_Inventory>(PC, InventoryWidgetClass);
+			if (!InventoryWidget)
 			{
-				if (auto* Inventory = UIS->ShowUI(EUIType::Inventory))
-				{
-					SelectedContainer->SetContent(Border);
-					InventoryBorder = Cast<UUW_InventoryBorder>(Border);
-					InventoryBorder->SetContentWidget(Inventory);
-					InventoryWidget = Cast<UUW_Inventory>(Inventory);
-					SelectedContainer->SetVisibility(ESlateVisibility::Collapsed);
-				}
+				return;
 			}
+
+			SelectedContainer->SetContent(InventoryWidget);
+			SelectedContainer->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 }
@@ -149,6 +145,7 @@ void UUW_NearbyPanel::HandleContainerSelected(UInventoryData* Inventory)
 	{
 		SelectedContainer->SetVisibility(ESlateVisibility::Collapsed);
 		bInventoryPanelOpen = false;
+		bLastSelectedWasGround = false;
 		LastSelectedInventory = nullptr;
 		return;
 	}
@@ -173,6 +170,8 @@ void UUW_NearbyPanel::HandleGroundSelected()
 	{
 		SelectedContainer->SetVisibility(ESlateVisibility::Collapsed);
 		bInventoryPanelOpen = false;
+		bLastSelectedWasGround = false;
+		LastSelectedInventory = nullptr;
 		return;
 	}
 

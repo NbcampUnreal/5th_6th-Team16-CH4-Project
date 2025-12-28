@@ -22,6 +22,7 @@ enum class EUIType : uint8
     Nearby,
     ItemCommandMenu,
     Car,
+    CarInteraction,
     Test
 };
 

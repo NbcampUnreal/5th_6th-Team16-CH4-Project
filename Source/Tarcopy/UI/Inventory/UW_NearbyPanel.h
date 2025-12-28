@@ -8,7 +8,6 @@
 
 class ULootScannerComponent;
 class UNamedSlot;
-class UUW_InventoryBorder;
 class UUW_Inventory;
 class UScrollBox;
 class UUW_ContainerBtn;
@@ -56,9 +55,6 @@ private:
 	TSubclassOf<UUW_ContainerBtn> ContainerBtnClass;
 
 	UPROPERTY()
-	TObjectPtr<UUW_InventoryBorder> InventoryBorder;
-
-	UPROPERTY()
 	TObjectPtr<UUW_Inventory> InventoryWidget;
 
 	UPROPERTY(meta = (BindWidget))
@@ -66,4 +62,7 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<ULootScannerComponent> BoundScanner;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UUW_Inventory> InventoryWidgetClass;
 };

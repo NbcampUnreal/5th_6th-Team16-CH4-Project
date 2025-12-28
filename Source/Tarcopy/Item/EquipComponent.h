@@ -39,6 +39,8 @@ struct FEquippedItemInfo
 	TObjectPtr<UItemInstance> Item;
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnChangedEquippedItems);
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class TARCOPY_API UEquipComponent : public UActorComponent
 {
@@ -78,8 +80,14 @@ protected:
 
 	void CalculateFinalDamageTakenMultiplier();
 
+	UFUNCTION()
+	void OnRep_OnChangedEquippedItems();
+
+public:
+	FOnChangedEquippedItems OnChangedEquippedItems;
+
 protected:
-	UPROPERTY(VisibleAnywhere, Replicated)
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_OnChangedEquippedItems)
 	TArray<FEquippedItemInfo> EquippedItemInfos;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float TotalWeight;

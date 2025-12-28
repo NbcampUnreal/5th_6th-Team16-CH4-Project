@@ -21,17 +21,17 @@ class TARCOPY_API UUW_ItemCommandMenu : public UUserWidget
 
 protected:
 	virtual void NativeConstruct() override;
-	virtual void NativeOnFocusLost(const FFocusEvent& InFocusEvent) override;
 
 public:
 	void InitMenu(UItemInstance* InItem);
 
 private:
 	void RebuildEntries();
-	void CloseSelf();
 
 	UFUNCTION()
 	void HandleEntryExecuted();
+
+	bool bInitialized = false;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UVerticalBox> PanelEntries;

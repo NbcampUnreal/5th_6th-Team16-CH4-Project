@@ -96,6 +96,27 @@ void AMyPlayerController::SetItem(UItemInstance* Item)
 	TempItemInstance->SetItem(Item);
 }
 
+void AMyPlayerController::SetHungerTextUI(float CurrentValue, float MaxValue)
+{
+	if (IsValid(TempItemInstance) == false)
+		return;
+
+	TempItemInstance->SetHunger(CurrentValue, MaxValue);
+}
+
+void AMyPlayerController::SetThirstTextUI(float CurrentValue, float MaxValue)
+{
+	if (IsValid(TempItemInstance) == false)
+		return;
+
+	TempItemInstance->SetThirst(CurrentValue, MaxValue);
+}
+
+void AMyPlayerController::SetStaminaTextUI(float CurrentValue, float MaxValue)
+{
+	//TempItemInstance->SetHunger(CurrentValue, MaxValue);
+}
+
 void AMyPlayerController::ChangeIMC(UInputMappingContext* InIMC)
 {
 	if (!IsLocalPlayerController() || !InIMC) return;

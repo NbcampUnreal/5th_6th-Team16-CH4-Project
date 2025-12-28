@@ -70,6 +70,9 @@ public:
 
 public:
 	void SetItem(class UItemInstance* Item);
+	void SetHungerTextUI(float CurrentValue, float MaxValue);
+	void SetThirstTextUI(float CurrentValue, float MaxValue);
+	void SetStaminaTextUI(float CurrentValue, float MaxValue);
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UUW_TempItem> TempItemClass;
