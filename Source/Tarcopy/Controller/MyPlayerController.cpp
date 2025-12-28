@@ -21,8 +21,7 @@
 AMyPlayerController::AMyPlayerController() :
 	IMC_Character(nullptr),
 	IMC_Car(nullptr),
-	MoveAction(nullptr),
-	LookAction(nullptr)
+	MoveAction(nullptr)
 {
 	bReplicates = true;
 }
