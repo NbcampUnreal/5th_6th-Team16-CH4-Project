@@ -551,6 +551,12 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 				EnhancedInput->BindAction(PlayerController->RotateAction, ETriggerEvent::Started, this,
 					&AMyCharacter::OnRotateInventoryItem);
 			}
+
+			if (PlayerController->TabAction)
+			{
+				EnhancedInput->BindAction(PlayerController->TabAction, ETriggerEvent::Started, this,
+					&AMyCharacter::TabAction);
+			}
 		}
 	}
 }
@@ -907,6 +913,10 @@ void AMyCharacter::MulticastRPC_ApplyDoorTransforms_Implementation(const TArray<
 
 		DoorActor->SetActorTransform(DoorTransforms[i]);
 	}
+}
+
+void AMyCharacter::TabAction(const FInputActionValue& Value)
+{
 }
 
 void AMyCharacter::OnRotateInventoryItem()

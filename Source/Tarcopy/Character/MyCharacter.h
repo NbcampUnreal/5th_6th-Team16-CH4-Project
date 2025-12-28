@@ -242,6 +242,9 @@ public:
 
 
 #pragma region Inventory
+	UFUNCTION()
+	virtual void TabAction(const FInputActionValue& Value);
+
 	void OnRotateInventoryItem();
 #pragma endregion
 };

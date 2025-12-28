@@ -40,9 +40,6 @@ public:
 	TObjectPtr<UInputAction> MoveAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
-	TObjectPtr<UInputAction> LookAction;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
 	TObjectPtr<UInputAction> SprintAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
@@ -65,6 +62,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
 	TObjectPtr<UInputAction> RotateAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inputs|Character")
+	TObjectPtr<UInputAction> TabAction;
 
 #pragma endregion
 
