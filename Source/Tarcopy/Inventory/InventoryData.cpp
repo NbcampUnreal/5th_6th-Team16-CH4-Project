@@ -118,7 +118,7 @@ bool UInventoryData::TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, 
 }
 
 
-int32 UInventoryData::GetItemCountByItemId(FName InItemId) const
+int32 UInventoryData::GetItemCountByItemId(FName InItemId, TArray<UItemInstance*> OutCandidates) const
 {
 	int32 Count = 0;
 
@@ -132,6 +132,7 @@ int32 UInventoryData::GetItemCountByItemId(FName InItemId) const
 
 		if (Item->GetData()->ItemId == InItemId)
 		{
+			OutCandidates.Add(Entry.Item);
 			++Count;
 		}
 	}
