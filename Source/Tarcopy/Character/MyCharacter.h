@@ -114,24 +114,6 @@ protected:
 public:
 	UMoodleComponent* GetMoodleComponent() const { return Moodle; }
 
-	UFUNCTION(BlueprintPure)
-	float GetCurrentHunger();
-	UFUNCTION(BlueprintPure)
-	float GetCurrentThirst();
-	UFUNCTION(BlueprintPure)
-	float GetCurrentStamina();
-	UFUNCTION(BlueprintPure)
-	float GetMaxStamina();
-
-	UFUNCTION(BlueprintCallable)
-	void SetCurrentHunger(float InHunger);
-	UFUNCTION(BlueprintCallable)
-	void SetCurrentThirst(float InThirst);
-	UFUNCTION(BlueprintCallable)
-	void SetCurrentStamina(float InStamina);
-	UFUNCTION(BlueprintCallable)
-	void SetMaxStamina(float InStamina);
-
 #pragma endregion
 
 #pragma region MoveAction

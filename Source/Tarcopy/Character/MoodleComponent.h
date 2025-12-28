@@ -1,9 +1,19 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "MoodleComponent.generated.h"
 
+USTRUCT()
+struct FMoodleSyncData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	float Value = 0.0f;
+	UPROPERTY()
+	float ServerTime = 0.0f;
+};
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class TARCOPY_API UMoodleComponent : public UActorComponent
@@ -11,43 +21,67 @@ class TARCOPY_API UMoodleComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this component's properties
 	UMoodleComponent();
 
-	UFUNCTION(BlueprintPure)
-	float GetCurrentHunger() const { return CurrentHunger; }
-	UFUNCTION(BlueprintPure)
-	float GetCurrentThirst() const { return CurrentThirst; }
-	UFUNCTION(BlueprintPure)
-	float GetCurrentStamina() const { return CurrentStamina; }
-	UFUNCTION(BlueprintPure)
-	float GetMaxStamina() const { return MaxStamina; }
+protected:
+	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UFUNCTION(BlueprintCallable)
-	void SetCurrentHunger(float InHunger);
-	UFUNCTION(BlueprintCallable)
-	void SetCurrentThirst(float InThirst);
-	UFUNCTION(BlueprintCallable)
-	void SetCurrentStamina(float InStamina);
-	UFUNCTION(BlueprintCallable)
-	void SetMaxStamina(float InStamina);
+public:
+	void RestoreHunger(float InHunger);
+	void RestoreThirst(float InThirst);
+	void RestoreStamina(float InStamina);
 
 protected:
+	UFUNCTION()
+	void ReduceHungerByTime();
+	UFUNCTION()
+	void ReduceThirstByTime();
 
-	FTimerHandle HungerHandle;
-	FTimerHandle ThirstHandle;
-	FTimerHandle MaxStaminaHandle;
+	UFUNCTION()
+	void OnRep_SetHunger();
+	UFUNCTION()
+	void OnRep_SetThirst();
+	UFUNCTION()
+	void OnRep_SetStamina();
 
-	virtual void BeginPlay() override;
+	UFUNCTION()
+	void UpdateHungerUI(float CurrentValue, float MaxValue);
+	UFUNCTION()
+	void UpdateThirstUI(float CurrentValue, float MaxValue);
+	UFUNCTION()
+	void UpdateStaminaUI(float CurrentValue, float MaxValue);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Moodle", meta = (AllowPrivateAccess = "true"))
+	void SetHunger(float InHunger);
+	void SetThirst(float InThirst);
+	void SetStamina(float InStamina);
+
+protected:
+	FTimerHandle HungerTimerHandle;
+	FTimerHandle ThirstTimerHandle;
+
+	UPROPERTY()
+	float HungerReduceDelay;
+	UPROPERTY()
+	float HungerReduceAmount;
+	UPROPERTY()
+	float ThirstReduceDelay;
+	UPROPERTY()
+	float ThirstReduceAmount;
+
+	UPROPERTY()
+	float MaxHunger;
+	UPROPERTY()
+	float MaxThirst;
+	UPROPERTY()
+	float MaxStamina;
+
+	UPROPERTY(ReplicatedUsing = OnRep_SetHunger)
 	float CurrentHunger;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Moodle", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(ReplicatedUsing = OnRep_SetThirst)
 	float CurrentThirst;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Moodle", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(ReplicatedUsing = OnRep_SetStamina)
 	float CurrentStamina;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Moodle", meta = (AllowPrivateAccess = "true"))
-	float MaxStamina;
 };

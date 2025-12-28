@@ -700,42 +700,6 @@ void AMyCharacter::RemoveInteractableDoor(AActor* DoorActor)
 	}
 }
 
-float AMyCharacter::GetCurrentHunger() 
-{
-	return  Moodle->GetCurrentHunger(); 
-}
-float AMyCharacter::GetCurrentThirst()
-{
-	return Moodle->GetCurrentThirst();
-}
-float AMyCharacter::GetCurrentStamina()
-{
-	return Moodle->GetCurrentStamina();
-}
-float AMyCharacter::GetMaxStamina()
-{
-	return Moodle->GetMaxStamina();
-}
-
-void AMyCharacter::SetCurrentHunger(float InHunger)
-{
-	Moodle->SetCurrentHunger(InHunger);
-}
-void AMyCharacter::SetCurrentThirst(float InThirst)
-{
-	Moodle->SetCurrentThirst(InThirst);
-}
-
-void AMyCharacter::SetCurrentStamina(float InStamina)
-{
-	Moodle->SetCurrentStamina(InStamina);
-}
-
-void AMyCharacter::SetMaxStamina(float InStamina)
-{
-	Moodle->SetMaxStamina(InStamina);
-}
-
 void AMyCharacter::Interact(const FInputActionValue& Value)
 {
 	if (!IsLocallyControlled() || !IsValid(InteractionSphere))

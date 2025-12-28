@@ -21,7 +21,7 @@ protected:
 
 public:
 	UFUNCTION(Server, Reliable)
-	void ServerRPC_Consume(int32 ConsumeAmount);
+	void ServerRPC_Ingest(int32 ConsumeAmount);
 	UFUNCTION()
 	void OnRep_PrintAmount();
 
@@ -32,4 +32,6 @@ private:
 	float RemainToExpire;
 
 	const FFoodData* Data;
+
+	static const float TotalAmount;							// default Amount = 4
 };

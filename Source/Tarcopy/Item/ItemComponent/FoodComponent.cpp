@@ -6,6 +6,10 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Item/ItemCommand/IngestCommand.h"
 #include "Net/UnrealNetwork.h"
+#include "Character/MyCharacter.h"
+#include "Character/MoodleComponent.h"
+
+const float UFoodComponent::TotalAmount = 4;
 
 void UFoodComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
@@ -62,10 +66,22 @@ void UFoodComponent::OnRep_SetComponent()
 	Data = DataTableSubsystem->GetTable(EDataTableType::FoodTable)->FindRow<FFoodData>(ItemData->ItemId, FString(""));
 }
 
-void UFoodComponent::ServerRPC_Consume_Implementation(int32 ConsumeAmount)
+void UFoodComponent::ServerRPC_Ingest_Implementation(int32 ConsumeAmount)
 {
+	if (ConsumeAmount > Amount)
+		return;
+
+	ACharacter* OwnerCharacter = GetOwnerCharacter();
+	UMoodleComponent* Moodle = IsValid(OwnerCharacter) == true ? OwnerCharacter->FindComponentByClass<UMoodleComponent>() : nullptr;
+	if (IsValid(Moodle) == false)
+		return;
+
 	Amount -= ConsumeAmount;
 	OnRep_PrintAmount();
+
+	float RestoreRatio = (float)ConsumeAmount / TotalAmount;
+	Moodle->RestoreHunger(Data->Hunger * RestoreRatio);
+	Moodle->RestoreThirst(Data->Thirst * RestoreRatio);
 }
 
 void UFoodComponent::OnRep_PrintAmount()
