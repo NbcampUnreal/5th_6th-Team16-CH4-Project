@@ -4,10 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "StateTreeEvents.h"
 #include "MyAICharacter.generated.h"
 
 class UStaticMeshComponent;
 class AMyCharacter;
+class UStateTreeComponent;
+struct FStateTreeEvent;
 
 UCLASS()
 class TARCOPY_API AMyAICharacter : public ACharacter
@@ -29,6 +32,20 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UStaticMeshComponent> VisionMesh;
 
+	UFUNCTION()
+	virtual void OnVisionMeshBeginOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
+	UFUNCTION()
+	virtual void OnVisionMeshEndOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex);
 #pragma endregion
 
 #pragma region Combat
@@ -70,5 +87,24 @@ public:
 
 	UFUNCTION()
 	void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+#pragma endregion
+
+#pragma region StateTree
+
+public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "StateTree")
+	TObjectPtr<APawn> TargetActor;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "StateTree")
+	FVector TargetLocation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "StateTree")
+	FStateTreeEvent ToChase;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "StateTree")
+	FStateTreeEvent ToPatrol;
+
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "StateTree")
+	TObjectPtr<UStateTreeComponent> StateTreeComponent;
+
 #pragma endregion
 };
