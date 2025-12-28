@@ -59,6 +59,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Equip", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UEquipComponent> EquipComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Equip", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UHealthComponent> HealthComponent;
+
 	UFUNCTION()
 	virtual void OnInteractionSphereBeginOverlap(
 		UPrimitiveComponent* OverlappedComp,
@@ -110,24 +113,6 @@ protected:
 
 public:
 	UMoodleComponent* GetMoodleComponent() const { return Moodle; }
-
-	UFUNCTION(BlueprintPure)
-	float GetCurrentHunger();
-	UFUNCTION(BlueprintPure)
-	float GetCurrentThirst();
-	UFUNCTION(BlueprintPure)
-	float GetCurrentStamina();
-	UFUNCTION(BlueprintPure)
-	float GetMaxStamina();
-
-	UFUNCTION(BlueprintCallable)
-	void SetCurrentHunger(float InHunger);
-	UFUNCTION(BlueprintCallable)
-	void SetCurrentThirst(float InThirst);
-	UFUNCTION(BlueprintCallable)
-	void SetCurrentStamina(float InStamina);
-	UFUNCTION(BlueprintCallable)
-	void SetMaxStamina(float InStamina);
 
 #pragma endregion
 
@@ -183,7 +168,8 @@ protected:
 	UFUNCTION()
 	virtual void LeftClick(const FInputActionValue& Value);
 	UFUNCTION(Server, Reliable)
-	virtual void ServerRPC_ExecuteAttack();
+	virtual void ServerRPC_ExecuteAttack(const FVector& TargetLocation);
+	FVector GetAttackTargetLocation() const;
 
 	UFUNCTION(Server, Reliable)
 	virtual void ServerRPC_TurnToMouse(const FRotator& TargetRot);
@@ -212,10 +198,6 @@ protected:
 #pragma region Combat
 	public:
 		virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
-
-	protected:
-		UFUNCTION(NetMulticast, Reliable)
-		void MultiRPC_Temp(float Damage, const FName& BoneName);
 #pragma endregion
 
 #pragma region TestItem
@@ -225,7 +207,7 @@ public:
 	void SetItem();
 
 	UFUNCTION()
-	bool GetAimTarget(AActor*& OutTargetActor, FName& OutBone);
+	bool GetAimTarget(AActor*& OutTargetActor, FName& OutBone) const;
 
 	void SetHoldingItemMesh(UStaticMesh* ItemMeshAsset, const FName& SocketName = NAME_None);
 	void SetAnimPreset(EHoldableType Type);

@@ -31,16 +31,6 @@ enum class EItemCategory : uint8
 };
 ENUM_CLASS_FLAGS(EItemCategory);
 
-UENUM(BlueprintType)
-enum class EInteractType : uint8
-{
-	ChopTree,				// 벌목
-	Unlock,					// 열쇠로 잠긴 문 열기
-	PryDoor,				// 지렛대로 문 따기
-	Ingest,					// 섭취 (먹기 + 마시기)
-	OpenCan,				// 캔 따기
-};
-
 // 어떤 속성을 가지고 있는지 (속성에 따라 테이블 참조 및 아이템 인스턴스에 컴포넌트 추가)
 // 중복 가능하게 해야 하면 bitflag 사용하거나 FGameplayTag로 변경
 UENUM(BlueprintType)

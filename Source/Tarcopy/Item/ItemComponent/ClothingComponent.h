@@ -18,6 +18,9 @@ public:
 protected:
 	virtual void OnRep_SetComponent() override;
 
+public:
+	FORCEINLINE const FClothData* GetData() { return Data; }
+
 protected:
 	UPROPERTY()
 	uint8 bIsEquipped : 1 = false;

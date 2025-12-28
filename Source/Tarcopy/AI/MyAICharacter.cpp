@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "AI/MyAICharacter.h"
@@ -9,11 +9,13 @@
 #include "Character/MyCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/DamageEvents.h"
+#include "Animation/AnimMontage.h"
 #include "Components/CapsuleComponent.h"
+#include "Common/HealthComponent.h"
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
-	AttackDamage(40),
+	AttackDamage(30),
 	bIsAttack(false),
 	bIsHit(false)
 {
@@ -22,10 +24,6 @@ AMyAICharacter::AMyAICharacter() :
 
 	AIControllerClass = AZombieController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-
-	RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
-	RootComponent = RootComp;
-	GetCapsuleComponent()->SetupAttachment(RootComponent);
 
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	Movement->bOrientRotationToMovement = true;
@@ -48,6 +46,33 @@ void AMyAICharacter::BeginPlay()
 void AMyAICharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, bIsAttack);
+	DOREPLIFETIME(ThisClass, bIsHit);
+}
+
+void AMyAICharacter::OnRep_bIsAttack()
+{
+	if (bIsAttack)
+	{
+		PlayAnimMontage(AM_Attack);
+	}
+	else
+	{
+		StopAnimMontage(AM_Attack);
+	}
+}
+
+void AMyAICharacter::OnRep_bIsHit()
+{
+	if (bIsHit)
+	{
+		PlayAnimMontage(AM_Hit);
+	}
+	else
+	{
+		StopAnimMontage(AM_Hit);
+	}
 }
 
 void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
@@ -56,17 +81,25 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
 	if (!IsValid(DamagedActor)) return;
 	if (bIsAttack || bIsHit) return;
 
-	bIsAttack = true;	
-	PlayAnimMontage(AM_Attack);
-	bIsAttack = false;
+	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
+	if (AnimInst)
+	{
+		PlayAnimMontage(AM_Attack);
+		bIsAttack = true;
+		GetCharacterMovement()->DisableMovement();
+		FOnMontageEnded AttackMontageEnded;
+		AttackMontageEnded.BindUObject(this, &AMyAICharacter::OnAttackMontageEnded);
+		AnimInst->Montage_SetEndDelegate(AttackMontageEnded, AM_Attack);
+	}
 
-	// Notify·Î ¿Å±â±â
+	// Notifyë¡œ ì˜®ê¸°ê¸°
 	FHitResult Hit;
 	FVector StartLocation = ContextActor->GetActorLocation() + FVector({ 0.f, 0.f, 80.f });
 	FVector EndLocation = DamagedActor->GetActorLocation() + FMath::FRandRange(0.f, 80.f);
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
 	Params.bTraceComplex = true;
+	Params.bReturnPhysicalMaterial = true;
 
 	bool bIsWallHit = GetWorld()->LineTraceSingleByChannel(
 		Hit,
@@ -94,16 +127,24 @@ float AMyAICharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, 
 
 	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
-	bIsHit = true;
-	PlayAnimMontage(AM_Hit);
-	bIsHit = false;
-
-	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
+	if (AnimInst)
 	{
-		FPointDamageEvent const& PointDamageEvent = static_cast<FPointDamageEvent const&>(DamageEvent);
-		FHitResult HitResult = PointDamageEvent.HitInfo;
-		FName BoneName = HitResult.BoneName;
-		//MultiRPC_Temp(Damage, BoneName);
+		PlayAnimMontage(AM_Hit);
+		bIsHit = true;
+		GetCharacterMovement()->DisableMovement();
+		FOnMontageEnded HitMontageEnded;
+		HitMontageEnded.BindUObject(this, &AMyAICharacter::OnHitMontageEnded);
+		AnimInst->Montage_SetEndDelegate(HitMontageEnded, AM_Hit);
+	}
+
+	if (IsValid(HealthComponent) == true)
+	{
+		const FPointDamageEvent* PointDamageEvent = (const FPointDamageEvent*)(&DamageEvent);
+		if (PointDamageEvent != nullptr)
+		{
+			Damage = HealthComponent->TakeDamage(Damage, PointDamageEvent->HitInfo);
+		}
 	}
 
 	return Damage;
@@ -113,6 +154,20 @@ void AMyAICharacter::HandleDeath()
 {
 	GetCharacterMovement()->DisableMovement();
 	GetMesh()->SetAllBodiesSimulatePhysics(true);
-	// ·¹±×µ¹, Áö¸é¿¡¸¸ Ãæµ¹, ´Ù¸¥ ¹°Ã¼¿Í´Â no collision, ¾àÇÑ ÂüÁ¶ÀÚ·Î ÂüÁ¶ÇÏ°í 1ºÐµÚ¿¡ Á¦°Å
+	// ë ˆê·¸ëŒ, ì§€ë©´ì—ë§Œ ì¶©ëŒ, ë‹¤ë¥¸ ë¬¼ì²´ì™€ëŠ” no collision, ì•½í•œ ì°¸ì¡°ìžë¡œ ì°¸ì¡°í•˜ê³  1ë¶„ë’¤ì— ì œê±°
 	//GetCapsuleComponent()->Setcollision
+}
+
+void AMyAICharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	bIsAttack = false;
+	if (bInterrupted) return;
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+}
+
+void AMyAICharacter::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	bIsHit = false;
+	if (bInterrupted) return;
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 }

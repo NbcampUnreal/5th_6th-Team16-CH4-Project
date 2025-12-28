@@ -10,12 +10,12 @@ void UWeaponComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	DOREPLIFETIME(ThisClass, bIsAttacking);
 }
 
-void UWeaponComponent::ExecuteAttack()
+void UWeaponComponent::ExecuteAttack(const FVector& TargetLocation)
 {
 	if (bIsAttacking == true)
 		return;
 
-	OnExecuteAttack();
+	OnExecuteAttack(TargetLocation);
 }
 
 void UWeaponComponent::EnableOwnerMovement()

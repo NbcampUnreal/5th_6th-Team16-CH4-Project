@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -21,9 +21,6 @@ public:
 	virtual void BeginPlay() override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TObjectPtr<USceneComponent> RootComp;
 #pragma endregion
 
 #pragma region Vision
@@ -37,11 +34,18 @@ protected:
 #pragma region Combat
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-	bool bIsAttack;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Equip", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UHealthComponent> HealthComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UPROPERTY(Replicated, ReplicatedUsing =  "OnRep_bIsAttack", EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	bool bIsAttack;
+	UFUNCTION()
+	void OnRep_bIsAttack();
+
+	UPROPERTY(Replicated, ReplicatedUsing = "OnRep_bIsHit", EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	bool bIsHit;
+	UFUNCTION()
+	void OnRep_bIsHit();
 
 	int32 AttackDamage;
 
@@ -61,5 +65,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	TObjectPtr<UAnimMontage> AM_Hit;
 
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 #pragma endregion
 };
