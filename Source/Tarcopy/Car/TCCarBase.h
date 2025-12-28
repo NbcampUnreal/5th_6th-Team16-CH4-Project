@@ -221,13 +221,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	TArray<ECarCommand> GetAvailableCommands() const;
 
-	//Test
-	UPROPERTY(EditAnywhere, Category = "UI")
-	TSubclassOf<UTCCarActivate> InterActionClass;
-
-	UPROPERTY()
-	TObjectPtr<UTCCarActivate> InterActionWidget;
-
 	UFUNCTION()
 	void ShowInterActionUI(APlayerController* InPC);
 

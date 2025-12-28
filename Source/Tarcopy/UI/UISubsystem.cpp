@@ -13,6 +13,8 @@
 #include "UI/Inventory/UW_InventoryBorder.h"
 #include "Item/ItemInstance.h"
 #include "UI/Inventory/UW_ItemCommandMenu.h"
+#include "Car/TCCarBase.h"
+#include "Car/UI/TCCarActivate.h"
 
 UUISubsystem::UUISubsystem()
 {
@@ -269,6 +271,46 @@ UUW_ItemCommandMenu* UUISubsystem::ShowItemCommandMenu(UItemInstance* Item, cons
     return ActiveItemCommandMenu;
 }
 
+UTCCarActivate* UUISubsystem::ShowCarCommandMenu(ATCCarBase* InCar, const FVector2D& ScreenPos)
+{
+    InitRootHUD();
+
+    FUIInfo WidgetInfo;
+    if (!UIConfigData->GetInfo(EUIType::CarInteraction, WidgetInfo))
+    {
+        UE_LOG(LogTemp, Error, TEXT("UUISubsystem::ShowItemCommandMenu: Cannot Find UIConfig Info!"));
+        return nullptr;
+    }
+
+    if (!RootHUD || !RootHUD->GetRootCanvas() || !IsValid(InCar))
+    {
+        return nullptr;
+    }
+
+    CloseCarInteractionMenu();
+
+    APlayerController* PC = GetLocalPlayer() ? GetLocalPlayer()->GetPlayerController(GetWorld()) : nullptr;
+    if (!PC)
+    {
+        return nullptr;
+    }
+
+    CarActiveCommand = CreateWidget<UTCCarActivate>(PC, WidgetInfo.WidgetClass);
+    if (!IsValid(CarActiveCommand))
+    {
+        return nullptr;
+    }
+
+    CarActiveCommand->Setup(InCar);
+
+    UCanvasPanelSlot* Slot = RootHUD->GetRootCanvas()->AddChildToCanvas(CarActiveCommand);
+    ApplyLayoutPreset(Slot, WidgetInfo.Layout);
+
+    Slot->SetPosition(ScreenPos);
+
+    return CarActiveCommand;
+}
+
 void UUISubsystem::CloseItemCommandMenu()
 {
     if (IsValid(ActiveItemCommandMenu))
@@ -276,6 +318,15 @@ void UUISubsystem::CloseItemCommandMenu()
         ActiveItemCommandMenu->RemoveFromParent();
     }
     ActiveItemCommandMenu = nullptr;
+}
+
+void UUISubsystem::CloseCarInteractionMenu()
+{
+    if (IsValid(CarActiveCommand))
+    {
+        CarActiveCommand->RemoveFromParent();
+    }
+    CarActiveCommand = nullptr;
 }
 
 void UUISubsystem::InitRootHUD()
@@ -311,6 +362,7 @@ void UUISubsystem::InitRootHUD()
         return;
     }
     RootHUD->OnGlobalMouseDown.AddUObject(this, &ThisClass::CloseItemCommandMenu);
+    RootHUD->OnGlobalMouseDown.AddUObject(this, &ThisClass::CloseCarInteractionMenu);
     RootHUD->AddToViewport();
 }
 

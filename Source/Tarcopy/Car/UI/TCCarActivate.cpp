@@ -21,11 +21,6 @@ FReply UTCCarActivate::NativeOnMouseButtonDown(const FGeometry& InGeometry, cons
 	return FReply::Handled();
 }
 
-void UTCCarActivate::NativeOnFocusLost(const FFocusEvent& InFocusEvent)
-{
-	RemoveFromParent();
-}
-
 FReply UTCCarActivate::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
 	RemoveFromParent();

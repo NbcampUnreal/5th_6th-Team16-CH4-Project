@@ -23,6 +23,7 @@
 #include "Car/TCVehicleWheelRear.h"
 #include "Engine/DamageEvents.h"
 #include "Car/UI/TCCarActivate.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
@@ -538,18 +539,19 @@ TArray<ECarCommand> ATCCarBase::GetAvailableCommands() const
 
 void ATCCarBase::ShowInterActionUI(APlayerController* InPC)
 {
-	if (!InPC || !InterActionClass) return;
+	if (!InPC) return;
 
-	float MouseX, MouseY;
-	InPC->GetMousePosition(MouseX, MouseY);
+	FVector2D ScreenPos = UWidgetLayoutLibrary::GetMousePositionOnViewport(InPC);
 
-	InterActionWidget = CreateWidget<UTCCarActivate>(InPC, InterActionClass);
+	ULocalPlayer* LP = InPC->GetLocalPlayer();
+	checkf(LP, TEXT("ATCCarBase::OnRep_Controller() LP"));
 
-	InterActionWidget->Setup(this);
-	InterActionWidget->AddToViewport();
-	InterActionWidget->SetKeyboardFocus();
-	InterActionWidget->SetPositionInViewport(FVector2D(MouseX, MouseY));
+	UISubsystem = LP->GetSubsystem<UUISubsystem>();
 
+	if (IsValid(UISubsystem))
+	{
+		UTCCarActivate* UI = UISubsystem->ShowCarCommandMenu(this, ScreenPos);
+	}
 }
 
 void ATCCarBase::ServerRPCShowCharacter_Implementation()

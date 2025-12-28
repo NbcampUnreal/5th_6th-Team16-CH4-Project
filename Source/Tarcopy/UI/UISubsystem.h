@@ -13,6 +13,8 @@ class UInventoryData;
 class UUW_InventoryBorder;
 class UItemInstance;
 class UUW_ItemCommandMenu;
+class UTCCarActivate;
+class ATCCarBase;
 
 struct FGuid;
 
@@ -40,6 +42,9 @@ public:
 	UUW_ItemCommandMenu* ShowItemCommandMenu(UItemInstance* Item, const FVector2D& ScreenPos);
 	void CloseItemCommandMenu();
 
+	UTCCarActivate* ShowCarCommandMenu(ATCCarBase* InCar, const FVector2D& ScreenPos);
+	void CloseCarInteractionMenu();
+
 private:
 	void InitRootHUD();
 
@@ -59,4 +64,7 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UUW_ItemCommandMenu> ActiveItemCommandMenu;
+
+	UPROPERTY()
+	TObjectPtr<UTCCarActivate> CarActiveCommand;
 };

@@ -22,9 +22,6 @@ public:
 		const FGeometry& InGeometry,
 		const FPointerEvent& InMouseEvent) override;
 
-	virtual void NativeOnFocusLost(
-		const FFocusEvent& InFocusEvent) override;
-
 	virtual FReply NativeOnKeyDown(
 		const FGeometry& InGeometry,
 		const FKeyEvent& InKeyEvent) override;
