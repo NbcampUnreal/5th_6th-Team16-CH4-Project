@@ -260,6 +260,14 @@ void UEquipComponent::CalculateFinalDamageTakenMultiplier()
 	}
 }
 
+void UEquipComponent::OnRep_OnChangedEquippedItems()
+{
+	if (OnChangedEquippedItems.IsBound() == true)
+	{
+		OnChangedEquippedItems.Broadcast();
+	}
+}
+
 void UEquipComponent::NetMulticast_SetOwnerHoldingItemEmpty_Implementation()
 {
 	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwner());
