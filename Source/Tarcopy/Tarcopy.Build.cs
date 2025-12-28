@@ -17,6 +17,9 @@ public class Tarcopy : ModuleRules
             "ChaosVehicles",
             "EnhancedInput",
             "PhysicsCore",
+            "AIModule",
+            "StateTreeModule",
+            "GameplayStateTreeModule"
         });
 
         PublicIncludePaths.AddRange(new[]
