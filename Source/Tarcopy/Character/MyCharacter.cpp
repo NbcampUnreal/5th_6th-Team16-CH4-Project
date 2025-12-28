@@ -41,6 +41,7 @@
 #include "Inventory/PlayerInventoryComponent.h"
 #include "Inventory/LootScannerComponent.h"
 #include "Common/HealthComponent.h"
+#include "Animation/AnimMontage.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -137,9 +138,22 @@ void AMyCharacter::OnRep_Controller()
 }
 float AMyCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	if (!HasAuthority()) return Damage;
+	if (!HasAuthority() || bIsHit)
+	{
+		return Damage;
+	}
 
 	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+
+	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
+	if (AnimInst)
+	{
+		PlayAnimMontage(AM_Hit);
+		bIsHit = true;
+		FOnMontageEnded HitMontageEnded;
+		HitMontageEnded.BindUObject(this, &AMyCharacter::OnHitMontageEnded);
+		AnimInst->Montage_SetEndDelegate(HitMontageEnded, AM_Hit);
+	}
 
 	if (IsValid(HealthComponent) == true)
 	{
@@ -570,6 +584,27 @@ void AMyCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, CrouchSpeedMultiplier);
 	DOREPLIFETIME(ThisClass, CurrentSpeed);
 	DOREPLIFETIME(ThisClass, bIsAttackMode);
+}
+
+void AMyCharacter::OnRep_bIsHit()
+{
+	if (bIsHit)
+	{
+		DisableInput(Cast<AMyPlayerController>(Controller));
+		PlayAnimMontage(AM_Hit);
+	}
+	else
+	{
+		EnableInput(Cast<AMyPlayerController>(Controller));
+		StopAnimMontage(AM_Hit);
+	}
+}
+
+void AMyCharacter::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	bIsHit = false;
+	if (bInterrupted) return;
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 }
 
 void AMyCharacter::SetItem()
