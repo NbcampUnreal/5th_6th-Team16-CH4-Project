@@ -21,6 +21,9 @@
 #include "Components/BoxComponent.h"
 #include "Car/TCVehicleWheelFront.h"
 #include "Car/TCVehicleWheelRear.h"
+#include "Engine/DamageEvents.h"
+#include "Car/UI/TCCarActivate.h"
+
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
 
@@ -161,6 +164,35 @@ void ATCCarBase::UnPossessed()
 	Super::UnPossessed();
 
 	UE_LOG(LogTemp, Error, TEXT("UnPossessed"));
+}
+
+float ATCCarBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (!HasAuthority()) return 0;
+
+
+	if (!DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	{
+		return 0;
+	}
+
+	const FPointDamageEvent* PointEvent =
+		static_cast<const FPointDamageEvent*>(&DamageEvent);
+	if (!PointEvent) return 0;
+
+	FVector WorldPoint = PointEvent->HitInfo.ImpactPoint;
+	if (CombatComponent)
+	{
+		for (auto Zone : CombatComponent->DamageZone)
+		{
+			if (CombatComponent->IsPointInsideBox(Zone, WorldPoint))
+			{
+				CombatComponent->ApplyDamage(Zone, DamageAmount, WorldPoint);
+			}
+		}
+	}
+	
+	return DamageAmount;
 }
 
 void ATCCarBase::PossessedBy(AController* NewController)
@@ -329,11 +361,6 @@ void ATCCarBase::ServerRPCDoHandLight_Implementation()
 	}
 }
 
-void ATCCarBase::DamageOn()
-{
-	CombatComponent->ApplyDamage(CombatComponent->FrontBox, 100.f, GetActorLocation());
-}
-
 void ATCCarBase::OnRep_UpdateGas()
 {
 	if (!IsLocallyControlled()) return;
@@ -372,6 +399,11 @@ void ATCCarBase::ExitVehicle(APawn* InPawn, APlayerController* InPC)
 	ServerRPCShowCharacter();
 }
 
+void ATCCarBase::ServerRPCAddFuel_Implementation()
+{
+	CurrentFuel = FMath::Clamp(CurrentFuel + 30.f, 0.f, MaxFuel);
+}
+
 void ATCCarBase::DecreaseGas(float InDecreaseGas)
 {
 	CurrentFuel = FMath::Clamp(CurrentFuel - InDecreaseGas, 0.f, 100.f);
@@ -379,18 +411,21 @@ void ATCCarBase::DecreaseGas(float InDecreaseGas)
 
 void ATCCarBase::Activate(AActor* InInstigator)
 {
+	
 	APawn* Pawn = Cast<APawn>(InInstigator);
 	if (!Pawn) return;
 
 	APlayerController* PC = Cast<APlayerController>(Pawn->GetController());
 	if (!PC) return;
 
-	if (InInstigator == this)
+	ShowInterActionUI(PC);
+
+	/*if (InInstigator == this)
 	{
 		ExitVehicle(Pawn, PC);
 		return;
 	}
-	EnterVehicle(Pawn, PC);
+	EnterVehicle(Pawn, PC);*/
 }
 
 bool ATCCarBase::FindDismountLocation(FVector& OutLocation) const
@@ -475,6 +510,46 @@ void ATCCarBase::DisableWheel(UPrimitiveComponent* DestroyComponent)
 	{
 		ThrottleFactor -= 0.35;
 	}
+}
+
+void ATCCarBase::ExecuteCommand(ECarCommand Command, APawn* InPawn, APlayerController* InPC)
+{
+	switch (Command)
+	{
+		case ECarCommand::Enter : 
+			EnterVehicle(InPawn, InPC);
+			break;
+		
+		case ECarCommand::Exit :
+			ExitVehicle(InPawn, InPC);
+			break;
+	}
+}
+
+TArray<ECarCommand> ATCCarBase::GetAvailableCommands() const
+{
+	TArray<ECarCommand> Commands;
+
+	Commands.Add(ECarCommand::Enter);
+	Commands.Add(ECarCommand::Exit);
+
+	return Commands;
+}
+
+void ATCCarBase::ShowInterActionUI(APlayerController* InPC)
+{
+	if (!InPC || !InterActionClass) return;
+
+	float MouseX, MouseY;
+	InPC->GetMousePosition(MouseX, MouseY);
+
+	InterActionWidget = CreateWidget<UTCCarActivate>(InPC, InterActionClass);
+
+	InterActionWidget->Setup(this);
+	InterActionWidget->AddToViewport();
+	InterActionWidget->SetKeyboardFocus();
+	InterActionWidget->SetPositionInViewport(FVector2D(MouseX, MouseY));
+
 }
 
 void ATCCarBase::ServerRPCShowCharacter_Implementation()

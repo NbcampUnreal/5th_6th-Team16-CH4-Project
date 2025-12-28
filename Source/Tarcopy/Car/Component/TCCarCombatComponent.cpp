@@ -193,6 +193,7 @@ void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* O
 
 void UTCCarCombatComponent::ApplyDamage(UBoxComponent* InBox, float Damage,const FVector& WorldPoint)
 {
+	if (!GetOwner()->HasAuthority()) return;
 	if (!InBox) return;
 
 	for (const FName& Tag : InBox->ComponentTags)

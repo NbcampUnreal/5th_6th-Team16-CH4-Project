@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "WheeledVehiclePawn.h"
+#include "Car/Data/CarCommand.h"
 #include "Character/ActivateInterface.h"
 #include "TCCarBase.generated.h"
 
@@ -15,6 +16,7 @@ class USpotLightComponent;
 class UTCCarCombatComponent;
 class UTCCarWidget;
 class UUISubsystem;
+class UTCCarActivate;
 struct FInputActionValue;
 
 UCLASS(abstract)
@@ -77,6 +79,11 @@ public:
 
 	virtual void UnPossessed() override;
 
+	virtual float TakeDamage(
+		float DamageAmount,
+		FDamageEvent const& DamageEvent,
+		AController* EventInstigator,
+		AActor* DamageCauser) override;
 protected:
 
 	void Steering(const FInputActionValue& Value);
@@ -127,9 +134,6 @@ protected:
 	void BrakeLights(bool bBraking);
 
 	UFUNCTION()
-	void DamageOn();
-
-	UFUNCTION()
 	void DecreaseGas(float InDecreaseGas);
 
 	UFUNCTION()
@@ -174,11 +178,7 @@ public:
 	UFUNCTION()
 	void OnRep_bPossessed();
 
-	UFUNCTION()
-	void EnterVehicle(APawn* InPawn, APlayerController* InPC);
 
-	UFUNCTION()
-	void ExitVehicle(APawn* InPawn, APlayerController* InPC);
 
 	virtual void Activate(AActor* InInstigator) override;
 
@@ -212,6 +212,34 @@ public:
 	
 	void DisableWheel(UPrimitiveComponent* DestroyComponent);
 
+#pragma region endregion
 
+#pragma region Activate
+	UFUNCTION()
+	void ExecuteCommand(ECarCommand Command, APawn* InPawn, APlayerController* InPC);
+
+	UFUNCTION(BlueprintCallable)
+	TArray<ECarCommand> GetAvailableCommands() const;
+
+	//Test
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSubclassOf<UTCCarActivate> InterActionClass;
+
+	UPROPERTY()
+	TObjectPtr<UTCCarActivate> InterActionWidget;
+
+	UFUNCTION()
+	void ShowInterActionUI(APlayerController* InPC);
+
+	UFUNCTION()
+	void EnterVehicle(APawn* InPawn, APlayerController* InPC);
+
+	UFUNCTION()
+	void ExitVehicle(APawn* InPawn, APlayerController* InPC);
+
+	UFUNCTION(Server,Reliable)
+	void ServerRPCAddFuel();
+
+#pragma region endregion
 	
 };

@@ -35,6 +35,8 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	void ApplyDamage(UBoxComponent* InBox, float Damage, const FVector& WorldPoint);
+
+	bool IsPointInsideBox(UBoxComponent* InBox, const FVector& WorldPoint);
 protected:
 	
 	void DestroyPart(UPrimitiveComponent* DestroyComponent);
@@ -58,7 +60,7 @@ protected:
 		const FHitResult& Hit
 	);
 
-	bool IsPointInsideBox(UBoxComponent* InBox, const FVector& WorldPoint);
+	
 	
 public:	
 
