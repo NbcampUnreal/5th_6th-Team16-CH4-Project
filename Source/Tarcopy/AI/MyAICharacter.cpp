@@ -77,8 +77,6 @@ void AMyAICharacter::OnRep_bIsHit()
 
 void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
 {
-	AMyCharacter* DamagedActor = Cast<AMyCharacter>(TargetActor);
-	if (!IsValid(DamagedActor)) return;
 	if (bIsAttack || bIsHit) return;
 
 	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
@@ -95,7 +93,7 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
 	// Notify로 옮기기
 	FHitResult Hit;
 	FVector StartLocation = ContextActor->GetActorLocation() + FVector({ 0.f, 0.f, 80.f });
-	FVector EndLocation = DamagedActor->GetActorLocation() + FMath::FRandRange(0.f, 80.f);
+	FVector EndLocation = TargetActor->GetActorLocation() + FMath::FRandRange(0.f, 80.f);
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
 	Params.bTraceComplex = true;
@@ -111,7 +109,7 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
 
 	if (!bIsWallHit)
 	{
-		UGameplayStatics::ApplyPointDamage(DamagedActor, 
+		UGameplayStatics::ApplyPointDamage(TargetActor,
 											AttackDamage, 
 											EndLocation - StartLocation, 
 											Hit, 
