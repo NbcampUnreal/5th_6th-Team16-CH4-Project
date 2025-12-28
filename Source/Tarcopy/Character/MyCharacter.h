@@ -198,6 +198,18 @@ protected:
 #pragma region Combat
 	public:
 		virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	protected:
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+		TObjectPtr<UAnimMontage> AM_Hit;
+
+		UPROPERTY(Replicated, ReplicatedUsing = "OnRep_bIsHit")
+		bool bIsHit;
+
+		UFUNCTION()
+		void OnRep_bIsHit();
+		UFUNCTION()
+		void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 #pragma endregion
 
 #pragma region TestItem
@@ -224,6 +236,9 @@ public:
 
 
 #pragma region Inventory
+	UFUNCTION()
+	virtual void TabAction(const FInputActionValue& Value);
+
 	void OnRotateInventoryItem();
 #pragma endregion
 };

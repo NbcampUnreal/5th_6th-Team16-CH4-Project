@@ -12,6 +12,8 @@
 #include "Animation/AnimMontage.h"
 #include "Components/CapsuleComponent.h"
 #include "Common/HealthComponent.h"
+#include "Components/StateTreeComponent.h"
+#include "Car/TCCarBase.h"
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
@@ -30,9 +32,16 @@ AMyAICharacter::AMyAICharacter() :
 	Movement->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
 	Movement->MaxWalkSpeed = 300.f;
 
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+
 	VisionMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisionMesh"));
 	VisionMesh->SetupAttachment(RootComponent);
 	VisionMesh->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+	VisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AMyAICharacter::OnVisionMeshBeginOverlap);
+	VisionMesh->OnComponentEndOverlap.AddDynamic(this, &AMyAICharacter::OnVisionMeshEndOverlap);
+
+	StateTreeComponent = CreateDefaultSubobject<UStateTreeComponent>(TEXT("StateTreeComponent"));
+	StateTreeComponent->SetStartLogicAutomatically(false);
 }
 
 void AMyAICharacter::BeginPlay()
@@ -41,6 +50,15 @@ void AMyAICharacter::BeginPlay()
 
 	Tags.Add(FName("InVisible"));
 	SetActorHiddenInGame(true);
+
+	if (HasAuthority())
+	{
+		StateTreeComponent->StartLogic();
+	}
+	else
+	{
+		StateTreeComponent->StopLogic("");
+	}
 }
 
 void AMyAICharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -49,6 +67,70 @@ void AMyAICharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 
 	DOREPLIFETIME(ThisClass, bIsAttack);
 	DOREPLIFETIME(ThisClass, bIsHit);
+}
+
+void AMyAICharacter::OnVisionMeshBeginOverlap(
+	UPrimitiveComponent* OverlappedComp,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep,
+	const FHitResult& SweepResult)
+{
+	if (HasAuthority() == false) return;
+
+	AMyCharacter* Player = Cast<AMyCharacter>(OtherActor);
+	ATCCarBase* Car = Cast<ATCCarBase>(OtherActor);
+	if (IsValid(Player))
+	{
+		if (Player->IsPlayerControlled() == false) return;
+		if (OtherComp == Player->GetCapsuleComponent())
+		{
+			TargetActor = Player;
+			UE_LOG(LogTemp, Warning, TEXT("Target"))
+			StateTreeComponent->SendStateTreeEvent(ToChase);
+		}
+	}
+	else if (IsValid(Car))
+	{
+		if (Car->IsPawnControlled() == false) return;
+		if (OtherComp == Car->GetMesh())
+		{
+			TargetActor = Car;
+			StateTreeComponent->SendStateTreeEvent(ToChase);
+		}
+	}
+}
+
+void AMyAICharacter::OnVisionMeshEndOverlap(
+	UPrimitiveComponent* OverlappedComp,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex)
+{
+	if (HasAuthority() == false) return;
+	if (TargetActor != OtherActor) return;
+
+	AMyCharacter* Player = Cast<AMyCharacter>(OtherActor);
+	ATCCarBase* Car = Cast<ATCCarBase>(OtherActor);
+	if (IsValid(Player))
+	{
+		if (Player->IsPlayerControlled() == false) return;
+		if (OtherComp == Player->GetCapsuleComponent())
+		{
+			TargetActor = nullptr;
+			StateTreeComponent->SendStateTreeEvent(ToPatrol);
+		}
+	}
+	else if (IsValid(Car))
+	{
+		if (Car->IsPawnControlled() == false) return;
+		if (OtherComp == Car->GetMesh())
+		{
+			TargetActor = nullptr;
+			StateTreeComponent->SendStateTreeEvent(ToPatrol);
+		}
+	}
 }
 
 void AMyAICharacter::OnRep_bIsAttack()
@@ -75,10 +157,8 @@ void AMyAICharacter::OnRep_bIsHit()
 	}
 }
 
-void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
+void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 {
-	AMyCharacter* DamagedActor = Cast<AMyCharacter>(TargetActor);
-	if (!IsValid(DamagedActor)) return;
 	if (bIsAttack || bIsHit) return;
 
 	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
@@ -111,7 +191,7 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* TargetActor)
 
 	if (!bIsWallHit)
 	{
-		UGameplayStatics::ApplyPointDamage(DamagedActor, 
+		UGameplayStatics::ApplyPointDamage(DamagedActor,
 											AttackDamage, 
 											EndLocation - StartLocation, 
 											Hit, 
