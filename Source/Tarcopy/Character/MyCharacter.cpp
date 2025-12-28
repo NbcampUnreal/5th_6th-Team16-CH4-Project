@@ -401,8 +401,6 @@ void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
 
 void AMyCharacter::LeftClick(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Left Click"));
-
 	ServerRPC_ExecuteAttack(GetAttackTargetLocation());
 }
 

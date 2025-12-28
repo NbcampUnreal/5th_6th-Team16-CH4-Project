@@ -32,6 +32,8 @@ AMyAICharacter::AMyAICharacter() :
 	Movement->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
 	Movement->MaxWalkSpeed = 300.f;
 
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+
 	VisionMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisionMesh"));
 	VisionMesh->SetupAttachment(RootComponent);
 	VisionMesh->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
@@ -40,7 +42,6 @@ AMyAICharacter::AMyAICharacter() :
 
 	StateTreeComponent = CreateDefaultSubobject<UStateTreeComponent>(TEXT("StateTreeComponent"));
 	StateTreeComponent->SetStartLogicAutomatically(false);
-	//StateTreeComponent->SetIsReplicated(true);
 }
 
 void AMyAICharacter::BeginPlay()
