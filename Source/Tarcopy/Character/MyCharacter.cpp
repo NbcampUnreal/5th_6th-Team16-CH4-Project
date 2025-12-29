@@ -42,6 +42,7 @@
 #include "Inventory/LootScannerComponent.h"
 #include "Common/HealthComponent.h"
 #include "Animation/AnimMontage.h"
+#include <EnhancedInputSubsystems.h>
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -620,16 +621,35 @@ void AMyCharacter::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 
 void AMyCharacter::HandleDeath()
 {
+	//if (HasAuthority())
+	//{
+	//	GetCharacterMovement()->DisableMovement();
+	//}
 	MultiRPC_HandleDeath();
 }
 
 void AMyCharacter::MultiRPC_HandleDeath_Implementation()
 {
 	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
-	//GetCharacterMovement()->DisableMovement();
-	//GetMesh()->SetAllBodiesSimulatePhysics(true);
-	// 레그돌, 지면에만 충돌, 다른 물체와는 no collision, 약한 참조자로 참조하고 1분뒤에 제거
-	//GetCapsuleComponent()->Setcollision
+
+	/*if (IsLocallyControlled())
+	{
+		if (AMyPlayerController* PC = Cast<AMyPlayerController>(Controller))
+		{
+			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+			{
+				Subsystem->RemoveMappingContext(PC->IMC_Character);
+			}
+		}
+	}
+	USkeletalMeshComponent* SMComp = GetMesh();
+	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
+
+	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SMComp->SetAllBodiesSimulatePhysics(true);
+	CapsuleComp->SetCollisionProfileName(TEXT("Ragdoll"));
+	SMComp->SetCollisionProfileName(TEXT("Ragdoll"));
+	SetLifeSpan(300.f);*/
 }
 
 
