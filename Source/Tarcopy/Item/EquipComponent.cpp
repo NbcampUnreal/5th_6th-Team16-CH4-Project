@@ -66,16 +66,7 @@ bool UEquipComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bun
 		UItemInstance* Item = EquippedItemInfo.Item;
 		if (IsValid(Item) == true)
 		{
-			bWroteSomething |= Channel->ReplicateSubobject(Item, *Bunch, *RepFlags);
-
-			const auto& ItemComponents = Item->GetItemComponents();
-			for (const auto& ItemComponent : ItemComponents)
-			{
-				if (IsValid(ItemComponent) == false)
-					continue;
-
-				bWroteSomething |= Channel->ReplicateSubobject(ItemComponent, *Bunch, *RepFlags);
-			}
+			bWroteSomething |= Item->ReplicateSubobjects(Channel, Bunch, RepFlags);
 		}
 	}
 	return bWroteSomething;

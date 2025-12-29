@@ -16,6 +16,8 @@ public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
 
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags);
+
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void OnRep_SetComponent() override;

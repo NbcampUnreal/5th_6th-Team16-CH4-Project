@@ -14,6 +14,7 @@
 #include "Item/ItemComponent/DurabilityComponent.h"
 #include "Character/MyCharacter.h"
 #include "HoldableComponent.h"
+#include "Tarcopy.h"
 
 const float UMeleeWeaponComponent::CheckHitDelay = 0.5f;
 
@@ -147,7 +148,7 @@ void UMeleeWeaponComponent::CheckHit()
 	Params.bReturnPhysicalMaterial = true;
 	FCollisionShape SphereCollision = FCollisionShape::MakeSphere(AttackRadius);
 
-	bool bHit = GetWorld()->SweepMultiByChannel(HitResults, AttackOrigin, AttackOrigin, FQuat::Identity, ECC_Visibility, SphereCollision, Params);
+	bool bHit = GetWorld()->SweepMultiByChannel(HitResults, AttackOrigin, AttackOrigin, FQuat::Identity, ECC_PlayerAttack, SphereCollision, Params);
 	for (const auto& HitResult : HitResults)
 	{
 		AActor* HitActor = HitResult.GetActor();
