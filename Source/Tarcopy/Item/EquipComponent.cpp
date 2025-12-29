@@ -79,18 +79,16 @@ UItemInstance* UEquipComponent::GetEquippedItem(EBodyLocation Bodylocation) cons
 	return EquippedItemPtr != nullptr ? EquippedItemPtr->Item : nullptr;
 }
 
-int32 UEquipComponent::GetNeedToReplaceCount(EBodyLocation BodyLocation) const
+void UEquipComponent::GetNeedToReplace(EBodyLocation BodyLocation, TArray<UItemInstance*>& OutItems) const
 {
 	int32 Result = 0;
 	for (auto& EquippedItemInfo : EquippedItemInfos)
 	{
-		if (Exclusive(EquippedItemInfo.Location, BodyLocation) == true &&
-			IsValid(EquippedItemInfo.Item) == true)
+		if (Exclusive(EquippedItemInfo.Location, BodyLocation) == true && IsValid(EquippedItemInfo.Item) == true)
 		{
-			++Result;
+			OutItems.Add(EquippedItemInfo.Item);
 		}
 	}
-	return Result;
 }
 
 void UEquipComponent::ServerRPC_EquipItem_Implementation(EBodyLocation BodyLocation, UItemInstance* Item, bool bInstantiate)
@@ -251,35 +249,20 @@ bool UEquipComponent::RemoveItemFromInventory(UItemInstance* Item)
 	if (ItemData == nullptr)
 		return false;
 
-	TArray<UInventoryData*> InventoryDatas;
-	OwnerCharacter->GetNearbyInventoryDatas(InventoryDatas);
 	bool bIsExist = false;
-	TArray<UItemInstance*> OutCandidates;
-	for (const auto& InventoryData : InventoryDatas)
+	if (AItemWrapperActor* ActorItem = Item->GetTypedOuter<AItemWrapperActor>())
 	{
-		OutCandidates.Empty();
-		InventoryData->GetItemCountByItemId(ItemData->ItemId, OutCandidates);
-		for (const auto& OutItem : OutCandidates)
-		{
-			if (OutItem == Item)
-			{
-				if (AItemWrapperActor* ActorItem = OutItem->GetTypedOuter<AItemWrapperActor>())
-				{
-					ActorItem->Destroy();
-				}
-				else
-				{
-					InventoryData->RemoveItem(OutItem);
-				}
-				bIsExist = true;
-				break;
-			}
-		}
-
-		if (bIsExist == true)
-			break;
+		bIsExist = true;
+		ActorItem->Destroy();
 	}
-
+	else
+	{
+		UInventoryData* InventoryData = Item->GetOwnerInventory();
+		if (IsValid(InventoryData) == true)
+		{
+			bIsExist = InventoryData->RemoveItem(Item);
+		}
+	}
 	return bIsExist;
 }
 

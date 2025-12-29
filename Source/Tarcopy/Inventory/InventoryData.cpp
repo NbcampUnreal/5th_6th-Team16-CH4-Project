@@ -137,6 +137,9 @@ bool UInventoryData::TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, 
 		NewEntry.Item = Item;
 		NewEntry.Origin = NewOrigin;
 		NewEntry.bRotated = bRotated;
+
+		Item->SetOwnerObject(Dest);
+
 		Dest->ReplicatedItems.MarkItemDirty(NewEntry);
 		Dest->ReplicatedItems.MarkArrayDirty();
 

@@ -190,7 +190,6 @@ void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceI
 		return;
 	}
 
-	Item->SetOwnerObject(nullptr);
 	Spawned->SetItemInstance(Item);
 	UGameplayStatics::FinishSpawningActor(Spawned, SpawnTM);
 
@@ -246,7 +245,7 @@ void UPlayerInventoryComponent::Server_RequestLootFromWorld_Implementation(AItem
 	UE_LOG(LogTemp, Warning, TEXT("[Loot][Server] AfterRename Outer=%s"),
 		*GetNameSafe(Item->GetOuter()));
 
-	const bool bOk = PlayerInventoryData->TryAddItem(Item, NewOrigin, bRotated);
+	const bool bOk = Dest->TryAddItem(Item, NewOrigin, bRotated);
 
 	UE_LOG(LogTemp, Warning, TEXT("[Loot][Server] TryAdd=%d InvCount=%d"),
 		bOk, PlayerInventoryData->GetReplicatedItems().Items.Num());

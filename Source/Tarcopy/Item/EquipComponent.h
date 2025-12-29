@@ -60,7 +60,7 @@ public:
 	FORCEINLINE const TArray<FEquippedItemInfo>& GetEquippedItemInfos() const { return EquippedItemInfos; }
 	UItemInstance* GetEquippedItem(EBodyLocation Bodylocation) const;
 
-	int32 GetNeedToReplaceCount(EBodyLocation BodyLocation) const;		// 해당 부위에 아이템을 장착했을 때, 장착 해제해야 하는 아이템의 갯수
+	void GetNeedToReplace(EBodyLocation BodyLocation, TArray<UItemInstance*>& OutItems) const;		// 해당 부위에 아이템을 장착했을 때, 장착 해제해야 하는 아이템들
 
 public:
 	UFUNCTION(Server, Reliable)

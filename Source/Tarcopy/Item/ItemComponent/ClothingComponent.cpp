@@ -47,10 +47,11 @@ void UClothingComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>&
 	}
 	else
 	{
-		int32 ReplaceItemCount = EquipComponent->GetNeedToReplaceCount(Data->BodyLocation);
-		if (ReplaceItemCount == 1)
+		TArray<UItemInstance*> ReplaceItems;
+		EquipComponent->GetNeedToReplace(Data->BodyLocation, ReplaceItems);
+		if (ReplaceItems.Num() == 1)
 		{
-			EquipCommand->bExecutable = IsValid(InventoryData) == true && InventoryData->CanAddItem(OwnerItem.Get(), Origin, bRotated) == true;
+			EquipCommand->bExecutable = IsValid(InventoryData) == true && InventoryData->CanAddItem(OwnerItem.Get(), Origin, bRotated, ReplaceItems[0]) == true;
 		}
 		else
 		{
