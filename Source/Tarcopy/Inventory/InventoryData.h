@@ -89,6 +89,8 @@ public:
 
 	bool TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bool bRotated);
 
+	bool CanAddItem(UItemInstance* Item, FIntPoint& OutOrigin, bool& bOutRotated);
+
 	bool TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, const FIntPoint& NewOrigin, bool bRotated);
 
 	int32 GetItemCountByItemId(FName InItemId, TArray<UItemInstance*> OutCandidates) const;
