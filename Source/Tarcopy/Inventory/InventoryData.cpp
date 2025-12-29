@@ -52,6 +52,30 @@ bool UInventoryData::TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bo
 	return true;
 }
 
+bool UInventoryData::CanAddItem(UItemInstance* Item, FIntPoint& OutOrigin, bool& bOutRotated)
+{
+	for (int32 Y = 0; Y < GridSize.Y; ++Y)
+	{
+		for (int32 X = 0; X < GridSize.X; ++X)
+		{
+			if (CheckCanPlace(Item, FIntPoint(X, Y), false))
+			{
+				OutOrigin = FIntPoint(X, Y);
+				bOutRotated = false;
+				return true;
+			}
+			if (CheckCanPlace(Item, FIntPoint(X, Y), true))
+			{
+				OutOrigin = FIntPoint(X, Y);
+				bOutRotated = true;
+				return true;
+			}
+		}
+	}
+	OutOrigin = FIntPoint(-1, -1);
+	return false;
+}
+
 bool UInventoryData::TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, const FIntPoint& NewOrigin, bool bRotated)
 {
 	if (!IsValid(Dest) || !IsValid(Item) || Item->GetData() == nullptr)
