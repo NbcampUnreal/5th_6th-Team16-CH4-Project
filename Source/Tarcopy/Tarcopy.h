@@ -7,5 +7,6 @@
 #pragma region Custom Collision Channel
 
 #define ECC_Enemy ECollisionChannel::ECC_GameTraceChannel2
+#define ECC_PlayerAttack ECollisionChannel::ECC_GameTraceChannel3
 
 #pragma endregion

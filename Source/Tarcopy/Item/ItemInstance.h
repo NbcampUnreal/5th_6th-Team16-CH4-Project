@@ -20,6 +20,9 @@ class TARCOPY_API UItemInstance : public UObject
 	GENERATED_BODY()
 
 public:
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags);
+
+protected:
 	virtual bool IsSupportedForNetworking() const override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual int32 GetFunctionCallspace(UFunction* Function, FFrame* Stack) override;

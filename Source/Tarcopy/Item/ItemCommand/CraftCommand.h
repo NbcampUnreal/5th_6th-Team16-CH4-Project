@@ -14,5 +14,7 @@ protected:
 
 public:
 	UPROPERTY()
+	TWeakObjectPtr<class UCraftComponent> OwnerComponent;
+	UPROPERTY()
 	FName CraftTargetId;
 };

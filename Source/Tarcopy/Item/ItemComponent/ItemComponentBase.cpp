@@ -1,6 +1,7 @@
 ﻿#include "Item/ItemComponent/ItemComponentBase.h"
 #include "Item/ItemInstance.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/ActorChannel.h"
 
 bool UItemComponentBase::IsSupportedForNetworking() const
 {
@@ -29,6 +30,11 @@ bool UItemComponentBase::CallRemoteFunction(UFunction* Function, void* Parms, FO
 		return true;
 	}
 	return false;
+}
+
+bool UItemComponentBase::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	return Channel->ReplicateSubobject(this, *Bunch, *RepFlags);
 }
 
 void UItemComponentBase::SetOwnerItem(UItemInstance* InOwnerItem)
