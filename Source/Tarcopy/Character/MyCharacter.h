@@ -16,6 +16,8 @@ class UMoodleComponent;
 class UCameraObstructionComponent;
 enum class EHoldableType : uint8;
 class UAnimPresetMap;
+class UPlayerInventoryComponent;
+class ULootScannerComponent;
 
 UCLASS()
 class TARCOPY_API AMyCharacter : public ACharacter
@@ -241,6 +243,13 @@ public:
 
 
 #pragma region Inventory
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UPlayerInventoryComponent> Inventory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<ULootScannerComponent> LootScanner;
+
 	UFUNCTION()
 	virtual void TabAction(const FInputActionValue& Value);
 

@@ -106,6 +106,11 @@ AMyCharacter::AMyCharacter() :
 	HoldingItemMeshComponent->SetupAttachment(RootComponent);
 	HoldingItemMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HoldingItemMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+
+	Inventory = CreateDefaultSubobject<UPlayerInventoryComponent>(TEXT("Inventory"));
+	
+	LootScanner = CreateDefaultSubobject<ULootScannerComponent>(TEXT("LootScanner"));
+	LootScanner->SetupAttachment(RootComponent);
 }
 
 // Called when the game starts or when spawned
