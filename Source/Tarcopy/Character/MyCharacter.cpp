@@ -790,13 +790,21 @@ void AMyCharacter::GetNearbyInventoryDatas(TArray<class UInventoryData*>& Invent
 	UPlayerInventoryComponent* InventoryComponent = FindComponentByClass<UPlayerInventoryComponent>();
 	if (IsValid(InventoryComponent) == true)
 	{
-		InventoryDatas.Add(InventoryComponent->GetPlayerInventoryData());
+		UInventoryData* InventoryData = InventoryComponent->GetPlayerInventoryData();
+		if (IsValid(InventoryData) == true)
+		{
+			InventoryDatas.Add(InventoryData);
+		}
 	}
 
 	ULootScannerComponent* LootScannerComponent = FindComponentByClass<ULootScannerComponent>();
 	if (IsValid(LootScannerComponent) == true)
 	{
-		InventoryDatas.Add(LootScannerComponent->GetGroundInventoryData());
+		UInventoryData* InventoryData = LootScannerComponent->GetGroundInventoryData();
+		if (IsValid(InventoryData) == true)
+		{
+			InventoryDatas.Add(InventoryData);
+		}
 		for (const auto& OverlappedContainer : LootScannerComponent->OverlappedContainers)
 		{
 			InventoryDatas.Add(OverlappedContainer->GetInventoryData());

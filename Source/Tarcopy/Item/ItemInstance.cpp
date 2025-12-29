@@ -10,10 +10,23 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Item/ItemComponent/HoldableComponent.h"
 #include "Engine/ActorChannel.h"
+#include "Inventory/InventoryData.h"
 
 bool UItemInstance::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
 {
 	bool bWroteSomething = Channel->ReplicateSubobject(this, *Bunch, *RepFlags);
+	if (OwnerObject.IsValid() == true)
+	{
+		bWroteSomething |= Channel->ReplicateSubobject(OwnerObject.Get(), *Bunch, *RepFlags);
+	}
+	if (OwnerInventory.IsValid() == true)
+	{
+		bWroteSomething |= Channel->ReplicateSubobject(OwnerInventory.Get(), *Bunch, *RepFlags);
+	}
+	if (OwnerCharacter.IsValid() == true)
+	{
+		bWroteSomething |= Channel->ReplicateSubobject(OwnerCharacter.Get(), *Bunch, *RepFlags);
+	}
 	for (const auto& ItemComponent : ItemComponents)
 	{
 		if (IsValid(ItemComponent) == false)
@@ -35,6 +48,7 @@ void UItemInstance::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& 
 
 	DOREPLIFETIME(ThisClass, ItemComponents);
 	DOREPLIFETIME(ThisClass, ItemId);
+	DOREPLIFETIME(ThisClass, OwnerObject);
 	DOREPLIFETIME(ThisClass, OwnerCharacter);
 	DOREPLIFETIME(ThisClass, InstanceID);
 }
@@ -90,10 +104,13 @@ void UItemInstance::OnRep_ItemUpdated()
 
 void UItemInstance::OnRep_SetOwnerCharacter()
 {
-	UHoldableComponent* HoldableComponent = GetItemComponent<UHoldableComponent>();
-	if (IsValid(HoldableComponent) == true)
+	if (HasAuthority() == true)
 	{
-		HoldableComponent->SetHolding(OwnerCharacter.IsValid());
+		UHoldableComponent* HoldableComponent = GetItemComponent<UHoldableComponent>();
+		if (IsValid(HoldableComponent) == true)
+		{
+			HoldableComponent->SetHolding(OwnerCharacter.IsValid());
+		}
 	}
 
 	OnRep_ItemUpdated();
@@ -153,6 +170,10 @@ void UItemInstance::InitComponents()
 void UItemInstance::SetOwnerObject(UObject* InOwnerObject)
 {
 	OwnerObject = InOwnerObject;
+	if (UInventoryData* InOwnerInventory = Cast<UInventoryData>(OwnerObject))
+	{
+		OwnerInventory = InOwnerInventory;
+	}
 
 	OnRep_SetOwner();
 }

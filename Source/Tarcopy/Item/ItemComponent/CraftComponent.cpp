@@ -15,7 +15,7 @@ void UCraftComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 	Super::SetOwnerItem(InOwnerItem);
 }
 
-void UCraftComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
+void UCraftComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
 {
 	UCraftSubsystem* CraftSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UCraftSubsystem>();
 	if (IsValid(CraftSubsystem) == false)
@@ -35,11 +35,14 @@ void UCraftComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& Ou
 		return;
 
 	TArray<UInventoryData*> InventoryDatas;
-	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwnerCharacter());
-	if (IsValid(OwnerCharacter) == false)
+	if (Context.Instigator.IsValid() == false)
 		return;
 
-	OwnerCharacter->GetNearbyInventoryDatas(InventoryDatas);
+	AMyCharacter* Character = Cast<AMyCharacter>(Context.Instigator.Get());
+	if (IsValid(Character) == false)
+		return;
+
+	Character->GetNearbyInventoryDatas(InventoryDatas);
 	
 	for (const auto& CraftDataHandle : Recipe->CraftDataHandles)
 	{

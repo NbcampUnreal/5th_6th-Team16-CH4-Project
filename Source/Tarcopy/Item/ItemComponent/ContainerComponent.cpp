@@ -23,7 +23,7 @@ void UContainerComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 	InventoryData->Init(Data->ContainerBound);
 }
 
-void UContainerComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
+void UContainerComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
 {
 	const FItemData* OwnerItemData = GetOwnerItemData();
 	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));

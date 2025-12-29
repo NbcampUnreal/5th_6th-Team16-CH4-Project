@@ -3,6 +3,7 @@
 #include "Item/EquipComponent.h"
 #include "Character/MyCharacter.h"
 #include "Inventory/InventoryData.h"
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
 
 void UEquipCommand::OnExecute(const FItemCommandContext& Context)
 {

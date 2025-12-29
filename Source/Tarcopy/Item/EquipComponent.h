@@ -60,11 +60,13 @@ public:
 	FORCEINLINE const TArray<FEquippedItemInfo>& GetEquippedItemInfos() const { return EquippedItemInfos; }
 	UItemInstance* GetEquippedItem(EBodyLocation Bodylocation) const;
 
+	void GetNeedToReplace(EBodyLocation BodyLocation, TArray<UItemInstance*>& OutItems) const;		// 해당 부위에 아이템을 장착했을 때, 장착 해제해야 하는 아이템들
+
 public:
 	UFUNCTION(Server, Reliable)
-	void ServerRPC_EquipItem(EBodyLocation BodyLocation, UItemInstance* Item);
+	void ServerRPC_EquipItem(EBodyLocation BodyLocation, UItemInstance* Item, bool bInstantiate = false);
 	UFUNCTION(Server, Reliable)
-	void ServerRPC_UnequipItem(UItemInstance* Item);
+	void ServerRPC_UnequipItem(UItemInstance* Item, bool bDrop = false);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void NetMulticast_SetOwnerHoldingItemEmpty();
@@ -75,8 +77,10 @@ public:
 	float GetFinalDamageTakenMultiplier(UPhysicalMaterial* PhysMat) const;
 
 protected:
-	void EquipItem(EBodyLocation BodyLocation, UItemInstance* Item);
-	void UnequipItem(UItemInstance* Item);
+	void EquipItem(EBodyLocation BodyLocation, UItemInstance* Item, bool bInstantiate = false);
+	void UnequipItem(UItemInstance* Item, bool bDrop = false);
+
+	bool RemoveItemFromInventory(UItemInstance* Item);
 
 	void CalculateFinalDamageTakenMultiplier();
 
