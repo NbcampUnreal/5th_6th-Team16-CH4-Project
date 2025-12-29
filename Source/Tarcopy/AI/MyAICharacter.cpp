@@ -251,10 +251,9 @@ void AMyAICharacter::MultiRPC_HandleDeath_Implementation()
 	USkeletalMeshComponent* SMComp = GetMesh();
 	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
 
-	//CapsuleComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	SMComp->SetAllBodiesSimulatePhysics(true);
-	//CapsuleComp->SetCollisionProfileName(TEXT("Ragdoll"));
+	CapsuleComp->SetCollisionProfileName(TEXT("Ragdoll"));
 	SMComp->SetCollisionProfileName(TEXT("Ragdoll"));
 	SetLifeSpan(60.f);
 }
