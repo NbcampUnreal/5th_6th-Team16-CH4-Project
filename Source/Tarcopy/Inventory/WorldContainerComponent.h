@@ -21,6 +21,7 @@ public:
 	FText GetDisplayName() const { return DisplayName; }
 	FIntPoint GetGridSize() const { return GridSize; }
 	UInventoryData* GetInventoryData() const { return InventoryData; }
+	UBoxComponent* GetSenseBox() { return SenseBox; }
 
 protected:
 	virtual void BeginPlay() override;
