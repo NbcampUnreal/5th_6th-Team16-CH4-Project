@@ -253,8 +253,8 @@ void AMyAICharacter::MultiRPC_HandleDeath_Implementation()
 
 	//CapsuleComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	CapsuleComp->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
 	SMComp->SetAllBodiesSimulatePhysics(true);
+	//CapsuleComp->SetCollisionProfileName(TEXT("Ragdoll"));
 	SMComp->SetCollisionProfileName(TEXT("Ragdoll"));
 	SetLifeSpan(60.f);
 }
