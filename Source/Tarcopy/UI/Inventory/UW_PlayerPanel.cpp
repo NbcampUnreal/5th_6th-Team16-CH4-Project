@@ -10,6 +10,9 @@
 #include "Inventory/InventoryData.h"
 #include "UI/UISubsystem.h"
 #include "UI/Inventory/UW_Inventory.h"
+#include "UI/Equipments/UW_PlayerEquipments.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
 
 void UUW_PlayerPanel::NativeConstruct()
 {
@@ -85,6 +88,11 @@ void UUW_PlayerPanel::RefreshInventories()
 
 	PlayerInventoryWidget->BindInventory(Data);
 	Data->ForceRefreshNextTick();
+}
+
+void UUW_PlayerPanel::BindEquipComponent(UEquipComponent* InComp)
+{
+	PlayerEquipmentsWidget->BindEquipComponent(InComp);
 }
 
 void UUW_PlayerPanel::HandleInventoryReady()

@@ -254,5 +254,7 @@ public:
 	virtual void TabAction(const FInputActionValue& Value);
 
 	void OnRotateInventoryItem();
+
+	uint32 bIsVisible : 1 = true;
 #pragma endregion
 };

@@ -42,6 +42,7 @@
 #include "Inventory/LootScannerComponent.h"
 #include "Common/HealthComponent.h"
 #include "Animation/AnimMontage.h"
+#include "UI/UISubsystem.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -942,6 +943,34 @@ void AMyCharacter::MulticastRPC_ApplyDoorTransforms_Implementation(const TArray<
 
 void AMyCharacter::TabAction(const FInputActionValue& Value)
 {
+	if (bIsVisible)
+	{
+		if (auto* PC = Cast<APlayerController>(GetController()))
+		{
+			if (auto* LP = PC->GetLocalPlayer())
+			{
+				if (auto* UIS = LP->GetSubsystem<UUISubsystem>())
+				{
+					UIS->HideUI(EUIType::Player);
+					bIsVisible = false;
+				}
+			}
+		}
+	}
+	else
+	{
+		if (auto* PC = Cast<APlayerController>(GetController()))
+		{
+			if (auto* LP = PC->GetLocalPlayer())
+			{
+				if (auto* UIS = LP->GetSubsystem<UUISubsystem>())
+				{
+					UIS->ShowUI(EUIType::Player);
+					bIsVisible = true;
+				}
+			}
+		}
+	}
 }
 
 void AMyCharacter::OnRotateInventoryItem()

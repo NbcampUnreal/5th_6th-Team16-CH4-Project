@@ -9,6 +9,9 @@
 class UScrollBox;
 class UPlayerInventoryComponent;
 class UUW_Inventory;
+class UUW_PlayerEquipments;
+class UEquipComponent;
+class UHorizontalBox;
 
 /**
  * 
@@ -25,6 +28,8 @@ public:
 	void BindPlayerInventory(UPlayerInventoryComponent* InComp);
 	void RefreshInventories();
 
+	void BindEquipComponent(UEquipComponent* InComp);
+
 private:
 	UFUNCTION()
 	void HandleInventoryReady();
@@ -37,6 +42,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UUW_Inventory> PlayerInventoryWidget;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UUW_PlayerEquipments> PlayerEquipmentsWidget;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUW_Inventory> InventoryWidgetClass;
