@@ -150,10 +150,10 @@ void UPlayerInventoryComponent::RequestLootFromWorld(AItemWrapperActor* WorldAct
 
 void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceInventory, UItemInstance* Item, bool bRotated)
 {
-	//if (!GetOwner() || !GetOwner()->HasAuthority())
-	//{
-	//	return;
-	//}
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
 
 	if (!IsValid(SourceInventory) || !IsValid(Item))
     {
@@ -190,6 +190,7 @@ void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceI
 		return;
 	}
 
+	Item->SetOwnerObject(nullptr);
 	Spawned->SetItemInstance(Item);
 	UGameplayStatics::FinishSpawningActor(Spawned, SpawnTM);
 
@@ -242,9 +243,9 @@ void UPlayerInventoryComponent::Server_RequestLootFromWorld_Implementation(AItem
 	{
 		return;
 	}
-	Item->Rename(nullptr, PlayerInventoryData);
 	UE_LOG(LogTemp, Warning, TEXT("[Loot][Server] AfterRename Outer=%s"),
 		*GetNameSafe(Item->GetOuter()));
+
 	const bool bOk = PlayerInventoryData->TryAddItem(Item, NewOrigin, bRotated);
 
 	UE_LOG(LogTemp, Warning, TEXT("[Loot][Server] TryAdd=%d InvCount=%d"),

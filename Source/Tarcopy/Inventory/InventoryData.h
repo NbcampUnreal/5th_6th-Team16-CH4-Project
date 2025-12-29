@@ -89,7 +89,7 @@ public:
 
 	bool TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bool bRotated);
 
-	bool CanAddItem(UItemInstance* Item, FIntPoint& OutOrigin, bool& bOutRotated);
+	bool CanAddItem(UItemInstance* Item, FIntPoint& OutOrigin, bool& bOutRotated, UItemInstance* IgnoreItem = nullptr);
 
 	bool TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, const FIntPoint& NewOrigin, bool bRotated);
 

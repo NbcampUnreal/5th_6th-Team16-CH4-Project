@@ -51,7 +51,7 @@ private:
 	void ApplyCellPreview(const FIntPoint& Origin, const FIntPoint& Size, const FLinearColor& Color);
 
 
-	const int CellSizePx = 75;
+	const int32 CellSizePx = 75;
 
 	UPROPERTY()
 	TObjectPtr<UInventoryData> BoundInventory;

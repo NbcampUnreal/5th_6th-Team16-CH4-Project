@@ -52,19 +52,19 @@ bool UInventoryData::TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bo
 	return true;
 }
 
-bool UInventoryData::CanAddItem(UItemInstance* Item, FIntPoint& OutOrigin, bool& bOutRotated)
+bool UInventoryData::CanAddItem(UItemInstance* Item, FIntPoint& OutOrigin, bool& bOutRotated, UItemInstance* IgnoreItem)
 {
 	for (int32 Y = 0; Y < GridSize.Y; ++Y)
 	{
 		for (int32 X = 0; X < GridSize.X; ++X)
 		{
-			if (CheckCanPlace(Item, FIntPoint(X, Y), false))
+			if (CheckCanPlace(Item, FIntPoint(X, Y), false, IgnoreItem))
 			{
 				OutOrigin = FIntPoint(X, Y);
 				bOutRotated = false;
 				return true;
 			}
-			if (CheckCanPlace(Item, FIntPoint(X, Y), true))
+			if (CheckCanPlace(Item, FIntPoint(X, Y), true, IgnoreItem))
 			{
 				OutOrigin = FIntPoint(X, Y);
 				bOutRotated = true;

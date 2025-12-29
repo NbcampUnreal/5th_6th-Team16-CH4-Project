@@ -17,6 +17,7 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "UI/Inventory/InventoryDragDropOp.h"
 #include "Components/SizeBox.h"
+#include "Item/EquipComponent.h"
 
 AMyPlayerController::AMyPlayerController() :
 	IMC_Character(nullptr),
@@ -65,9 +66,12 @@ void AMyPlayerController::BeginPlay()
 				UUW_PlayerPanel* PlayerPanel = Cast<UUW_PlayerPanel>(Widget);
 
 				APawn* P = GetLocalPlayer()->GetPlayerController(GetWorld())->GetPawn();
-				UPlayerInventoryComponent* InvComp = P->FindComponentByClass<UPlayerInventoryComponent>();
 
+				UPlayerInventoryComponent* InvComp = P->FindComponentByClass<UPlayerInventoryComponent>();
 				PlayerPanel->BindPlayerInventory(InvComp);
+
+				UEquipComponent* EquipmentComp = P->FindComponentByClass<UEquipComponent>();
+				PlayerPanel->BindEquipComponent(EquipmentComp);
 			}
 		}
 	}
