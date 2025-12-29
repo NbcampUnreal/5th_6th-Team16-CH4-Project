@@ -72,6 +72,8 @@ bool UInventoryData::CanAddItem(UItemInstance* Item, FIntPoint& OutOrigin, bool&
 			}
 		}
 	}
+	OutOrigin = FIntPoint(-1, -1);
+	return false;
 }
 
 bool UInventoryData::TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, const FIntPoint& NewOrigin, bool bRotated)
