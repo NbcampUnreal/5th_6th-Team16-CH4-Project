@@ -17,6 +17,10 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "UI/Inventory/InventoryDragDropOp.h"
 #include "Components/SizeBox.h"
+#include "Car/TCCarBase.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/Character.h"
+
 
 AMyPlayerController::AMyPlayerController() :
 	IMC_Character(nullptr),
@@ -133,7 +137,37 @@ void AMyPlayerController::ChangeIMC(UInputMappingContext* InIMC)
 	CurrentIMC = InIMC;
 }
 
+void AMyPlayerController::ServerRPCSetDriver_Implementation(ATCCarBase* InCar, APawn* InPawn)
+{
+	InCar->DriverPawn = InPawn;
+}
+
+void AMyPlayerController::ServerRPCSetOwningCar_Implementation(APawn* InCar, APawn* InPawn, bool bIsDriver)
+{
+	if (!InCar) return;
+
+	ATCCarBase* Car = Cast<ATCCarBase>(InCar);
+	if (!Car || !InPawn) return;
+
+	if (bIsDriver)
+	{
+		Car->DriverPawn = InPawn;
+	}
+	Car->AddPassenger(InPawn, bIsDriver);
+}
+
 void AMyPlayerController::ServerRPCChangePossess_Implementation(APawn* NewPawn)
 {
 	OnPossess(NewPawn);
+}
+
+void AMyPlayerController::ServerRPCRequestExit_Implementation(APawn* InPawn, APlayerController* InPC, APawn* InCar)
+{
+	ACharacter* PlayerCharacter = Cast<ACharacter>(InPawn);
+	if (!PlayerCharacter) return;
+
+	ATCCarBase* Car = Cast<ATCCarBase>(InCar);
+
+	Car->ShowCharacter(InPawn, InPC);
+	
 }

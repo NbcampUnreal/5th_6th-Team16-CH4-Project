@@ -24,6 +24,7 @@
 #include "Engine/DamageEvents.h"
 #include "Car/UI/TCCarActivate.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
+#include "Components/SceneComponent.h"
 
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
@@ -31,13 +32,16 @@
 ATCCarBase::ATCCarBase() :
 	MaxFuel(100.f),
 	MoveFactor(0.12),
-	RidePawn(nullptr),
 	bLightOn(false),
-	bPossessed(false),
-	bCanMove(true)
+	bCanMove(true),
+	bCanRide(true),
+	DriverPawn(nullptr)
 {
 	bReplicates = true;
-	// construct the front camera boom
+
+	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
+	SceneComponent->SetupAttachment(GetMesh());
+
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
 	SpringArm->SetupAttachment(GetMesh());
 	SpringArm->TargetArmLength = 2500.0f;
@@ -85,7 +89,7 @@ ATCCarBase::ATCCarBase() :
 	GetMesh()->SetAngularDamping(15.0f);
 	GetMesh()->SetLinearDamping(15.0f);
 	//Test
-	CurrentFuel = 0.f;
+	CurrentFuel = FMath::FRandRange(0.f,MaxFuel);
 
 	AIControllerClass = nullptr;
 	AutoPossessAI = EAutoPossessAI::Disabled;
@@ -148,6 +152,7 @@ void ATCCarBase::Tick(float Delta)
 		CarWidgetInstance->UpdateSpeed(ChaosVehicleMovement->GetForwardSpeed());
 		CarWidgetInstance->UpdateRPM(ChaosVehicleMovement->GetEngineRotationSpeed());
 	}
+
 }
 
 void ATCCarBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -155,22 +160,18 @@ void ATCCarBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ThisClass, CurrentFuel);
-	DOREPLIFETIME(ThisClass, RidePawn);
-	DOREPLIFETIME(ThisClass, bPossessed);
 	DOREPLIFETIME(ThisClass, SteeringFactor);
 	DOREPLIFETIME(ThisClass, ThrottleFactor);
 	DOREPLIFETIME(ThisClass, bLightOn);
 	DOREPLIFETIME(ThisClass, bCanMove);
-
+	DOREPLIFETIME(ThisClass, Passengers);
+	DOREPLIFETIME(ThisClass, bCanRide);
+	DOREPLIFETIME(ThisClass, DriverPawn);
 }
 
 void ATCCarBase::UnPossessed()
 {
 	Super::UnPossessed();
-
-	UE_LOG(LogTemp, Error, TEXT("UnPossessed %s"),*RidePawn->GetName());
-	OnCarRideChanged.Broadcast(this,RidePawn);
-	RidePawn = nullptr;
 }
 
 float ATCCarBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -241,10 +242,7 @@ void ATCCarBase::OnRep_Controller()
 	if (!IsLocallyControlled()) return;
 
 	AMyPlayerController* PC = Cast<AMyPlayerController>(GetController());
-
-	ACharacter* PlayerCharacter = Cast<ACharacter>(RidePawn);
-	ServerRPCHideCharacter(PlayerCharacter);
-
+	
 	OnRep_UpdateGas();
 
 	PC->ChangeIMC(PC->IMC_Car);
@@ -367,6 +365,7 @@ void ATCCarBase::ServerRPCDoHandLight_Implementation()
 void ATCCarBase::OnRep_UpdateGas()
 {
 	if (!IsLocallyControlled()) return;
+	if (!CarWidgetInstance) return;
 	CarWidgetInstance->UpdateFuel(CurrentFuel);
 }
 
@@ -384,45 +383,142 @@ void ATCCarBase::OnRep_bLightOn()
 	}
 }
 
-void ATCCarBase::EnterVehicle(APawn* InPawn, APlayerController* InPC)
+void ATCCarBase::SitByPassenger(APawn* InPawn, APlayerController* InPC)
 {
-	if (!InPawn || InPawn == this) return;
+	if (!InPawn) return;
 	AMyPlayerController* PC = Cast<AMyPlayerController>(InPC);
 	if (!PC) return;
 
 	ACharacter* PlayerCharacter = Cast<ACharacter>(InPawn);
-	checkf(PlayerCharacter, TEXT("No Character"));
+	if (PlayerCharacter)
+	{
+		PlayerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		PC->ServerRPCSetOwningCar(this, InPawn, false);
+	}
+
+	if (Cast<ATCCarBase>(InPawn))
+	{
+		PC->ServerRPCChangePossess(DriverPawn);
+		PC->ServerRPCSetOwningCar(this, DriverPawn, false);
+	}
+
+	Throttle(0.f);
+	Brake(0.f);
+}
+
+void ATCCarBase::SitByDriver(APawn* InPawn, APlayerController* InPC)
+{
+	AMyPlayerController* PC = Cast<AMyPlayerController>(InPC);
+	if (!PC) return;
+
+	ACharacter* PlayerCharacter = Cast<ACharacter>(InPawn);
+	if (!PlayerCharacter) return;
+
+	if (DriverPawn)
+	{
+		UE_LOG(LogTemp, Error, TEXT("SitByDriver"));
+		return;
+	}
+
+	PlayerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	ULocalPlayer* LP = PC->GetLocalPlayer();
 	checkf(LP, TEXT("ATCCarBase::OnRep_Controller() LP"));
-
-	DoThrottle(0.f);
 
 	UISubsystem = LP->GetSubsystem<UUISubsystem>();
 	if (IsValid(UISubsystem))
 	{
 		CarWidgetInstance = Cast<UTCCarWidget>(UISubsystem->ShowUI(EUIType::Car));
 	}
-
-	RidePawn = PlayerCharacter;
-
+	PC->ServerRPCSetOwningCar(this, InPawn, true);
 	PC->ServerRPCChangePossess(this);
 }
+
 
 void ATCCarBase::ExitVehicle(APawn* InPawn, APlayerController* InPC)
 {
 	if (!InPawn) return;
-	if (!InPC) return;
+	AMyPlayerController* PC = Cast<AMyPlayerController>(InPC);
+	if (!PC) return;
 
-	DoThrottle(0.f);
+	APawn* Pawn = InPawn;
+	if (Pawn == this)
+	{
+		Pawn = DriverPawn;
+	}
+
+	Throttle(0.f);
+	Brake(0.f);
 
 	if (CarWidgetInstance)
 	{
 		UISubsystem->HideUI(EUIType::Car);
 	}
 
-	ServerRPCShowCharacter();
+	ACharacter* Character = Cast<ACharacter>(Pawn);
+	Character->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	Character->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	
+	PC->ServerRPCRequestExit(Pawn, InPC, this);
+	PC->ServerRPCChangePossess(Pawn);
 }
+
+void ATCCarBase::OnRep_Passengers()
+{
+	for (auto &Passenger : Passengers)
+	{
+		ACharacter* Character = Cast<ACharacter>(Passenger);
+		if (Character)
+		{
+			Character->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+	}
+}
+
+void ATCCarBase::AddPassenger(APawn* InPawn, bool IsDriver)
+{
+	if (!HasAuthority()) return;
+	
+	ACharacter*	PlayerCharacter = Cast<ACharacter>(InPawn);
+	if (!PlayerCharacter) return;
+
+	PlayerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	PlayerCharacter->GetCharacterMovement()->DisableMovement();
+	InPawn->AttachToComponent(
+		SceneComponent,
+		FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	InPawn->SetActorRelativeLocation(FVector::ZeroVector);
+	InPawn->SetActorRelativeRotation(FRotator::ZeroRotator);
+	
+	
+	for (auto Passenger : Passengers)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Passenger Name %s"), *Passenger->GetName());
+	}
+
+	for (auto Passenger : Passengers)
+	{
+		if (Passenger == InPawn)
+		{
+			if (InPawn == DriverPawn && !IsDriver)
+			{
+				DriverPawn = nullptr;
+			}
+			if (IsDriver)
+			{
+				DriverPawn = InPawn;
+			}
+			return;
+		}
+	}
+
+	Passengers.Add(InPawn);
+	if (Passengers.Num() >= 2)
+	{
+		bCanRide = false;
+	}
+}
+
 
 void ATCCarBase::ServerRPCUpdateFuel_Implementation(float InValue)
 {
@@ -458,12 +554,9 @@ void ATCCarBase::Activate(AActor* InInstigator)
 	EnterVehicle(Pawn, PC);*/
 }
 
-bool ATCCarBase::FindDismountLocation(FVector& OutLocation) const
+bool ATCCarBase::FindDismountLocation(APawn* InPawn, FVector& OutLocation) const
 {
-	APawn* Pawn = RidePawn;
-	if (!Pawn) return false;
-
-	ACharacter* Character = Cast<ACharacter>(Pawn);
+	ACharacter* Character = Cast<ACharacter>(InPawn);
 	if (!Character) return false;
 
 	UCapsuleComponent* Capsule = Character->GetCapsuleComponent();
@@ -551,11 +644,7 @@ void ATCCarBase::ExecuteCommand(ECarCommand Command, APawn* InPawn, APlayerContr
 		UI->RemoveFromParent();
 	}
 	switch (Command)
-	{
-		case ECarCommand::Enter : 
-			EnterVehicle(InPawn, InPC);
-			break;
-		
+	{		
 		case ECarCommand::Exit :
 			ExitVehicle(InPawn, InPC);
 			break;
@@ -563,17 +652,50 @@ void ATCCarBase::ExecuteCommand(ECarCommand Command, APawn* InPawn, APlayerContr
 		case ECarCommand::AddFuel :
 			ServerRPCUpdateFuel(30.f);
 			break;
+
+		case ECarCommand::SitByDriver :
+			SitByDriver(InPawn, InPC);
+			break;
+		case ECarCommand::SitByPassenger :
+			SitByPassenger(InPawn, InPC);
+			break;
 	}
 }
 
 TArray<ECarCommand> ATCCarBase::GetAvailableCommands() const
 {
 	TArray<ECarCommand> Commands;
-
-	Commands.Add(ECarCommand::Enter);
-	Commands.Add(ECarCommand::Exit);
-	Commands.Add(ECarCommand::AddFuel);
-
+	
+	if (IsLocallyControlled())
+	{	
+		Commands.Add(ECarCommand::AddFuel);
+	}
+	if (bCanRide)
+	{
+		Commands.Add(ECarCommand::SitByPassenger);
+	}
+	if (!DriverPawn) 
+	{
+		Commands.Add(ECarCommand::SitByDriver);
+	}
+	APlayerController* LocalPC = GetWorld()->GetFirstPlayerController();
+	APawn* Pawn = LocalPC->GetPawn();
+	if (IsLocallyControlled())
+	{
+		Commands.Add(ECarCommand::Exit);
+	}
+	else 
+	{
+		for (auto Passenger : Passengers)
+		{
+			if (Passenger == Pawn)
+			{
+				Commands.Add(ECarCommand::Exit);
+				break;
+			}
+		}
+	}
+	
 	return Commands;
 }
 
@@ -595,67 +717,35 @@ void ATCCarBase::ShowInterActionUI(APlayerController* InPC)
 	UI->SetKeyboardFocus();
 }
 
-void ATCCarBase::ServerRPCShowCharacter_Implementation()
-{
-	ACharacter* PlayerCharacter = Cast<ACharacter>(RidePawn);
-	UCapsuleComponent* Capsule = PlayerCharacter->GetCapsuleComponent();
+void ATCCarBase::ShowCharacter(APawn* InPawn, APlayerController* InPC)
+{	
+	UE_LOG(LogTemp, Error, TEXT("%s"), *InPawn->GetName());
+	if (!HasAuthority()) return;
+	ACharacter* PlayerCharacter = Cast<ACharacter>(InPawn);
+	if (!PlayerCharacter) return;
 
 	FVector OutLocation = FVector::ZeroVector;
 	FRotator OutRotation = GetActorRotation();
-	bool bCanDismount = FindDismountLocation(OutLocation);
+	bool bCanDismount = FindDismountLocation(InPawn, OutLocation);
 	if (!bCanDismount) return;
-	PlayerCharacter->TeleportTo(OutLocation, OutRotation);
+	
+	InPawn->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
-	bPossessed = false;
+	UCapsuleComponent* Capsule = PlayerCharacter->GetCapsuleComponent();
+	Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	
+	PlayerCharacter->TeleportTo(OutLocation, OutRotation, false, true);
 
-	Capsule->SetCollisionEnabled(TempSaveCollision);
+	if (Passengers.Contains(InPawn))
+	{
+		Passengers.Remove(InPawn);
+	}
+	DriverPawn = nullptr;
 
 	PlayerCharacter->SetActorHiddenInGame(false);
 
 	PlayerCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
-
-	AMyPlayerController* PC = Cast<AMyPlayerController>(GetController());
-	PC->ServerRPCChangePossess(RidePawn);
+	
 }
 
-void ATCCarBase::ServerRPCHideCharacter_Implementation(ACharacter* InCharacter)
-{
-	RidePawn = InCharacter;
-
-	OnCarRideChanged.Broadcast(RidePawn, this);
-
-	bPossessed = true;
-
-	UCapsuleComponent* Capsule = InCharacter->GetCapsuleComponent();
-	TempSaveCollision = Capsule->GetCollisionEnabled();
-	Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	InCharacter->SetActorHiddenInGame(true);
-
-	InCharacter->GetCharacterMovement()->DisableMovement();
-}
-
-
-void ATCCarBase::OnRep_bPossessed()
-{
-	ACharacter* PlayerCharacter = Cast<ACharacter>(RidePawn);
-	if (!PlayerCharacter) return;
-	if (bPossessed)
-	{
-
-		UCapsuleComponent* Capsule = PlayerCharacter->GetCapsuleComponent();
-
-		TempSaveCollision = Capsule->GetCollisionEnabled();
-
-		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		RidePawn->SetActorHiddenInGame(true);
-	}
-	else
-	{
-		UCapsuleComponent* Capsule = PlayerCharacter->GetCapsuleComponent();
-
-		Capsule->SetCollisionEnabled(TempSaveCollision);
-		RidePawn->SetActorHiddenInGame(false);
-	}
-}
 #undef LOCTEXT_NAMESPACE

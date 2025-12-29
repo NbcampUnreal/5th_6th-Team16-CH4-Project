@@ -86,4 +86,13 @@ public:
 
 	UFUNCTION(Server,Reliable)
 	void ServerRPCChangePossess(APawn* NewPawn);
+
+	UFUNCTION(Server,Reliable)
+	void ServerRPCSetOwningCar(APawn* InCar, APawn* APawn, bool bIsDriver);
+
+	UFUNCTION(Server,Reliable)
+	void ServerRPCSetDriver(ATCCarBase* InCar, APawn* InPawn);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCRequestExit(APawn* InPawn, APlayerController* InPC, APawn* InCar);
 };
