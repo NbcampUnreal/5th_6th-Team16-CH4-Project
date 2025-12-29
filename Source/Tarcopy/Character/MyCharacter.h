@@ -210,6 +210,11 @@ protected:
 		void OnRep_bIsHit();
 		UFUNCTION()
 		void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+		UFUNCTION()
+		void HandleDeath();
+		UFUNCTION(NetMulticast, Reliable)
+		void MultiRPC_HandleDeath();
 #pragma endregion
 
 #pragma region TestItem
