@@ -106,6 +106,11 @@ AMyCharacter::AMyCharacter() :
 	HoldingItemMeshComponent->SetupAttachment(RootComponent);
 	HoldingItemMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HoldingItemMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+
+	Inventory = CreateDefaultSubobject<UPlayerInventoryComponent>(TEXT("Inventory"));
+	
+	LootScanner = CreateDefaultSubobject<ULootScannerComponent>(TEXT("LootScanner"));
+	LootScanner->SetupAttachment(RootComponent);
 }
 
 // Called when the game starts or when spawned
@@ -118,6 +123,11 @@ void AMyCharacter::BeginPlay()
 	{
 		SetActorHiddenInGame(true);
 		VisionMesh->SetVisibility(false);
+	}
+
+	if (IsValid(HealthComponent))
+	{
+		HealthComponent->OnDead.AddUObject(this, &AMyCharacter::HandleDeath);
 	}
 }
 
@@ -591,6 +601,7 @@ void AMyCharacter::OnRep_bIsHit()
 	if (bIsHit)
 	{
 		DisableInput(Cast<AMyPlayerController>(Controller));
+		EquipComponent->CancelActions();
 		PlayAnimMontage(AM_Hit);
 	}
 	else
@@ -606,6 +617,21 @@ void AMyCharacter::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 	if (bInterrupted) return;
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 }
+
+void AMyCharacter::HandleDeath()
+{
+	MultiRPC_HandleDeath();
+}
+
+void AMyCharacter::MultiRPC_HandleDeath_Implementation()
+{
+	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
+	//GetCharacterMovement()->DisableMovement();
+	//GetMesh()->SetAllBodiesSimulatePhysics(true);
+	// 레그돌, 지면에만 충돌, 다른 물체와는 no collision, 약한 참조자로 참조하고 1분뒤에 제거
+	//GetCapsuleComponent()->Setcollision
+}
+
 
 void AMyCharacter::SetItem()
 {

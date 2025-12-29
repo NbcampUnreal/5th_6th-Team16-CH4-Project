@@ -17,7 +17,7 @@
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
-	AttackDamage(30),
+	AttackDamage(25),
 	bIsAttack(false),
 	bIsHit(false)
 {
@@ -58,6 +58,11 @@ void AMyAICharacter::BeginPlay()
 	else
 	{
 		StateTreeComponent->StopLogic("");
+	}
+
+	if (IsValid(HealthComponent))
+	{
+		HealthComponent->OnDead.AddUObject(this, &AMyAICharacter::HandleDeath);
 	}
 }
 
@@ -159,7 +164,10 @@ void AMyAICharacter::OnRep_bIsHit()
 
 void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 {
-	if (bIsAttack || bIsHit) return;
+	if (bIsAttack || bIsHit)
+	{
+		return;
+	}
 
 	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
 	if (AnimInst)
@@ -172,7 +180,6 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 		AnimInst->Montage_SetEndDelegate(AttackMontageEnded, AM_Attack);
 	}
 
-	// Notify로 옮기기
 	FHitResult Hit;
 	FVector StartLocation = ContextActor->GetActorLocation() + FVector({ 0.f, 0.f, 80.f });
 	FVector EndLocation = DamagedActor->GetActorLocation() + FMath::FRandRange(0.f, 80.f);
@@ -192,7 +199,7 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 	if (!bIsWallHit)
 	{
 		UGameplayStatics::ApplyPointDamage(DamagedActor,
-											AttackDamage, 
+											AttackDamage + FMath::FRandRange(-10.f, 10.f),
 											EndLocation - StartLocation, 
 											Hit, 
 											GetController(), 
@@ -232,10 +239,24 @@ float AMyAICharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, 
 
 void AMyAICharacter::HandleDeath()
 {
+	MultiRPC_HandleDeath();
+}
+
+void AMyAICharacter::MultiRPC_HandleDeath_Implementation()
+{
+	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
+	StateTreeComponent->StopLogic("Dead");
 	GetCharacterMovement()->DisableMovement();
-	GetMesh()->SetAllBodiesSimulatePhysics(true);
-	// 레그돌, 지면에만 충돌, 다른 물체와는 no collision, 약한 참조자로 참조하고 1분뒤에 제거
-	//GetCapsuleComponent()->Setcollision
+
+	USkeletalMeshComponent* SMComp = GetMesh();
+	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
+
+	//CapsuleComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SMComp->SetAllBodiesSimulatePhysics(true);
+	//CapsuleComp->SetCollisionProfileName(TEXT("Ragdoll"));
+	SMComp->SetCollisionProfileName(TEXT("Ragdoll"));
+	SetLifeSpan(60.f);
 }
 
 void AMyAICharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)

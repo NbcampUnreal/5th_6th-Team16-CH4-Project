@@ -71,7 +71,10 @@ public:
 
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
+	UFUNCTION()
 	void HandleDeath();
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_HandleDeath();
 #pragma endregion
 
 #pragma region Animation
