@@ -622,10 +622,10 @@ void AMyCharacter::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 
 void AMyCharacter::HandleDeath()
 {
-	//if (HasAuthority())
-	//{
-	//	GetCharacterMovement()->DisableMovement();
-	//}
+	if (HasAuthority())
+	{
+		GetCharacterMovement()->DisableMovement();
+	}
 	MultiRPC_HandleDeath();
 }
 
@@ -633,7 +633,7 @@ void AMyCharacter::MultiRPC_HandleDeath_Implementation()
 {
 	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
 
-	/*if (IsLocallyControlled())
+	if (IsLocallyControlled())
 	{
 		if (AMyPlayerController* PC = Cast<AMyPlayerController>(Controller))
 		{
@@ -650,7 +650,7 @@ void AMyCharacter::MultiRPC_HandleDeath_Implementation()
 	SMComp->SetAllBodiesSimulatePhysics(true);
 	CapsuleComp->SetCollisionProfileName(TEXT("Ragdoll"));
 	SMComp->SetCollisionProfileName(TEXT("Ragdoll"));
-	SetLifeSpan(300.f);*/
+	SetLifeSpan(300.f);
 }
 
 
