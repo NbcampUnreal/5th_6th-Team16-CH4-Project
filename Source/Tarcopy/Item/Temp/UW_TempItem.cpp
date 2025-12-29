@@ -41,11 +41,17 @@ void UUW_TempItem::UpdateTempItem()
 
 	TextItemId->SetText(Item->GetData()->TextName);
 
+	FItemCommandContext Ctx;
+	Ctx.InstigatorController = GetOwningPlayer();
+	if (Ctx.InstigatorController.IsValid())
+	{
+		Ctx.Instigator = Cast<AActor>(Ctx.InstigatorController->GetPawn());
+	}
 	const auto& Components = Item->GetItemComponents();
 	TArray<TObjectPtr<UItemCommandBase>> Commands;
 	for (const auto& Component : Components)
 	{
-		Component->GetCommands(Commands);
+		Component->GetCommands(Commands, Ctx);
 	}
 
 	for (const auto& Command : Commands)

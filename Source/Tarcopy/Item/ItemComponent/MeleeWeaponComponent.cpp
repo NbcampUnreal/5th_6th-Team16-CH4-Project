@@ -15,6 +15,9 @@
 #include "Character/MyCharacter.h"
 #include "HoldableComponent.h"
 #include "Tarcopy.h"
+#include "Item/EquipComponent.h"
+#include "Inventory/PlayerInventoryComponent.h"
+#include "Inventory/InventoryData.h"
 
 const float UMeleeWeaponComponent::CheckHitDelay = 0.5f;
 
@@ -23,13 +26,21 @@ void UMeleeWeaponComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 	Super::SetOwnerItem(InOwnerItem);
 }
 
-void UMeleeWeaponComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
+void UMeleeWeaponComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
 {
-	Super::GetCommands(OutCommands);
+	Super::GetCommands(OutCommands, Context);
 
 	const FItemData* OwnerItemData = GetOwnerItemData();
 	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
 	FText TextItemName = OwnerItemData->TextName;
+
+	if (Context.Instigator.IsValid() == false)
+		return;
+
+	UEquipComponent* EquipComponent = Context.Instigator->FindComponentByClass<UEquipComponent>();
+	UPlayerInventoryComponent* InventoryComponent = Context.Instigator->FindComponentByClass<UPlayerInventoryComponent>();
+	if (IsValid(EquipComponent) == false || IsValid(InventoryComponent) == false)
+		return;
 
 	bool bIsEquipped = IsValid(GetOwnerCharacter()) == true;
 	UEquipCommand* EquipCommand = NewObject<UEquipCommand>(this);
@@ -40,7 +51,25 @@ void UMeleeWeaponComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase
 	EquipCommand->bEquip = !bIsEquipped;
 	EquipCommand->BodyLocation = Data->BodyLocation;
 	// 인벤토리에서 공간 있는지 체크해야 함
-	EquipCommand->bExecutable = true;
+	UInventoryData* InventoryData = InventoryComponent->GetPlayerInventoryData();
+	FIntPoint Origin;
+	bool bRotated;
+	if (bIsEquipped == true)
+	{
+		EquipCommand->bExecutable = IsValid(InventoryData) == true && InventoryData->CanAddItem(OwnerItem.Get(), Origin, bRotated) == true;
+	}
+	else
+	{
+		int32 ReplaceItemCount = EquipComponent->GetNeedToReplaceCount(Data->BodyLocation);
+		if (ReplaceItemCount == 1)
+		{
+			EquipCommand->bExecutable = IsValid(InventoryData) == true && InventoryData->CanAddItem(OwnerItem.Get(), Origin, bRotated) == true;
+		}
+		else
+		{
+			EquipCommand->bExecutable = true;
+		}
+	}
 	OutCommands.Add(EquipCommand);
 }
 

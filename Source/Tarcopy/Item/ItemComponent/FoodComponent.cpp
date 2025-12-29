@@ -16,7 +16,7 @@ void UFoodComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 	Super::SetOwnerItem(InOwnerItem);
 }
 
-void UFoodComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
+void UFoodComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
 {
 	const FItemData* OwnerItemData = GetOwnerItemData();
 	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));

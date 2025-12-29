@@ -28,9 +28,11 @@ public:
 
 	ACharacter* GetOwnerCharacter() const;
 
+	class UInventoryData* GetOwnerInventory() const;
+
 	bool HasAuthority() const;
 
-	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) {}
+	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context) {}
 
 	virtual void CancelAction() {}
 

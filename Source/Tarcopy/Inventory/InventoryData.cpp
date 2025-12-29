@@ -29,7 +29,7 @@ void UInventoryData::Init(const FIntPoint& InGridSize)
 	ReplicatedItems.Owner = this;
 }
 
-bool UInventoryData::TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bool bRotated)
+bool UInventoryData::TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bool bRotated, bool bOwnItem)
 {
 	if (!IsValid(Item))
 	{
@@ -39,6 +39,11 @@ bool UInventoryData::TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bo
 	if (!CheckCanPlace(Item, Origin, bRotated, nullptr))
 	{
 		return false;
+	}
+
+	if (bOwnItem == true)
+	{
+		Item->SetOwnerObject(this);
 	}
 
 	FInventoryItemEntry& Entry = ReplicatedItems.Items.AddDefaulted_GetRef();
@@ -142,7 +147,7 @@ bool UInventoryData::TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, 
 }
 
 
-int32 UInventoryData::GetItemCountByItemId(FName InItemId, TArray<UItemInstance*> OutCandidates) const
+int32 UInventoryData::GetItemCountByItemId(FName InItemId, TArray<UItemInstance*>& OutCandidates) const
 {
 	int32 Count = 0;
 

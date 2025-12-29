@@ -85,7 +85,7 @@ void ULootScannerComponent::RebuildGroundInventory()
 		{
 			for (int32 X = 0; X < GroundGridSize.X && !bPlaced; ++X)
 			{
-				if (GroundInventoryData->TryAddItem(ItemInstance, FIntPoint(X, Y), false))
+				if (GroundInventoryData->TryAddItem(ItemInstance, FIntPoint(X, Y), false, false))
 				{
 					bPlaced = true;
 				}
