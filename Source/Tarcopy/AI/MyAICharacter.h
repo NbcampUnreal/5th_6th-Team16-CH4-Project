@@ -11,6 +11,7 @@ class UStaticMeshComponent;
 class AMyCharacter;
 class UStateTreeComponent;
 struct FStateTreeEvent;
+class UWorldContainerComponent;
 
 UCLASS()
 class TARCOPY_API AMyAICharacter : public ACharacter
@@ -123,5 +124,12 @@ public:
 protected:
 	void PatrolToChase(AController* Instigator);
 	void ChaseToPatrol();
+#pragma endregion
+
+#pragma region Inventory
+
+protected:
+	TObjectPtr<UWorldContainerComponent> WorldContainerComponent;
+
 #pragma endregion
 };

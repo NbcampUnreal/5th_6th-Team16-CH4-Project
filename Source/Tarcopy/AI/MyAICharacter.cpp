@@ -14,6 +14,8 @@
 #include "Common/HealthComponent.h"
 #include "Components/StateTreeComponent.h"
 #include "Car/TCCarBase.h"
+#include "Inventory/WorldContainerComponent.h"
+#include "Components/BoxComponent.h"
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
@@ -42,6 +44,9 @@ AMyAICharacter::AMyAICharacter() :
 
 	StateTreeComponent = CreateDefaultSubobject<UStateTreeComponent>(TEXT("StateTreeComponent"));
 	StateTreeComponent->SetStartLogicAutomatically(false);
+
+	WorldContainerComponent = CreateDefaultSubobject<UWorldContainerComponent>(TEXT("WorldContainerComponent"));
+	WorldContainerComponent->SetupAttachment(RootComponent);
 }
 
 AMyAICharacter::~AMyAICharacter()
@@ -308,6 +313,7 @@ void AMyAICharacter::MultiRPC_HandleDeath_Implementation()
 {
 	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
 	SetRagdolled();
+	WorldContainerComponent->GetSenseBox()->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 }
 
 void AMyAICharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
