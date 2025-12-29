@@ -80,10 +80,10 @@ public:
 	TArray<UBoxComponent*> DamageZone;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float DamageFactor = 0.00001f;
+	float DamageFactor;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float MinDamageImpulse = 50000.f;
+	float MinDamageImpulse;
 
 	float LastHitTime = 0.f;
 

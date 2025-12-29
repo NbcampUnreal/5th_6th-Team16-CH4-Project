@@ -19,6 +19,13 @@ class UUISubsystem;
 class UTCCarActivate;
 struct FInputActionValue;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+	FOnCarRideStateChanged,
+	APawn*, OldPawn,
+	APawn*, NewPawn
+
+);
+
 UCLASS(abstract)
 class ATCCarBase : public AWheeledVehiclePawn, public IActivateInterface
 {
@@ -133,8 +140,8 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Vehicle")
 	void BrakeLights(bool bBraking);
 
-	UFUNCTION()
-	void DecreaseGas(float InDecreaseGas);
+	UFUNCTION(Server, Reliable)
+	void ServerRPCUpdateFuel(float InValue);
 
 	UFUNCTION()
 	void OnRep_UpdateGas();
@@ -156,6 +163,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Gas");
 	float MoveFactor;
+
+	UPROPERTY(Replicated)
+	bool bCanMove;
 
 public:
 	FORCEINLINE USpringArmComponent* GetFrontSpringArm() const { return SpringArm; }
@@ -230,8 +240,11 @@ public:
 	UFUNCTION()
 	void ExitVehicle(APawn* InPawn, APlayerController* InPC);
 
-	UFUNCTION(Server,Reliable)
-	void ServerRPCAddFuel();
+	UPROPERTY()
+	TObjectPtr<UTCCarActivate> UI;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnCarRideStateChanged OnCarRideChanged;
 
 #pragma region endregion
 	

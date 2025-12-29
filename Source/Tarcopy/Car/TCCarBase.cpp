@@ -32,8 +32,9 @@ ATCCarBase::ATCCarBase() :
 	MaxFuel(100.f),
 	MoveFactor(0.12),
 	RidePawn(nullptr),
+	bLightOn(false),
 	bPossessed(false),
-	bLightOn(false)
+	bCanMove(true)
 {
 	bReplicates = true;
 	// construct the front camera boom
@@ -80,10 +81,11 @@ ATCCarBase::ATCCarBase() :
 			Zone->SetupAttachment(GetMesh());
 		}
 	}
-
-	GetMesh()->SetAngularDamping(5.0f);
+	GetMesh()->SetMassOverrideInKg(NAME_None, 100000.f, true);
+	GetMesh()->SetAngularDamping(15.0f);
+	GetMesh()->SetLinearDamping(15.0f);
 	//Test
-	CurrentFuel = 100.f;
+	CurrentFuel = 0.f;
 
 	AIControllerClass = nullptr;
 	AutoPossessAI = EAutoPossessAI::Disabled;
@@ -158,19 +160,22 @@ void ATCCarBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	DOREPLIFETIME(ThisClass, SteeringFactor);
 	DOREPLIFETIME(ThisClass, ThrottleFactor);
 	DOREPLIFETIME(ThisClass, bLightOn);
+	DOREPLIFETIME(ThisClass, bCanMove);
+
 }
 
 void ATCCarBase::UnPossessed()
 {
 	Super::UnPossessed();
 
-	UE_LOG(LogTemp, Error, TEXT("UnPossessed"));
+	UE_LOG(LogTemp, Error, TEXT("UnPossessed %s"),*RidePawn->GetName());
+	OnCarRideChanged.Broadcast(this,RidePawn);
+	RidePawn = nullptr;
 }
 
 float ATCCarBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	if (!HasAuthority()) return 0;
-
 
 	if (!DamageEvent.IsOfType(FPointDamageEvent::ClassID))
 	{
@@ -200,7 +205,6 @@ void ATCCarBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-
 	TWeakObjectPtr<ATCCarBase> WeakThis(this);
 
 	if (HasAuthority())
@@ -220,10 +224,11 @@ void ATCCarBase::PossessedBy(AController* NewController)
 						float ClampedRate = FMath::Clamp(CurrentRPM / 6000.f, 0.f, 1.f);
 						Consumption += ClampedRate * WeakThis->MoveFactor;
 
-						WeakThis->DecreaseGas(Consumption * 10);
+						WeakThis->ServerRPCUpdateFuel(-Consumption * 10);
 					}),
 				1.f,
-				true
+				true,
+				0.f
 			);
 		}
 	}
@@ -234,27 +239,13 @@ void ATCCarBase::OnRep_Controller()
 	Super::OnRep_Controller();
 
 	if (!IsLocallyControlled()) return;
+
 	AMyPlayerController* PC = Cast<AMyPlayerController>(GetController());
-	if (!PC)
-	{
-		if (CarWidgetInstance)
-		{
-			UISubsystem->HideUI(EUIType::Car);
-		}
-		return;
-	}
-
-	ULocalPlayer* LP = PC->GetLocalPlayer();
-	checkf(LP, TEXT("ATCCarBase::OnRep_Controller() LP"));
-
-	UISubsystem = LP->GetSubsystem<UUISubsystem>();
-	if (IsValid(UISubsystem))
-	{
-		CarWidgetInstance = Cast<UTCCarWidget>(UISubsystem->ShowUI(EUIType::Car));
-	}
 
 	ACharacter* PlayerCharacter = Cast<ACharacter>(RidePawn);
 	ServerRPCHideCharacter(PlayerCharacter);
+
+	OnRep_UpdateGas();
 
 	PC->ChangeIMC(PC->IMC_Car);
 }
@@ -312,14 +303,25 @@ void ATCCarBase::DoSteering(float SteeringValue)
 
 void ATCCarBase::DoThrottle(float ThrottleValue)
 {
-	ChaosVehicleMovement->SetThrottleInput(ThrottleValue);
+	float Value = ThrottleValue;
+	if (!bCanMove)
+	{
+		Value = 0.f;
+	}
+
+	ChaosVehicleMovement->SetThrottleInput(Value);
 
 	ChaosVehicleMovement->SetBrakeInput(0.0f);
 }
 
 void ATCCarBase::DoBrake(float BrakeValue)
 {
-	ChaosVehicleMovement->SetBrakeInput(BrakeValue);
+	float Value = BrakeValue;
+	if (!bCanMove)
+	{
+		Value = 0.f;
+	}
+	ChaosVehicleMovement->SetBrakeInput(Value);
 
 	ChaosVehicleMovement->SetThrottleInput(0.0f);
 }
@@ -384,11 +386,23 @@ void ATCCarBase::OnRep_bLightOn()
 
 void ATCCarBase::EnterVehicle(APawn* InPawn, APlayerController* InPC)
 {
+	if (!InPawn || InPawn == this) return;
 	AMyPlayerController* PC = Cast<AMyPlayerController>(InPC);
 	if (!PC) return;
 
 	ACharacter* PlayerCharacter = Cast<ACharacter>(InPawn);
 	checkf(PlayerCharacter, TEXT("No Character"));
+
+	ULocalPlayer* LP = PC->GetLocalPlayer();
+	checkf(LP, TEXT("ATCCarBase::OnRep_Controller() LP"));
+
+	DoThrottle(0.f);
+
+	UISubsystem = LP->GetSubsystem<UUISubsystem>();
+	if (IsValid(UISubsystem))
+	{
+		CarWidgetInstance = Cast<UTCCarWidget>(UISubsystem->ShowUI(EUIType::Car));
+	}
 
 	RidePawn = PlayerCharacter;
 
@@ -397,17 +411,32 @@ void ATCCarBase::EnterVehicle(APawn* InPawn, APlayerController* InPC)
 
 void ATCCarBase::ExitVehicle(APawn* InPawn, APlayerController* InPC)
 {
+	if (!InPawn) return;
+	if (!InPC) return;
+
+	DoThrottle(0.f);
+
+	if (CarWidgetInstance)
+	{
+		UISubsystem->HideUI(EUIType::Car);
+	}
+
 	ServerRPCShowCharacter();
 }
 
-void ATCCarBase::ServerRPCAddFuel_Implementation()
+void ATCCarBase::ServerRPCUpdateFuel_Implementation(float InValue)
 {
-	CurrentFuel = FMath::Clamp(CurrentFuel + 30.f, 0.f, MaxFuel);
-}
+	if (!HasAuthority()) return;
+	CurrentFuel = FMath::Clamp(CurrentFuel + InValue, 0.f, MaxFuel);
 
-void ATCCarBase::DecreaseGas(float InDecreaseGas)
-{
-	CurrentFuel = FMath::Clamp(CurrentFuel - InDecreaseGas, 0.f, 100.f);
+	if (CurrentFuel <= 0 && bCanMove)
+	{
+		bCanMove = false;
+	}
+	if (CurrentFuel > 0 && !bCanMove)
+	{
+		bCanMove = true;
+	}
 }
 
 void ATCCarBase::Activate(AActor* InInstigator)
@@ -515,6 +544,12 @@ void ATCCarBase::DisableWheel(UPrimitiveComponent* DestroyComponent)
 
 void ATCCarBase::ExecuteCommand(ECarCommand Command, APawn* InPawn, APlayerController* InPC)
 {
+	if (HasAuthority()) return;
+
+	if (UI)
+	{
+		UI->RemoveFromParent();
+	}
 	switch (Command)
 	{
 		case ECarCommand::Enter : 
@@ -523,6 +558,10 @@ void ATCCarBase::ExecuteCommand(ECarCommand Command, APawn* InPawn, APlayerContr
 		
 		case ECarCommand::Exit :
 			ExitVehicle(InPawn, InPC);
+			break;
+		
+		case ECarCommand::AddFuel :
+			ServerRPCUpdateFuel(30.f);
 			break;
 	}
 }
@@ -533,6 +572,7 @@ TArray<ECarCommand> ATCCarBase::GetAvailableCommands() const
 
 	Commands.Add(ECarCommand::Enter);
 	Commands.Add(ECarCommand::Exit);
+	Commands.Add(ECarCommand::AddFuel);
 
 	return Commands;
 }
@@ -550,8 +590,9 @@ void ATCCarBase::ShowInterActionUI(APlayerController* InPC)
 
 	if (IsValid(UISubsystem))
 	{
-		UTCCarActivate* UI = UISubsystem->ShowCarCommandMenu(this, ScreenPos);
+		UI = UISubsystem->ShowCarCommandMenu(this, ScreenPos);
 	}
+	UI->SetKeyboardFocus();
 }
 
 void ATCCarBase::ServerRPCShowCharacter_Implementation()
@@ -581,6 +622,8 @@ void ATCCarBase::ServerRPCHideCharacter_Implementation(ACharacter* InCharacter)
 {
 	RidePawn = InCharacter;
 
+	OnCarRideChanged.Broadcast(RidePawn, this);
+
 	bPossessed = true;
 
 	UCapsuleComponent* Capsule = InCharacter->GetCapsuleComponent();
@@ -605,12 +648,14 @@ void ATCCarBase::OnRep_bPossessed()
 		TempSaveCollision = Capsule->GetCollisionEnabled();
 
 		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		RidePawn->SetActorHiddenInGame(true);
 	}
 	else
 	{
 		UCapsuleComponent* Capsule = PlayerCharacter->GetCapsuleComponent();
 
 		Capsule->SetCollisionEnabled(TempSaveCollision);
+		RidePawn->SetActorHiddenInGame(false);
 	}
 }
 #undef LOCTEXT_NAMESPACE

@@ -11,8 +11,12 @@
 #include "Components/BoxComponent.h"
 #include "Car/UI/TCCarWidget.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/Character.h"
+#include "Components/CapsuleComponent.h"
 
-UTCCarCombatComponent::UTCCarCombatComponent()
+UTCCarCombatComponent::UTCCarCombatComponent() :
+	DamageFactor(0.00001),
+	MinDamageImpulse(50000.f)
 {
 	SetIsReplicatedByDefault(true);
 
@@ -162,22 +166,39 @@ void UTCCarCombatComponent::DisableWheelPhysics(UPrimitiveComponent* DestroyComp
 
 void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	const float ImpulseSize = NormalImpulse.Size();
-
-	if (ImpulseSize < MinDamageImpulse)
-		return;
-
+	
+	if (!GetOwner()) return;
 	if (OtherActor == GetOwner()) return;
+	
+	float Damage = 0.f;
+	if (ACharacter* HitActor = Cast<ACharacter>(OtherActor))
+	{
+		FVector Velocity = GetOwner()->GetVelocity();
+		FVector Dir = (HitActor->GetActorLocation() - GetOwner()->GetActorLocation());
+		Dir.Z += 100.f;
+		Dir = Dir.GetSafeNormal();
+		float Speed = Velocity.Size();
 
-	const float Now = GetWorld()->GetTimeSeconds();
+		if (Speed <= 50.f) return;
 
-	if (Now - LastHitTime < 0.5f) return;
+		HitActor->LaunchCharacter(Dir * Speed * 1.5, true, true);
+		Damage = 5.f;
+	}
+	else
+	{
+		const float ImpulseSize = NormalImpulse.Size();
 
-	LastHitTime = Now;
+		if (ImpulseSize < MinDamageImpulse)
+			return;
 
-	float Damage = ImpulseSize * DamageFactor;
+		const float Now = GetWorld()->GetTimeSeconds();
 
-	UE_LOG(LogTemp, Error, TEXT("Hit %.0f"), Damage);
+		if (Now - LastHitTime < 0.5f) return;
+
+		LastHitTime = Now;
+
+		Damage = ImpulseSize * DamageFactor;
+	}
 
 	const FVector WorldPoint = Hit.ImpactPoint;
 	

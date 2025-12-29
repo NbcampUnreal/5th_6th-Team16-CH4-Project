@@ -32,4 +32,3 @@ void UCommandButtonWidget::OnCommandClicked()
 
 	Car->ExecuteCommand(Command, Pawn, PC);
 }
-
