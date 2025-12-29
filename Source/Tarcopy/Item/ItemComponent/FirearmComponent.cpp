@@ -139,7 +139,7 @@ void UFirearmComponent::CheckHit(const FVector& StartLocation, const FVector& En
 	Params.bReturnPhysicalMaterial = true;
 	// 적 캡슐 Visibility 끄고 나머진 켜기
 	FCollisionShape SphereCollision = FCollisionShape::MakeSphere(10.0f);
-	bool bHit = GetWorld()->SweepSingleByChannel(HitResult, StartLocation, EndLocation, FQuat::Identity, ECC_Visibility, SphereCollision, Params);
+	bool bHit = GetWorld()->SweepSingleByChannel(HitResult, StartLocation, EndLocation, FQuat::Identity, ECC_PlayerAttack, SphereCollision, Params);
 	FVector ActualEndLocation = bHit == true ? HitResult.ImpactPoint : EndLocation;
 
 	// 나이아가라 트레일 연출

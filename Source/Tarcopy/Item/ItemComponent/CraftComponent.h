@@ -27,7 +27,7 @@ public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
 
-private:
+public:
 	UFUNCTION(Server, Reliable)
 	void ServereRPC_Craft(const FName& CraftId);
 };

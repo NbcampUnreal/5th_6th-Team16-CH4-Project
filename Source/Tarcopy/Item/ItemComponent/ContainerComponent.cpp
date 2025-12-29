@@ -7,6 +7,7 @@
 #include "Inventory/InventoryData.h"
 #include "Item/ItemCommand/OpenContainerCommand.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/ActorChannel.h"
 
 void UContainerComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
@@ -35,6 +36,14 @@ void UContainerComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>
 	OpenContainerCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Open Inventory of {0}")), TextItemName);
 	OpenContainerCommand->bExecutable = true;
 	OutCommands.Add(OpenContainerCommand);
+}
+
+bool UContainerComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	bWroteSomething |= Channel->ReplicateSubobject(InventoryData, *Bunch, *RepFlags);
+	return bWroteSomething;
 }
 
 void UContainerComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

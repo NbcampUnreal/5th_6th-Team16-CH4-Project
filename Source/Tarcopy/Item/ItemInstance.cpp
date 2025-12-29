@@ -9,6 +9,20 @@
 #include "GameFramework/Character.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Item/ItemComponent/HoldableComponent.h"
+#include "Engine/ActorChannel.h"
+
+bool UItemInstance::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool bWroteSomething = Channel->ReplicateSubobject(this, *Bunch, *RepFlags);
+	for (const auto& ItemComponent : ItemComponents)
+	{
+		if (IsValid(ItemComponent) == false)
+			continue;
+
+		bWroteSomething |= ItemComponent->ReplicateSubobjects(Channel, Bunch, RepFlags);
+	}
+	return bWroteSomething;
+}
 
 bool UItemInstance::IsSupportedForNetworking() const
 {
