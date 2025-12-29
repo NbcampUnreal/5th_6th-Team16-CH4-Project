@@ -20,7 +20,7 @@ void UDurabilityComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 	Condition = Data->MaxCondition;
 }
 
-void UDurabilityComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
+void UDurabilityComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
 {
 	const FItemData* OwnerItemData = GetOwnerItemData();
 	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));

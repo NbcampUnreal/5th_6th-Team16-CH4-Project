@@ -24,12 +24,19 @@ void UUW_ItemCommandMenu::InitMenu(UItemInstance* InItem)
 		return;
 	}
 
+	FItemCommandContext Ctx;
+	Ctx.InstigatorController = GetOwningPlayer();
+	if (Ctx.InstigatorController.IsValid())
+	{
+		Ctx.Instigator = Cast<AActor>(Ctx.InstigatorController->GetPawn());
+	}
+
 	const auto Components = Item->GetItemComponents();
 	for (const auto& Comp : Components)
 	{
 		if (IsValid(Comp))
 		{
-			Comp->GetCommands(Commands);
+			Comp->GetCommands(Commands, Ctx);
 		}
 	}
 

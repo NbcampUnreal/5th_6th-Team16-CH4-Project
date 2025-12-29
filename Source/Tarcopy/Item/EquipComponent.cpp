@@ -12,6 +12,7 @@
 #include "Inventory/InventoryData.h"
 #include "Item/ItemComponent/ClothingComponent.h"
 #include "Item/Data/ClothDefensePreset.h"
+#include "Inventory/PlayerInventoryComponent.h"
 
 const float UEquipComponent::WeightMultiplier = 0.3f;
 
@@ -38,7 +39,7 @@ void UEquipComponent::BeginPlay()
 	// 인벤토리 없어서 임시 테스트용으로 부위 아무데나 정해서 Equip에 넣고 캐릭터에서 Equip에 장착된 아이템 표시되게 해서 테스트 중
 	UItemInstance* NewItem = NewObject<UItemInstance>(this);
 	NewItem->SetItemId(TestEquippedItem);
-	EquipItem(EBodyLocation::RightHand, NewItem);
+	EquipItem(EBodyLocation::RightHand, NewItem, true);
 
 	TArray<FName> Clothes = { FName(TEXT("TShirts0")), FName(TEXT("Shirt0")), FName(TEXT("Sweater0")), FName(TEXT("Bottoms0")), FName(TEXT("Back0")) };
 	for (const auto& Cloth : Clothes)
@@ -46,7 +47,7 @@ void UEquipComponent::BeginPlay()
 		NewItem = NewObject<UItemInstance>(this);
 		NewItem->SetItemId(Cloth);
 		EBodyLocation BodyLocation = NewItem->GetItemComponent<UClothingComponent>()->GetData()->BodyLocation;
-		EquipItem(BodyLocation, NewItem);
+		EquipItem(BodyLocation, NewItem, true);
 	}
 }
 
@@ -78,61 +79,54 @@ UItemInstance* UEquipComponent::GetEquippedItem(EBodyLocation Bodylocation) cons
 	return EquippedItemPtr != nullptr ? EquippedItemPtr->Item : nullptr;
 }
 
-void UEquipComponent::ServerRPC_EquipItem_Implementation(EBodyLocation BodyLocation, UItemInstance* Item)
+int32 UEquipComponent::GetNeedToReplaceCount(EBodyLocation BodyLocation) const
 {
-	// 임시 나중에 Inventory에서 서버작업 해주면 거기서 해야 함
-	AMyCharacter* Character = Cast<AMyCharacter>(GetOwner());
-	if (IsValid(Character) == false)
+	int32 Result = 0;
+	for (auto& EquippedItemInfo : EquippedItemInfos)
 	{
-		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("No Owner MyCharacter"));
-		return;
-	}
-
-	TArray<UInventoryData*> InventoryDatas;
-	Character->GetNearbyInventoryDatas(InventoryDatas);
-	bool bIsExist = false;
-	for (const auto& InventoryData : InventoryDatas)
-	{
-		if (InventoryData->RemoveItem(Item) == true)
+		if (Exclusive(EquippedItemInfo.Location, BodyLocation) == true &&
+			IsValid(EquippedItemInfo.Item) == true)
 		{
-			bIsExist = true;
-			break;
+			++Result;
 		}
 	}
-
-	UKismetSystemLibrary::PrintString(GetWorld(), bIsExist ? TEXT("bIsExist = true") : TEXT("bIsExist = false"));
-	if (bIsExist == false)
-		return;
-	// 여기까지
-
-	EquipItem(BodyLocation, Item);
+	return Result;
 }
 
-void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item)
+void UEquipComponent::ServerRPC_EquipItem_Implementation(EBodyLocation BodyLocation, UItemInstance* Item, bool bInstantiate)
 {
-	ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
+	EquipItem(BodyLocation, Item, bInstantiate);
+}
+
+void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item, bool bInstantiate)
+{
+	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwner());
 	if (IsValid(OwnerCharacter) == false || OwnerCharacter->HasAuthority() == false)
 		return;
 
 	if (OwnerCharacter->HasAuthority() == false)
 		return;
 
-	if (IsValid(Item) == false)
+	const FItemData* ItemData = Item->GetData();
+	if (ItemData == nullptr)
+		return;
+
+	// 아이템을 새로 생성해서 추가하는 것이 아니라면, 주변의 인벤토리에서 가져와야 장착 가능
+	if (bInstantiate == false && RemoveItemFromInventory(Item) == false)
 		return;
 
 	Item->SetOwnerObject(this);
 	Item->SetOwnerCharacter(OwnerCharacter);
-
-	const FItemData* ItemData = Item->GetData();
-	if (ItemData == nullptr)
-		return;
 
 	UKismetSystemLibrary::PrintString(GetWorld(), *ItemData->ItemId.ToString());
 	for (auto& EquippedItemInfo : EquippedItemInfos)
 	{
 		if (Exclusive(EquippedItemInfo.Location, BodyLocation) == true)
 		{
-			UnequipItem(EquippedItemInfo.Item);
+			if (IsValid(EquippedItemInfo.Item) == true && EquippedItemInfo.Item != Item)
+			{
+				UnequipItem(EquippedItemInfo.Item);
+			}
 			EquippedItemInfo.Item = Item;
 		}
 	}
@@ -160,12 +154,12 @@ void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item)
 		*Item->GetOwnerCharacter()->GetName() : TEXT("Item No Owner"));*/
 }
 
-void UEquipComponent::ServerRPC_UnequipItem_Implementation(UItemInstance* Item)
+void UEquipComponent::ServerRPC_UnequipItem_Implementation(UItemInstance* Item, bool bDrop)
 {
-	UnequipItem(Item);
+	UnequipItem(Item, bDrop);
 }
 
-void UEquipComponent::UnequipItem(UItemInstance* Item)
+void UEquipComponent::UnequipItem(UItemInstance* Item, bool bDrop)
 {
 	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwner());
 	if (IsValid(OwnerCharacter) == false || OwnerCharacter->HasAuthority() == false)
@@ -180,30 +174,22 @@ void UEquipComponent::UnequipItem(UItemInstance* Item)
 	const FItemData* ItemData = Item->GetData();
 	checkf(ItemData != nullptr, TEXT("EquipComponent => There's no equipped item's data"));
 
-	Item->SetOwnerCharacter(nullptr);
-
-	UKismetSystemLibrary::PrintString(GetWorld(),
-		IsValid(Item->GetOwnerCharacter()) == true ?
-		*Item->GetOwnerCharacter()->GetName() : TEXT("Item No Owner"));
-
-	TSet<UItemInstance*> ItemsToDrop;
+	bool bEquipped = false;
 	for (auto& EquippedItemInfo : EquippedItemInfos)
 	{
-		if (IsValid(EquippedItemInfo.Item) == true)
-		{
-			const FItemData* CompareData = EquippedItemInfo.Item->GetData();
-			if (CompareData != nullptr && CompareData->ItemId != ItemData->ItemId)
-				continue;
-		}
+		if (EquippedItemInfo.Item != Item)
+			continue;
 
-		// Equipment에 이상한 값 들어있거나 유효하지 않은 상태면 정리
 		// 장착한 아이템이 지울 아이템이면 정리
-		if (ItemsToDrop.Find(EquippedItemInfo.Item) == nullptr)
-		{
-			ItemsToDrop.Add(EquippedItemInfo.Item);
-		}
+		bEquipped = true;
 		EquippedItemInfo.Item = nullptr;
 	}
+
+	// 대상 아이템을 장착하고 있지 않았다면 return
+	if (bEquipped == false)
+		return;
+
+	Item->SetOwnerCharacter(nullptr);
 
 	UClothingComponent* ClothComponent = Item->GetItemComponent<UClothingComponent>();
 	if (IsValid(ClothComponent) == true)
@@ -214,27 +200,87 @@ void UEquipComponent::UnequipItem(UItemInstance* Item)
 
 	TotalWeight -= ItemData->Weight * WeightMultiplier;
 
-	// test
-	for (const auto& ItemToDrop : ItemsToDrop)
-	{
-		FVector SpawnLocation = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 40.0f;
-		AItemWrapperActor* ItemWrapperActor = GetWorld()->SpawnActor<AItemWrapperActor>(
-			AItemWrapperActor::StaticClass(),
-			SpawnLocation,
-			FRotator::ZeroRotator);
-
-		if (IsValid(ItemWrapperActor) == true)
-		{
-			ItemWrapperActor->SetItemInstance(ItemToDrop);
-		}
-	}
-	// test
-
 	UHoldableComponent* Holdable = Item->GetItemComponent<UHoldableComponent>();
 	if (IsValid(Holdable) == true)
 	{
 		NetMulticast_SetOwnerHoldingItemEmpty();
 	}
+
+	if (bDrop == false)
+	{
+		UPlayerInventoryComponent* InventoryComponent = GetOwner()->FindComponentByClass<UPlayerInventoryComponent>();
+		if (IsValid(InventoryComponent) == true)
+		{
+			UInventoryData* PlayerInventory = InventoryComponent->GetPlayerInventoryData();
+			if (IsValid(PlayerInventory) == true)
+			{
+				FIntPoint Origin;
+				bool bRotated;
+				bool bCanAddItem = PlayerInventory->CanAddItem(Item, Origin, bRotated);
+				if (bCanAddItem == true && PlayerInventory->TryAddItem(Item, Origin, bRotated) == true)
+					return;
+			}
+		}
+	}
+
+	FVector SpawnLocation = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 40.0f;
+	AItemWrapperActor* ItemWrapperActor = GetWorld()->SpawnActor<AItemWrapperActor>(
+		AItemWrapperActor::StaticClass(),
+		SpawnLocation,
+		FRotator::ZeroRotator);
+
+	if (IsValid(ItemWrapperActor) == true)
+	{
+		ItemWrapperActor->SetItemInstance(Item);
+	}
+}
+
+bool UEquipComponent::RemoveItemFromInventory(UItemInstance* Item)
+{
+	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwner());
+	if (IsValid(OwnerCharacter) == false || OwnerCharacter->HasAuthority() == false)
+		return false;
+
+	if (OwnerCharacter->HasAuthority() == false)
+		return false;
+
+	if (IsValid(Item) == false)
+		return false;
+
+	const FItemData* ItemData = Item->GetData();
+	if (ItemData == nullptr)
+		return false;
+
+	TArray<UInventoryData*> InventoryDatas;
+	OwnerCharacter->GetNearbyInventoryDatas(InventoryDatas);
+	bool bIsExist = false;
+	TArray<UItemInstance*> OutCandidates;
+	for (const auto& InventoryData : InventoryDatas)
+	{
+		OutCandidates.Empty();
+		InventoryData->GetItemCountByItemId(ItemData->ItemId, OutCandidates);
+		for (const auto& OutItem : OutCandidates)
+		{
+			if (OutItem == Item)
+			{
+				if (AItemWrapperActor* ActorItem = OutItem->GetTypedOuter<AItemWrapperActor>())
+				{
+					ActorItem->Destroy();
+				}
+				else
+				{
+					InventoryData->RemoveItem(OutItem);
+				}
+				bIsExist = true;
+				break;
+			}
+		}
+
+		if (bIsExist == true)
+			break;
+	}
+
+	return bIsExist;
 }
 
 void UEquipComponent::CalculateFinalDamageTakenMultiplier()

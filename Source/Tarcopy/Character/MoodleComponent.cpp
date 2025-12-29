@@ -10,12 +10,12 @@ UMoodleComponent::UMoodleComponent() :
 	HungerReduceAmount(5.0f),
 	ThirstReduceDelay(1.0f),
 	ThirstReduceAmount(5.0f),
-	CurrentHunger(100.0f),
 	MaxHunger(100.0f),
-	CurrentThirst(100.0f),
+	CurrentHunger(100.0f),
 	MaxThirst(100.0f),
-	CurrentStamina(100.0f),
-	MaxStamina(100.0f)
+	CurrentThirst(100.0f),
+	MaxStamina(100.0f),
+	CurrentStamina(100.0f)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);

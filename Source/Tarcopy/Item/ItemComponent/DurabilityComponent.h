@@ -13,7 +13,7 @@ class TARCOPY_API UDurabilityComponent : public UItemComponentBase
 	
 public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
-	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
+	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context) override;
 
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;

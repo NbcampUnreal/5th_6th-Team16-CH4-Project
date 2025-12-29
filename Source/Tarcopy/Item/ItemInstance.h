@@ -11,6 +11,7 @@
 enum class EItemComponent : uint8;
 struct FItemData;
 class UItemComponentBase;
+class UInventoryData;
 
 DECLARE_MULTICAST_DELEGATE(FOnItemUpdated);
 
@@ -53,6 +54,7 @@ public:
 
 	void SetOwnerObject(UObject* InOwnerObject);
 	UObject* GetOwnerObject() const { return OwnerObject.IsValid() == true ? OwnerObject.Get() : nullptr; }
+	UInventoryData* GetOwnerInventory() const { return OwnerInventory.IsValid() == true ? OwnerInventory.Get() : nullptr; }
 
 	void SetOwnerCharacter(ACharacter* InOwnerCharacter);
 	ACharacter* GetOwnerCharacter() const { return OwnerCharacter.IsValid() == true ? OwnerCharacter.Get() : nullptr; };
@@ -85,6 +87,8 @@ protected:
 
 	UPROPERTY(ReplicatedUsing = OnRep_SetOwner)
 	TWeakObjectPtr<UObject> OwnerObject;
+	UPROPERTY(Replicated)
+	TWeakObjectPtr<UInventoryData> OwnerInventory;
 	UPROPERTY(ReplicatedUsing = OnRep_SetOwnerCharacter)
 	TWeakObjectPtr<ACharacter> OwnerCharacter;
 
