@@ -44,6 +44,7 @@
 #include "Animation/AnimMontage.h"
 #include <EnhancedInputSubsystems.h>
 #include "UI/UISubsystem.h"
+#include "Framework/TarcopyGameStateBase.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -113,6 +114,14 @@ AMyCharacter::AMyCharacter() :
 	
 	LootScanner = CreateDefaultSubobject<ULootScannerComponent>(TEXT("LootScanner"));
 	LootScanner->SetupAttachment(RootComponent);
+}
+
+AMyCharacter::~AMyCharacter()
+{
+	if (IsValid(GetWorld()))
+	{
+		GetWorldTimerManager().ClearTimer(OpenTitleLevelHandler);
+	}
 }
 
 // Called when the game starts or when spawned
@@ -627,21 +636,63 @@ void AMyCharacter::HandleDeath()
 		GetCharacterMovement()->DisableMovement();
 	}
 	MultiRPC_HandleDeath();
+	SetLifeSpan(300.f);
+}
+
+void AMyCharacter::ClientHandleDeath()
+{
+	if (AMyPlayerController* PC = Cast<AMyPlayerController>(Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		{
+			Subsystem->RemoveMappingContext(PC->IMC_Character);
+		}
+
+		//if (auto* LP = PC->GetLocalPlayer())
+		//{
+		//	if (auto* UIS = LP->GetSubsystem<UUISubsystem>())
+		//	{
+		//		UIS->HideUI(EUIType::Root);
+		//	}
+		//}
+	}
+
+	StartFadeToBlack(5.f);
+	if (IsValid(GetWorld()))
+	{
+		GetWorldTimerManager().SetTimer(OpenTitleLevelHandler, this, &AMyCharacter::OpenTitleLevel, 7.0f, false);
+	}
+}
+
+void AMyCharacter::StartFadeToBlack(float FadeTime)
+{
+	APlayerCameraManager* PlayerCameraManager = GetController<APlayerController>()->PlayerCameraManager;
+	if (IsValid(PlayerCameraManager))
+	{
+		FLinearColor FadeColor = FLinearColor::Black;
+		PlayerCameraManager->StartCameraFade(0.0f, 1.0f, FadeTime, FadeColor, true, true);
+	}
+}
+
+void AMyCharacter::OpenTitleLevel()
+{
+	if (IsValid(GetWorld()))
+	{
+		ATarcopyGameStateBase* GS = GetWorld()->GetGameState<ATarcopyGameStateBase>();
+		if (IsValid(GS))
+		{
+			GS->GoToTitle();
+		}
+	}
 }
 
 void AMyCharacter::MultiRPC_HandleDeath_Implementation()
 {
-	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
+	//UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
 
 	if (IsLocallyControlled())
 	{
-		if (AMyPlayerController* PC = Cast<AMyPlayerController>(Controller))
-		{
-			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
-			{
-				Subsystem->RemoveMappingContext(PC->IMC_Character);
-			}
-		}
+		ClientHandleDeath();
 	}
 	USkeletalMeshComponent* SMComp = GetMesh();
 	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
@@ -650,7 +701,6 @@ void AMyCharacter::MultiRPC_HandleDeath_Implementation()
 	SMComp->SetAllBodiesSimulatePhysics(true);
 	CapsuleComp->SetCollisionProfileName(TEXT("Ragdoll"));
 	SMComp->SetCollisionProfileName(TEXT("Ragdoll"));
-	SetLifeSpan(300.f);
 }
 
 
