@@ -23,6 +23,8 @@ protected:
 	virtual bool CallRemoteFunction(UFunction* Function, void* Parms, struct FOutParmRec* OutParms, FFrame* Stack) override;
 
 public:
+	void ExecuteAction(AActor* InInstigator, const struct FItemNetworkContext& NetworkContext);
+
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem);
 	UItemInstance* GetOwnerItem() const;
 
@@ -37,6 +39,8 @@ public:
 	virtual void CancelAction() {}
 
 protected:
+	virtual void OnExecuteAction(AActor* InInstigator, const struct FItemNetworkContext& NetworkContext) {}
+
 	const struct FItemData* GetOwnerItemData() const;
 
 	UFUNCTION()

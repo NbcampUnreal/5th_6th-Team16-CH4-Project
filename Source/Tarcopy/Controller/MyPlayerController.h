@@ -9,6 +9,7 @@
 class UInputAction;
 class UInputMappingContext;
 class UUW_TempItem;
+class UUW_MoodleList;
 
 UCLASS()
 class TARCOPY_API AMyPlayerController : public APlayerController
@@ -78,6 +79,9 @@ public:
 	TSubclassOf<UUW_TempItem> TempItemClass;
 	UPROPERTY()
 	TObjectPtr<UUW_TempItem> TempItemInstance;
+
+	UPROPERTY()
+	TObjectPtr<UUW_MoodleList> MoodleUI;
 
 public:
 	void ChangeIMC(UInputMappingContext* InIMC);

@@ -4,10 +4,11 @@
 #include "Item/ItemInstance.h"
 #include "Item/Data/ItemData.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "Item/ItemCommand/IngestCommand.h"
+#include "Item/ItemCommand/ItemNetworkCommand.h"
 #include "Net/UnrealNetwork.h"
 #include "Character/MyCharacter.h"
 #include "Character/MoodleComponent.h"
+#include "Item/ItemNetworkContext.h"
 
 const float UFoodComponent::TotalAmount = 4;
 
@@ -24,25 +25,34 @@ void UFoodComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& Out
 
 	ensureMsgf(Data != nullptr, TEXT("No FoodData"));
 
-	UIngestCommand* IngestQuarterCommand = NewObject<UIngestCommand>(this);
-	IngestQuarterCommand->OwnerComponent = this;
+	UItemNetworkCommand* IngestQuarterCommand = NewObject<UItemNetworkCommand>(this);
+	FItemNetworkContext IngestQuarterActionContext;
+	IngestQuarterActionContext.TargetItemComponent = this;
+	IngestQuarterActionContext.ActionTag = TEXT("Ingest");
+	IngestQuarterActionContext.FloatParams.Add(1.0f);
+	IngestQuarterCommand->ActionContext = IngestQuarterActionContext;
 	IngestQuarterCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Ingest Quarter of {0}")), TextItemName);
 	IngestQuarterCommand->bExecutable = Amount >= 1;
-	IngestQuarterCommand->EatAmount = 1;
 	OutCommands.Add(IngestQuarterCommand);
 
-	UIngestCommand* IngestHalfCommand = NewObject<UIngestCommand>(this);
-	IngestHalfCommand->OwnerComponent = this;
+	UItemNetworkCommand* IngestHalfCommand = NewObject<UItemNetworkCommand>(this);
+	FItemNetworkContext IngestHalfActionContext;
+	IngestHalfActionContext.TargetItemComponent = this;
+	IngestHalfActionContext.ActionTag = TEXT("Ingest");
+	IngestHalfActionContext.FloatParams.Add(2.0f);
+	IngestHalfCommand->ActionContext = IngestHalfActionContext;
 	IngestHalfCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Ingest Half of {0}")), TextItemName);
 	IngestHalfCommand->bExecutable = Amount >= 2;
-	IngestHalfCommand->EatAmount = 2;
 	OutCommands.Add(IngestHalfCommand);
 	
-	UIngestCommand* IngestAllCommand = NewObject<UIngestCommand>(this);
-	IngestAllCommand->OwnerComponent = this;
+	UItemNetworkCommand* IngestAllCommand = NewObject<UItemNetworkCommand>(this);
+	FItemNetworkContext IngestAllActionContext;
+	IngestAllActionContext.TargetItemComponent = this;
+	IngestAllActionContext.ActionTag = TEXT("Ingest");
+	IngestAllActionContext.FloatParams.Add(Amount);
+	IngestAllCommand->ActionContext = IngestAllActionContext;
 	IngestAllCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Ingest All of {0}")), TextItemName);
 	IngestAllCommand->bExecutable = Amount >= 1;
-	IngestAllCommand->EatAmount = Amount;
 	OutCommands.Add(IngestAllCommand);
 }
 
@@ -51,6 +61,16 @@ void UFoodComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ThisClass, Amount);
+}
+
+void UFoodComponent::OnExecuteAction(AActor* InInstigator, const struct FItemNetworkContext& NetworkContext)
+{
+	Super::OnExecuteAction(InInstigator, NetworkContext);
+
+	if (NetworkContext.ActionTag == TEXT("Ingest"))
+	{
+		Ingest(InInstigator, NetworkContext.FloatParams[0]);
+	}
 }
 
 void UFoodComponent::OnRep_SetComponent()
@@ -66,13 +86,12 @@ void UFoodComponent::OnRep_SetComponent()
 	Data = DataTableSubsystem->GetTable(EDataTableType::FoodTable)->FindRow<FFoodData>(ItemData->ItemId, FString(""));
 }
 
-void UFoodComponent::ServerRPC_Ingest_Implementation(int32 ConsumeAmount)
+void UFoodComponent::Ingest(AActor* InInstigator, int32 ConsumeAmount)
 {
 	if (ConsumeAmount > Amount)
 		return;
 
-	ACharacter* OwnerCharacter = GetOwnerCharacter();
-	UMoodleComponent* Moodle = IsValid(OwnerCharacter) == true ? OwnerCharacter->FindComponentByClass<UMoodleComponent>() : nullptr;
+	UMoodleComponent* Moodle = IsValid(InInstigator) == true ? InInstigator->FindComponentByClass<UMoodleComponent>() : nullptr;
 	if (IsValid(Moodle) == false)
 		return;
 

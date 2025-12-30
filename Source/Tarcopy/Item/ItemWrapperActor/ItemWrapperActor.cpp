@@ -47,16 +47,7 @@ bool AItemWrapperActor::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* B
 	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 	if (IsValid(ItemInstance) == true)
 	{
-		bWroteSomething |= Channel->ReplicateSubobject(ItemInstance, *Bunch, *RepFlags);
-
-		const auto& ItemComponents = ItemInstance->GetItemComponents();
-		for (const auto& ItemComponent : ItemComponents)
-		{
-			if (IsValid(ItemComponent) == false)
-				continue;
-
-			bWroteSomething |= Channel->ReplicateSubobject(ItemComponent, *Bunch, *RepFlags);
-		}
+		bWroteSomething |= ItemInstance->ReplicateSubobjects(Channel, Bunch, RepFlags);
 	}
 	return bWroteSomething;
 }

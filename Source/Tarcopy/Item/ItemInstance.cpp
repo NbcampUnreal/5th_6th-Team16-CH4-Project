@@ -49,6 +49,7 @@ void UItemInstance::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& 
 	DOREPLIFETIME(ThisClass, ItemComponents);
 	DOREPLIFETIME(ThisClass, ItemId);
 	DOREPLIFETIME(ThisClass, OwnerObject);
+	DOREPLIFETIME(ThisClass, OwnerInventory);
 	DOREPLIFETIME(ThisClass, OwnerCharacter);
 	DOREPLIFETIME(ThisClass, InstanceID);
 }
@@ -170,10 +171,7 @@ void UItemInstance::InitComponents()
 void UItemInstance::SetOwnerObject(UObject* InOwnerObject)
 {
 	OwnerObject = InOwnerObject;
-	if (UInventoryData* InOwnerInventory = Cast<UInventoryData>(OwnerObject))
-	{
-		OwnerInventory = InOwnerInventory;
-	}
+	OwnerInventory = Cast<UInventoryData>(OwnerObject);
 
 	OnRep_SetOwner();
 }
