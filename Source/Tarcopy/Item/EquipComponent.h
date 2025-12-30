@@ -39,6 +39,14 @@ struct FEquippedItemInfo
 	TObjectPtr<UItemInstance> Item;
 };
 
+UENUM()
+enum class EUnequipType : uint8
+{
+	ReturnInventory,
+	Drop,
+	Destroy
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnChangedEquippedItems);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -66,7 +74,7 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_EquipItem(EBodyLocation BodyLocation, UItemInstance* Item, bool bInstantiate = false);
 	UFUNCTION(Server, Reliable)
-	void ServerRPC_UnequipItem(UItemInstance* Item, bool bDrop = false);
+	void ServerRPC_UnequipItem(UItemInstance* Item, EUnequipType Type = EUnequipType::ReturnInventory);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void NetMulticast_SetOwnerHoldingItemEmpty();
@@ -78,7 +86,7 @@ public:
 
 protected:
 	void EquipItem(EBodyLocation BodyLocation, UItemInstance* Item, bool bInstantiate = false);
-	void UnequipItem(UItemInstance* Item, bool bDrop = false);
+	void UnequipItem(UItemInstance* Item, EUnequipType Type = EUnequipType::ReturnInventory);
 
 	bool RemoveItemFromInventory(UItemInstance* Item);
 

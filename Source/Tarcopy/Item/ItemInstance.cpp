@@ -11,21 +11,19 @@
 #include "Item/ItemComponent/HoldableComponent.h"
 #include "Engine/ActorChannel.h"
 #include "Inventory/InventoryData.h"
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
+#include "Item/EquipComponent.h"
 
 bool UItemInstance::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
 {
 	bool bWroteSomething = Channel->ReplicateSubobject(this, *Bunch, *RepFlags);
-	if (OwnerObject.IsValid() == true)
+	if (OwnerObject.IsValid() == true && IsValid(Cast<AActor>(OwnerObject.Get())) == false)
 	{
 		bWroteSomething |= Channel->ReplicateSubobject(OwnerObject.Get(), *Bunch, *RepFlags);
 	}
 	if (OwnerInventory.IsValid() == true)
 	{
 		bWroteSomething |= Channel->ReplicateSubobject(OwnerInventory.Get(), *Bunch, *RepFlags);
-	}
-	if (OwnerCharacter.IsValid() == true)
-	{
-		bWroteSomething |= Channel->ReplicateSubobject(OwnerCharacter.Get(), *Bunch, *RepFlags);
 	}
 	for (const auto& ItemComponent : ItemComponents)
 	{
@@ -203,4 +201,33 @@ void UItemInstance::CancelAllComponentActions()
 
 		Component->CancelAction();
 	}
+}
+
+bool UItemInstance::RemoveFromSource()
+{
+	if (HasAuthority() == false)
+		return false;
+
+	if (AItemWrapperActor* ItemActor = GetTypedOuter<AItemWrapperActor>())
+	{
+		ItemActor->Destroy();
+		return true;
+	}
+
+	UInventoryData* Inventory = GetOwnerInventory();
+	if (IsValid(Inventory) == true)
+	{
+		return Inventory->RemoveItem(this);
+	}
+
+	if (OwnerCharacter.IsValid() == true)
+	{
+		UEquipComponent* EquipComponent = OwnerCharacter->FindComponentByClass<UEquipComponent>();
+		if (IsValid(EquipComponent) == true)
+		{
+			EquipComponent->ServerRPC_UnequipItem(this, EUnequipType::Destroy);
+		}
+	}
+
+	return false;
 }

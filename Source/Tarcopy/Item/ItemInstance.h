@@ -63,6 +63,8 @@ public:
 
 	void CancelAllComponentActions();
 
+	bool RemoveFromSource();
+
 protected:
 	UFUNCTION()
 	void OnRep_SetData();

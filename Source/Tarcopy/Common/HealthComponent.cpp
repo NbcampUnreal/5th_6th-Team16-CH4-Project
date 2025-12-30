@@ -70,8 +70,19 @@ float UHealthComponent::TakeDamage(float Damage, const FHitResult& HitResult)
 	return ActualDamage;
 }
 
+void UHealthComponent::RestoreHP(float InHP)
+{
+	if (bIsDead == true)
+		return;
+
+	CurrentHP = FMath::Clamp(CurrentHP + InHP, 0.0f, MaxHP);
+	OnRep_PrintHP();
+}
+
 void UHealthComponent::OnRep_PrintHP()
 {
+	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%.2f/%.2f"), CurrentHP, MaxHP));
+
 	ACharacter* Owner = Cast<ACharacter>(GetOwner());
 	AMyPlayerController* PC = IsValid(Owner) == true ? Owner->GetController<AMyPlayerController>() : nullptr;
 	if (IsValid(PC) == false)
@@ -80,6 +91,4 @@ void UHealthComponent::OnRep_PrintHP()
 	}
 
 	PC->SetHealthUI(CurrentHP, MaxHP);
-
-	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("Hit: %.2f/%.2f"), CurrentHP, MaxHP));
 }

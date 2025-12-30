@@ -36,6 +36,8 @@ void UUW_ItemInfo::BindItem(UItemInstance* Item)
 				{
 					TSubclassOf<UUserWidget> WidgetClass;
 					Config->GetInfo(CompClass, WidgetClass);
+					if (IsValid(WidgetClass) == false)
+						continue;
 					UUW_ItemInfoEntry* W = CreateWidget<UUW_ItemInfoEntry>(PC, WidgetClass);
 					W->BindItem(Item);
 					VBox->AddChildToVerticalBox(W);

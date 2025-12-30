@@ -6,10 +6,10 @@
 #include "Kismet/KismetSystemLibrary.h"
 
 UMoodleComponent::UMoodleComponent() :
-	HungerReduceDelay(1.0f),
-	HungerReduceAmount(5.0f),
-	ThirstReduceDelay(1.0f),
-	ThirstReduceAmount(5.0f),
+	HungerReduceDelay(2.0f),
+	HungerReduceAmount(1.0f),
+	ThirstReduceDelay(2.0f),
+	ThirstReduceAmount(1.0f),
 	MaxHunger(100.0f),
 	CurrentHunger(100.0f),
 	MaxThirst(100.0f),
