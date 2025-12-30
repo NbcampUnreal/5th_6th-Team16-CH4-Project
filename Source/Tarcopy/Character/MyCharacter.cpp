@@ -849,7 +849,7 @@ void AMyCharacter::RemoveInteractableDoor(AActor* DoorActor)
 
 void AMyCharacter::SetPlayerVisiblityInClient(bool bShouldVisible)
 {
-	if (IsLocallyControlled() && IsValid(VisionComponent))
+	if (IsValid(VisionComponent))
 	{
 		if (bShouldVisible)
 		{

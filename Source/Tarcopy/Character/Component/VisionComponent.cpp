@@ -5,6 +5,7 @@
 #include "Tarcopy.h"
 #include "GameFramework/Character.h"
 #include "Car/TCCarBase.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 UVisionComponent::UVisionComponent()
 {
@@ -63,7 +64,7 @@ void UVisionComponent::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedC
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	if (GetOwnerRole() != ROLE_AutonomousProxy)
+	if (GetOwnerRole() == ROLE_Authority)
 	{
 		return;
 	}
@@ -82,7 +83,7 @@ void UVisionComponent::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedC
 void UVisionComponent::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (GetOwnerRole() != ROLE_AutonomousProxy)
+	if (GetOwnerRole() == ROLE_Authority)
 	{
 		return;
 	}
@@ -95,7 +96,10 @@ void UVisionComponent::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedCom
 	if (IsValid(Character) && OverlappedCharacters.Contains(Character))
 	{
 		OverlappedCharacters.Remove(Character);
-		OtherActor->SetActorHiddenInGame(true);
+		if (Cast<APawn>(GetOwner())->IsLocallyControlled())
+		{
+			OtherActor->SetActorHiddenInGame(true);
+		}
 	}
 }
 
@@ -125,48 +129,54 @@ void UVisionComponent::InitSetting()
 
 void UVisionComponent::CheckVisibilityAll()
 {
-
-	//UE_LOG(LogTemp, Error, TEXT("Overlapped Num : %d"), OverlappedCharacters.Num())
-	for (ACharacter* OverlappedActor : OverlappedCharacters)
+	if (Cast<APawn>(GetOwner())->IsLocallyControlled() && IsVisible() && VisionMesh->IsVisible())
 	{
-		FVector MyLocation = GetOwner()->GetActorLocation();
-		FVector OtherLocation = OverlappedActor->GetActorLocation();
-
-		FHitResult Hit;
-		FCollisionQueryParams Params;
-		Params.AddIgnoredActor(GetOwner());
-		Params.AddIgnoredActor(OverlappedActor);
-		Params.bTraceComplex = true;
-
-		bool bHitWall = GetWorld()->LineTraceSingleByChannel(
-			Hit,
-			MyLocation,
-			OtherLocation,
-			ECC_Visibility,
-			Params
-		);
-
-		/*DrawDebugLine(GetWorld(), MyLocation, OtherLocation, FColor::Red, false, 1.0f);
-		UKismetSystemLibrary::LineTraceSingle(
-			GetWorld(),
-			MyLocation,
-			OtherLocation,
-			UEngineTypes::ConvertToTraceType(ECC_Visibility),
-			false,
-			{ this },
-			EDrawDebugTrace::ForDuration,
-			Hit,
-			true
-		);*/
-
-		if (bHitWall)
+		UE_LOG(LogTemp, Error, TEXT("Overlapped Num : %d"), OverlappedCharacters.Num())
+		for (ACharacter* OverlappedActor : OverlappedCharacters)
 		{
-			OverlappedActor->SetActorHiddenInGame(true);
-		}
-		else
-		{
-			OverlappedActor->SetActorHiddenInGame(false);
+			FVector MyLocation = GetOwner()->GetActorLocation();
+			FVector OtherLocation = OverlappedActor->GetActorLocation();
+
+			FHitResult Hit;
+			FCollisionQueryParams Params;
+			Params.AddIgnoredActor(GetOwner());
+			Params.AddIgnoredActor(OverlappedActor);
+			Params.bTraceComplex = true;
+
+			bool bHitWall = GetWorld()->LineTraceSingleByChannel(
+				Hit,
+				MyLocation,
+				OtherLocation,
+				ECC_Visibility,
+				Params
+			);
+
+			DrawDebugLine(GetWorld(), MyLocation, OtherLocation, FColor::Red, false, 0.1f);
+			UKismetSystemLibrary::LineTraceSingle(
+				GetWorld(),
+				MyLocation,
+				OtherLocation,
+				UEngineTypes::ConvertToTraceType(ECC_Visibility),
+				true,
+				{ GetOwner(), OverlappedActor },
+				EDrawDebugTrace::ForDuration,
+				Hit,
+				true,
+				FLinearColor::Red,
+				FLinearColor::Green,
+				0.1f
+			);
+
+			if (bHitWall)
+			{
+				OverlappedActor->SetActorHiddenInGame(true);
+			}
+			else
+			{
+				OverlappedActor->SetActorHiddenInGame(false);
+			}
 		}
 	}
+	
 }
 
