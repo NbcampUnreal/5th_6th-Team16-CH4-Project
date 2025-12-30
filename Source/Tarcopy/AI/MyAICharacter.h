@@ -22,8 +22,8 @@ class TARCOPY_API AMyAICharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	AMyAICharacter();
-	~AMyAICharacter();
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 #pragma endregion

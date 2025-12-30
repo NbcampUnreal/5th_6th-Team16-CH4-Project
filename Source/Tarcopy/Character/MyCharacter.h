@@ -18,6 +18,7 @@ enum class EHoldableType : uint8;
 class UAnimPresetMap;
 class UPlayerInventoryComponent;
 class ULootScannerComponent;
+class UVisionComponent;
 
 UCLASS()
 class TARCOPY_API AMyCharacter : public ACharacter
@@ -28,7 +29,6 @@ class TARCOPY_API AMyCharacter : public ACharacter
 
 public:
 	AMyCharacter();
-	~AMyCharacter();
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -40,6 +40,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 #pragma endregion
 
@@ -54,7 +55,8 @@ protected:
 	TObjectPtr<USpringArmComponent> SpringArm;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UStaticMeshComponent> VisionMesh;
+	/*TObjectPtr<UStaticMeshComponent> VisionMesh;*/
+	TObjectPtr<UVisionComponent> VisionComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Interaction", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USphereComponent> InteractionSphere;
@@ -80,20 +82,20 @@ protected:
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
 
-	UFUNCTION()
-	virtual void OnVisionMeshBeginOverlap(
-		UPrimitiveComponent* OverlappedComp,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,
-		int32 OtherBodyIndex,
-		bool bFromSweep,
-		const FHitResult& SweepResult);
-	UFUNCTION()
-	virtual void OnVisionMeshEndOverlap(
-		UPrimitiveComponent* OverlappedComp,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,
-		int32 OtherBodyIndex);
+	//UFUNCTION()
+	//virtual void OnVisionMeshBeginOverlap(
+	//	UPrimitiveComponent* OverlappedComp,
+	//	AActor* OtherActor,
+	//	UPrimitiveComponent* OtherComp,
+	//	int32 OtherBodyIndex,
+	//	bool bFromSweep,
+	//	const FHitResult& SweepResult);
+	//UFUNCTION()
+	//virtual void OnVisionMeshEndOverlap(
+	//	UPrimitiveComponent* OverlappedComp,
+	//	AActor* OtherActor,
+	//	UPrimitiveComponent* OtherComp,
+	//	int32 OtherBodyIndex);
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
@@ -105,6 +107,13 @@ public:
 
 protected:
 	TSet<TWeakObjectPtr<AActor>> OverlappingDoors;
+
+#pragma endregion
+
+#pragma region Vision Component
+
+public:
+	void SetPlayerVisible();
 
 #pragma endregion
 
