@@ -110,6 +110,13 @@ protected:
 
 #pragma endregion
 
+#pragma region Vision Component
+
+public:
+	void SetPlayerVisible();
+
+#pragma endregion
+
 #pragma region State Components
 
 protected:

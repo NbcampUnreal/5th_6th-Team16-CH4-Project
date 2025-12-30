@@ -850,6 +850,15 @@ void AMyCharacter::RemoveInteractableDoor(AActor* DoorActor)
 	}
 }
 
+void AMyCharacter::SetPlayerVisible()
+{
+	if (IsValid(VisionComponent))
+	{
+		SetActorHiddenInGame(false);
+		VisionComponent->SetVisibility(true);
+	}
+}
+
 void AMyCharacter::Interact(const FInputActionValue& Value)
 {
 	if (!IsLocallyControlled() || !IsValid(InteractionSphere))
