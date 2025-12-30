@@ -19,6 +19,7 @@ class UUISubsystem;
 class UTCCarActivate;
 class USceneComponent;
 struct FInputActionValue;
+class UVisionComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FOnCarRideStateChanged,
@@ -52,6 +53,9 @@ class ATCCarBase : public AWheeledVehiclePawn, public IActivateInterface
 
 	UPROPERTY(EditDefaultsOnly)
 	USpotLightComponent* HeadLight_L;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UVisionComponent> VisionComponent;
 
 	
  

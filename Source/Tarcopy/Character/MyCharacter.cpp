@@ -126,11 +126,6 @@ void AMyCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	Tags.Add(FName("InVisible"));
-	/*if (GetNetMode() == ENetMode::NM_DedicatedServer || IsLocallyControlled() == false)
-	{
-		SetActorHiddenInGame(true);
-		VisionMesh->SetVisibility(false);
-	}*/
 
 	if (IsValid(HealthComponent))
 	{
@@ -850,12 +845,19 @@ void AMyCharacter::RemoveInteractableDoor(AActor* DoorActor)
 	}
 }
 
-void AMyCharacter::SetPlayerVisible()
+void AMyCharacter::SetPlayerVisible(bool bShouldVisible)
 {
 	if (IsValid(VisionComponent))
 	{
-		SetActorHiddenInGame(false);
-		VisionComponent->SetVisibility(true);
+		if (bShouldVisible)
+		{
+
+		}
+		else
+		{
+			SetActorHiddenInGame(false);
+			VisionComponent->SetVisibility(true);
+		}
 	}
 }
 
