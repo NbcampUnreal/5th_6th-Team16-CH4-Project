@@ -25,10 +25,6 @@ void UMedicalComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& 
 	if (IsValid(HealthComponent) == false)
 		return;
 
-	const FItemData* OwnerItemData = GetOwnerItemData();
-	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
-	FText TextItemName = OwnerItemData->TextName;
-
 	ensureMsgf(Data != nullptr, TEXT("No MedicalData"));
 
 	UItemNetworkCommand* RepairCommand = NewObject<UItemNetworkCommand>(this);
@@ -36,7 +32,7 @@ void UMedicalComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& 
 	IngestAllActionContext.TargetItemComponent = this;
 	IngestAllActionContext.ActionTag = TEXT("RestoreHealth");
 	RepairCommand->ActionContext = IngestAllActionContext;
-	RepairCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Restore HP {0}")), TextItemName);
+	RepairCommand->TextDisplay = FText::FromString(FString::Printf(TEXT("Restore HP %.1f"), Data->RestoreAmount));
 	RepairCommand->bExecutable = !FMath::IsNearlyEqual(HealthComponent->GetMaxHP(), HealthComponent->GetCurrentHP());
 	OutCommands.Add(RepairCommand);
 }
