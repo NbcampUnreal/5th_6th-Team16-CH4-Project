@@ -149,10 +149,6 @@ void AMyPlayerController::ServerRPCSetOwningCar_Implementation(APawn* InCar, APa
 	ATCCarBase* Car = Cast<ATCCarBase>(InCar);
 	if (!Car || !InPawn) return;
 
-	if (bIsDriver)
-	{
-		Car->DriverPawn = InPawn;
-	}
 	Car->AddPassenger(InPawn, bIsDriver);
 }
 
