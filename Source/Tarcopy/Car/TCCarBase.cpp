@@ -475,12 +475,6 @@ void ATCCarBase::OnRep_Passengers()
 		{
 			Character->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		}
-
-		UE_LOG(LogTemp, Error, TEXT("3 Passenger Name %s"), *Passenger->GetName());
-		if (DriverPawn)
-		{
-			UE_LOG(LogTemp, Error, TEXT("3 DriverPawn Name %s"), *DriverPawn->GetName());
-		}
 	}
 }
 
@@ -497,6 +491,7 @@ void ATCCarBase::AddPassenger(APawn* InPawn, bool IsDriver)
 	InPawn->AttachToComponent(
 		SceneComponent,
 		FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
 	InPawn->SetActorRelativeLocation(FVector::ZeroVector);
 	InPawn->SetActorRelativeRotation(FRotator::ZeroRotator);
 
