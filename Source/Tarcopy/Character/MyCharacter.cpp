@@ -45,6 +45,7 @@
 #include <EnhancedInputSubsystems.h>
 #include "UI/UISubsystem.h"
 #include "Framework/TarcopyGameStateBase.h"
+#include "Character/Component/VisionComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -81,11 +82,14 @@ AMyCharacter::AMyCharacter() :
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 
-	VisionMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisionMesh"));
-	VisionMesh->SetupAttachment(RootComponent);
-	VisionMesh->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
-	VisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshBeginOverlap);
-	VisionMesh->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshEndOverlap);
+	//VisionMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisionMesh"));
+	//VisionMesh->SetupAttachment(RootComponent);
+	//VisionMesh->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+	//VisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshBeginOverlap);
+	//VisionMesh->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshEndOverlap);
+
+	VisionComponent = CreateDefaultSubobject<UVisionComponent>(TEXT("VisionComponent"));
+	VisionComponent->SetupAttachment(RootComponent);
 
 	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
 	InteractionSphere->SetupAttachment(RootComponent);
@@ -122,11 +126,11 @@ void AMyCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	Tags.Add(FName("InVisible"));
-	if (GetNetMode() == ENetMode::NM_DedicatedServer || IsLocallyControlled() == false)
+	/*if (GetNetMode() == ENetMode::NM_DedicatedServer || IsLocallyControlled() == false)
 	{
 		SetActorHiddenInGame(true);
 		VisionMesh->SetVisibility(false);
-	}
+	}*/
 
 	if (IsValid(HealthComponent))
 	{
@@ -140,6 +144,8 @@ void AMyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		GetWorldTimerManager().ClearAllTimersForObject(this);
 	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AMyCharacter::Tick(float DeltaTime)
@@ -188,57 +194,57 @@ float AMyCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AC
 	return Damage;
 }
 
-void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-                                            UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
-                                            const FHitResult& SweepResult)
-{
-	if (!IsLocallyControlled()) return;
-	if (OtherActor->ActorHasTag("InVisible") == false) return;
-
-	FVector MyLocation = GetActorLocation();
-	FVector OtherLocation = OtherActor->GetActorLocation();
-
-	FHitResult Hit;
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(this);
-	Params.AddIgnoredActor(OtherActor);
-	Params.bTraceComplex = true;
-
-	bool bHitWall = GetWorld()->LineTraceSingleByChannel(
-		Hit,
-		MyLocation,
-		OtherLocation,
-		ECC_Visibility,
-		Params
-	);
-
-	/*DrawDebugLine(GetWorld(), MyLocation, OtherLocation, FColor::Red, false, 1.0f);
-	UKismetSystemLibrary::LineTraceSingle(
-		GetWorld(),
-		MyLocation,
-		OtherLocation,
-		UEngineTypes::ConvertToTraceType(ECC_Visibility),
-		false,
-		{ this },
-		EDrawDebugTrace::ForDuration,
-		Hit,
-		true
-	);*/
-
-	if (!bHitWall)
-	{
-		OtherActor->SetActorHiddenInGame(false);
-	}
-}
-
-void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-                                          UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (!IsLocallyControlled()) return;
-	if (OtherActor->ActorHasTag("InVisible") == false) return;
-
-	OtherActor->SetActorHiddenInGame(true);
-}
+//void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+//                                            UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
+//                                            const FHitResult& SweepResult)
+//{
+//	if (!IsLocallyControlled()) return;
+//	if (OtherActor->ActorHasTag("InVisible") == false) return;
+//
+//	FVector MyLocation = GetActorLocation();
+//	FVector OtherLocation = OtherActor->GetActorLocation();
+//
+//	FHitResult Hit;
+//	FCollisionQueryParams Params;
+//	Params.AddIgnoredActor(this);
+//	Params.AddIgnoredActor(OtherActor);
+//	Params.bTraceComplex = true;
+//
+//	bool bHitWall = GetWorld()->LineTraceSingleByChannel(
+//		Hit,
+//		MyLocation,
+//		OtherLocation,
+//		ECC_Visibility,
+//		Params
+//	);
+//
+//	/*DrawDebugLine(GetWorld(), MyLocation, OtherLocation, FColor::Red, false, 1.0f);
+//	UKismetSystemLibrary::LineTraceSingle(
+//		GetWorld(),
+//		MyLocation,
+//		OtherLocation,
+//		UEngineTypes::ConvertToTraceType(ECC_Visibility),
+//		false,
+//		{ this },
+//		EDrawDebugTrace::ForDuration,
+//		Hit,
+//		true
+//	);*/
+//
+//	if (!bHitWall)
+//	{
+//		OtherActor->SetActorHiddenInGame(false);
+//	}
+//}
+//
+//void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+//                                          UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+//{
+//	if (!IsLocallyControlled()) return;
+//	if (OtherActor->ActorHasTag("InVisible") == false) return;
+//
+//	OtherActor->SetActorHiddenInGame(true);
+//}
 
 void AMyCharacter::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

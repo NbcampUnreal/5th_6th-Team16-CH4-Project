@@ -84,6 +84,8 @@ void AMyAICharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		GetWorldTimerManager().ClearAllTimersForObject(this);
 	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AMyAICharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
