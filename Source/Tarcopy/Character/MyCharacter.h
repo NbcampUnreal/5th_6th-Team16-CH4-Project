@@ -55,7 +55,6 @@ protected:
 	TObjectPtr<USpringArmComponent> SpringArm;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
-	/*TObjectPtr<UStaticMeshComponent> VisionMesh;*/
 	TObjectPtr<UVisionComponent> VisionComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Interaction", meta = (AllowPrivateAccess = "true"))
@@ -85,21 +84,6 @@ protected:
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
 
-	//UFUNCTION()
-	//virtual void OnVisionMeshBeginOverlap(
-	//	UPrimitiveComponent* OverlappedComp,
-	//	AActor* OtherActor,
-	//	UPrimitiveComponent* OtherComp,
-	//	int32 OtherBodyIndex,
-	//	bool bFromSweep,
-	//	const FHitResult& SweepResult);
-	//UFUNCTION()
-	//virtual void OnVisionMeshEndOverlap(
-	//	UPrimitiveComponent* OverlappedComp,
-	//	AActor* OtherActor,
-	//	UPrimitiveComponent* OtherComp,
-	//	int32 OtherBodyIndex);
-
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCameraObstructionComponent> CameraObstruction;
@@ -117,6 +101,8 @@ protected:
 
 public:
 	void SetPlayerVisiblityInClient(bool bShouldVisible);
+	void ActivateVisionComponent();
+	void InActivateVisionComponent();
 
 #pragma endregion
 

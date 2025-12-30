@@ -436,6 +436,9 @@ void ATCCarBase::SitByPassenger(APawn* InPawn, APlayerController* InPC)
 	if (MyCharacter)
 	{
 		MyCharacter->SetPlayerVisiblityInClient(false);
+		MyCharacter->InActivateVisionComponent();
+		VisionComponent->SetVisibility(true, true);
+		VisionComponent->ActivateVisionComponent();
 	}
 
 }
@@ -468,6 +471,9 @@ void ATCCarBase::SitByDriver(APawn* InPawn, APlayerController* InPC)
 	if (MyCharacter)
 	{
 		MyCharacter->SetPlayerVisiblityInClient(false);
+		MyCharacter->InActivateVisionComponent();
+		VisionComponent->SetVisibility(true, true);
+		VisionComponent->ActivateVisionComponent();
 	}
 }
 
@@ -496,6 +502,9 @@ void ATCCarBase::ExitVehicle(APawn* InPawn, APlayerController* InPC)
 	if (MyCharacter)
 	{
 		MyCharacter->SetPlayerVisiblityInClient(true);
+		MyCharacter->ActivateVisionComponent();
+		VisionComponent->SetVisibility(false, true);
+		VisionComponent->InActivateVisionComponent();
 	}
 
 	PC->ServerRPCRequestExit(Pawn, InPC, this);
