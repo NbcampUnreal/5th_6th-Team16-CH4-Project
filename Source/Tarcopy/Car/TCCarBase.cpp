@@ -507,30 +507,12 @@ void ATCCarBase::AddPassenger(APawn* InPawn, bool IsDriver)
 		}
 	}
 
-	for (auto Passenger : Passengers)
-	{
-		UE_LOG(LogTemp, Error, TEXT("1 Passenger Name %s"), *Passenger->GetName());
-		if (DriverPawn)
-		{
-			UE_LOG(LogTemp, Error, TEXT("1 DriverPawn Name %s"), *DriverPawn->GetName());
-		}
-	}
-
 	if (Passengers.Contains(InPawn))
 	{
 		return;
 	}
 
 	Passengers.Add(InPawn);
-
-	for (auto Passenger : Passengers)
-	{
-		UE_LOG(LogTemp, Error, TEXT("2 Passenger Name %s"), *Passenger->GetName());
-		if (DriverPawn)
-		{
-			UE_LOG(LogTemp, Error, TEXT("2 DriverPawn Name %s"), *DriverPawn->GetName());
-		}
-	}
 }
 
 void ATCCarBase::ServerRPCUpdateFuel_Implementation(float InValue)
@@ -723,7 +705,6 @@ void ATCCarBase::ShowInterActionUI(APlayerController* InPC)
 
 void ATCCarBase::ShowCharacter(APawn* InPawn, APlayerController* InPC)
 {
-	UE_LOG(LogTemp, Error, TEXT("%s"), *InPawn->GetName());
 	ACharacter* PlayerCharacter = Cast<ACharacter>(InPawn);
 	if (!PlayerCharacter) return;
 	AMyPlayerController* PC = Cast<AMyPlayerController>(InPC);
