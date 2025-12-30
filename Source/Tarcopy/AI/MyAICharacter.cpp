@@ -214,8 +214,8 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 	}
 
 	FHitResult Hit;
-	FVector StartLocation = ContextActor->GetActorLocation() + FVector( 0.f, 0.f, 80.f );
-	FVector EndLocation = DamagedActor->GetActorLocation()/* + FVector( 0.f, 0.f, FMath::FRandRange(0.f, 80.f) )*/;
+	FVector StartLocation = ContextActor->GetActorLocation() + FVector( 0.f, 0.f, 60.f );
+	FVector EndLocation = DamagedActor->GetActorLocation() + FVector( 0.f, 0.f, FMath::FRandRange(0.f, 60.f));
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
 	Params.bTraceComplex = true;
@@ -241,6 +241,9 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 				GetController(),
 				this,
 				UDamageType::StaticClass());
+
+			UE_LOG(LogTemp, Warning, TEXT("Name : %s"), *(Hit.GetActor()->GetName()));
+				DrawDebugLine(GetWorld(), StartLocation, Hit.Location, FColor::Green, false, 1);
 
 			UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
 			if (AnimInst)
