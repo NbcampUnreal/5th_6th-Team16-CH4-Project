@@ -853,15 +853,23 @@ void AMyCharacter::SetPlayerVisiblityInClient(bool bShouldVisible)
 	{
 		if (bShouldVisible)
 		{
-			//SetActorHiddenInGame(false);
 			VisionComponent->SetVisibility(true, true);
 		}
 		else
 		{
-			//SetActorHiddenInGame(true);
 			VisionComponent->SetVisibility(false, true);
 		}
 	}
+}
+
+void AMyCharacter::ActivateVisionComponent()
+{
+	VisionComponent->ActivateVisionComponent();
+}
+
+void AMyCharacter::InActivateVisionComponent()
+{
+	VisionComponent->InActivateVisionComponent();
 }
 
 void AMyCharacter::Interact(const FInputActionValue& Value)

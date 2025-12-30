@@ -55,7 +55,6 @@ protected:
 	TObjectPtr<USpringArmComponent> SpringArm;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
-	/*TObjectPtr<UStaticMeshComponent> VisionMesh;*/
 	TObjectPtr<UVisionComponent> VisionComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Interaction", meta = (AllowPrivateAccess = "true"))
@@ -117,6 +116,8 @@ protected:
 
 public:
 	void SetPlayerVisiblityInClient(bool bShouldVisible);
+	void ActivateVisionComponent();
+	void InActivateVisionComponent();
 
 #pragma endregion
 
