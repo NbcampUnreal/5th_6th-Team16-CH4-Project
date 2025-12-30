@@ -25,6 +25,8 @@ public:
 	UFUNCTION()
 	void OnRep_PrintAmount();
 
+	FORCEINLINE const FFoodData* GetData() { return Data; }
+
 private:
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_PrintAmount)
 	int32 Amount = 4;										// default Amount = 4

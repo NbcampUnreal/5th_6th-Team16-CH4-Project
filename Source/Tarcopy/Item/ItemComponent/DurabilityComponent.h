@@ -24,6 +24,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_RestoreDurability(float Amount);
 
+	FORCEINLINE const FDurabilityData* GetData() { return Data; }
+	FORCEINLINE const float GetCondition() { return Condition; }
+
 protected:
 	UFUNCTION()
 	virtual void OnRep_PrintCondition();

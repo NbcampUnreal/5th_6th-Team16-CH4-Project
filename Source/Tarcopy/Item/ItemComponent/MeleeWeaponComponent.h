@@ -25,6 +25,9 @@ public:
 protected:
 	virtual void OnRep_SetComponent() override;
 
+public:
+	FORCEINLINE const FMeleeWeaponData* GetData() { return Data; }
+
 private:
 	void CheckHit();
 	bool CheckIsAttackableTarget(AActor* TargetActor);

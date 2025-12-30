@@ -25,6 +25,9 @@ public:
 protected:
 	virtual void OnRep_SetComponent() override;
 
+public:
+	FORCEINLINE const FFirearmData* GetData() { return Data; }
+
 private:
 	void CheckHit(const FVector& StartLocation, const FVector& EndLocation);
 

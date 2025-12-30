@@ -63,6 +63,14 @@ void UUW_PlayerEquipments::SetSlotByPart()
     {
         ShoeSlot->ClearItems();
     }
+    if (RightWristSlot)
+    {
+        RightWristSlot->ClearItems();
+    }
+    if (LeftWristSlot)
+    {
+        LeftWristSlot->ClearItems();
+    }
     if (RightHandSlot) 
     {
         RightHandSlot->ClearItems();
@@ -101,6 +109,14 @@ void UUW_PlayerEquipments::SetSlotByPart()
     if (ShoeSlot)
     {
         ShoeSlot->RefreshSlot();
+    }
+    if (RightWristSlot)
+    {
+        RightWristSlot->RefreshSlot();
+    }
+    if (LeftWristSlot)
+    {
+        LeftWristSlot->RefreshSlot();
     }
     if (RightHandSlot)
     {
@@ -146,6 +162,12 @@ UUW_SlotsByPart* UUW_PlayerEquipments::GetGroupWidgetByLocation(EBodyLocation Lo
     case EBodyLocation::Shoes:
         return ShoeSlot;
 
+    case EBodyLocation::Gloves:
+    case EBodyLocation::RightWrist:
+        return RightWristSlot;
+
+    case EBodyLocation::LeftWrist:
+        return LeftWristSlot;
 
     case EBodyLocation::RightHand:
         return RightHandSlot;

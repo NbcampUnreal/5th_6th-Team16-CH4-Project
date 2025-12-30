@@ -204,6 +204,9 @@ void UUW_Inventory::AddItemWidget(UItemInstance* Item, const FIntPoint& Origin, 
 	}
 
 	UUW_InventoryItem* ItemWidget = CreateWidget<UUW_InventoryItem>(GetOwningPlayer(), ItemWidgetClass);
+	UE_LOG(LogTemp, Warning, TEXT("[UI] Created ItemWidget=%s Item=%s"),
+		*GetNameSafe(ItemWidget), *GetNameSafe(Item));
+
 	if (!ItemWidget)
 	{
 		return;
@@ -353,6 +356,7 @@ void UUW_Inventory::BuildItems()
 		UE_LOG(LogTemp, Warning, TEXT("[UI] AddItem Try Item=%s Size=%s"),
 			*GetNameSafe(Entry.Item),
 			*BoundInventory->GetItemSize(Entry.Item, Entry.bRotated).ToString());
+
 		AddItemWidget(Entry.Item, Entry.Origin, Entry.bRotated);
 	}
 	UE_LOG(LogTemp, Warning, TEXT("[UI] BuildItems NullItem=%d"), NullCount);

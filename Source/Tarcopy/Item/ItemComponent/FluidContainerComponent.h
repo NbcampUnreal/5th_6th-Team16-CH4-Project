@@ -25,6 +25,9 @@ public:
 	UFUNCTION()
 	void OnRep_PrintFluid();
 
+	FORCEINLINE const FFluidContainerData* GetData() { return Data; }
+	FORCEINLINE const float GetAmount() { return Amount; }
+
 protected:
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_PrintFluid)
 	FName ContainedFluidId;

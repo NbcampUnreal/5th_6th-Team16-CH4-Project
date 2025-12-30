@@ -49,6 +49,12 @@ private:
 	TObjectPtr<UUW_SlotsByPart> ShoeSlot;
 
 	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UUW_SlotsByPart> RightWristSlot;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UUW_SlotsByPart> LeftWristSlot;
+
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UUW_SlotsByPart> RightHandSlot;
 
 	UPROPERTY(meta = (BindWidget))
