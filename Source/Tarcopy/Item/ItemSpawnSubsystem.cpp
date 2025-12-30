@@ -51,10 +51,6 @@ AItemWrapperActor* UItemSpawnSubsystem::SpawnItemAtGround(AActor* Instigator, UI
 	if (IsValid(ItemWrapperActor) == true)
 	{
 		ItemWrapperActor->SetItemInstance(ItemInstance);
-
-		ItemWrapperActor->SetActorEnableCollision(false);
-		ItemWrapperActor->SetActorEnableCollision(true);
-
 		return ItemWrapperActor;
 	}
 

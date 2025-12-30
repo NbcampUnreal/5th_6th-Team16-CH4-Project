@@ -27,6 +27,8 @@ public:
 protected:
 	UFUNCTION()
 	void OnRep_SetMesh();
+	UFUNCTION()
+	void OnRep_SetItem();
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -39,6 +41,6 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_SetMesh)
 	TObjectPtr<UStaticMesh> CurrentMeshAsset;
 
-	UPROPERTY(VisibleAnywhere, Replicated)
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_SetItem)
 	TObjectPtr<UItemInstance> ItemInstance;
 };

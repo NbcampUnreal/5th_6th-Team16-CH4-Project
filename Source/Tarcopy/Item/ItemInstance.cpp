@@ -15,17 +15,13 @@
 bool UItemInstance::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
 {
 	bool bWroteSomething = Channel->ReplicateSubobject(this, *Bunch, *RepFlags);
-	if (OwnerObject.IsValid() == true)
+	if (OwnerObject.IsValid() == true && IsValid(Cast<AActor>(OwnerObject.Get())) == false)
 	{
 		bWroteSomething |= Channel->ReplicateSubobject(OwnerObject.Get(), *Bunch, *RepFlags);
 	}
 	if (OwnerInventory.IsValid() == true)
 	{
 		bWroteSomething |= Channel->ReplicateSubobject(OwnerInventory.Get(), *Bunch, *RepFlags);
-	}
-	if (OwnerCharacter.IsValid() == true)
-	{
-		bWroteSomething |= Channel->ReplicateSubobject(OwnerCharacter.Get(), *Bunch, *RepFlags);
 	}
 	for (const auto& ItemComponent : ItemComponents)
 	{
