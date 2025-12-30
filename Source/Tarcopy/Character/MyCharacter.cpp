@@ -45,6 +45,7 @@
 #include <EnhancedInputSubsystems.h>
 #include "UI/UISubsystem.h"
 #include "Framework/TarcopyGameStateBase.h"
+#include "Item/ItemNetworkComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -98,6 +99,7 @@ AMyCharacter::AMyCharacter() :
 
 	EquipComponent = CreateDefaultSubobject<UEquipComponent>(TEXT("EquipComponent"));
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+	ItemNetworkComponent = CreateDefaultSubobject<UItemNetworkComponent>(TEXT("ItemNetworkComponent"));
 
 	Moodle = CreateDefaultSubobject<UMoodleComponent>(TEXT("Moodle"));
 

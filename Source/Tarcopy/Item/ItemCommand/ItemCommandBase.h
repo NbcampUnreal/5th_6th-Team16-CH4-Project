@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "Item/ItemNetworkContext.h"
 #include "ItemCommandBase.generated.h"
 
 USTRUCT()

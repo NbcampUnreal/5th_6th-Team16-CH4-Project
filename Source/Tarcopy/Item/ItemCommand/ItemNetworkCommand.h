@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "Item/ItemCommand/ItemCommandBase.h"
-#include "IngestCommand.generated.h"
+#include "ItemNetworkCommand.generated.h"
 
 UCLASS()
-class TARCOPY_API UIngestCommand : public UItemCommandBase
+class TARCOPY_API UItemNetworkCommand : public UItemCommandBase
 {
 	GENERATED_BODY()
 
@@ -14,8 +14,5 @@ protected:
 
 public:
 	UPROPERTY()
-	TWeakObjectPtr<class UFoodComponent> OwnerComponent;
-
-	UPROPERTY()
-	int32 EatAmount;							// 모든 음식의 전체 양 = 4
+	FItemNetworkContext ActionContext;
 };

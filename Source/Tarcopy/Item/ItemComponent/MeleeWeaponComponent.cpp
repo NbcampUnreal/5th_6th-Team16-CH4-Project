@@ -181,6 +181,9 @@ void UMeleeWeaponComponent::CheckHit()
 	bool bHit = GetWorld()->SweepMultiByChannel(HitResults, AttackOrigin, AttackOrigin, FQuat::Identity, ECC_PlayerAttack, SphereCollision, Params);
 	for (const auto& HitResult : HitResults)
 	{
+		if (HitResult.bBlockingHit == false)
+			continue;
+
 		AActor* HitActor = HitResult.GetActor();
 		if (IsValid(HitActor) == false)
 			continue;

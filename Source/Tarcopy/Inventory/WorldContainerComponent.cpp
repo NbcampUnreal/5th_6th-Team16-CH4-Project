@@ -12,6 +12,7 @@
 #include "Item/ItemComponent/ItemComponentBase.h"
 #include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "AI/MyAICharacter.h"
+#include "Item/ItemSpawnSubsystem.h"
 
 UWorldContainerComponent::UWorldContainerComponent()
 {
@@ -76,12 +77,11 @@ void UWorldContainerComponent::BeginPlay()
 
     InventoryData->TryAddItem(NewItem, FIntPoint::ZeroValue, false);*/
 
-    AItemWrapperActor* ItemActor = GetWorld()->SpawnActor<AItemWrapperActor>(Owner->GetActorLocation(), FRotator::ZeroRotator);
+    UItemSpawnSubsystem* ItemSpawnSubsystem = GetWorld()->GetSubsystem<UItemSpawnSubsystem>();
+    if (IsValid(ItemSpawnSubsystem) == false)
+        return;
 
-    UItemInstance* NewItem = NewObject<UItemInstance>(ItemActor);
-    NewItem->SetItemId(FName("Axe1"));
-
-    ItemActor->SetItemInstance(NewItem);
+    ItemSpawnSubsystem->SpawnItemAtGround(Owner, FName("Axe1"));
 
     GetOwner()->ForceNetUpdate();
 }

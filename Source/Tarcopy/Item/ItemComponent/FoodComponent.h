@@ -19,9 +19,10 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void OnRep_SetComponent() override;
 
-public:
-	UFUNCTION(Server, Reliable)
-	void ServerRPC_Ingest(int32 ConsumeAmount);
+	virtual void OnExecuteAction(AActor* InInstigator, const struct FItemNetworkContext& NetworkContext) override;
+
+private:
+	void Ingest(AActor* InInstigator, int32 ConsumeAmount);
 	UFUNCTION()
 	void OnRep_PrintAmount();
 
