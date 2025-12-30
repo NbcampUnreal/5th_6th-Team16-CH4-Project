@@ -4,6 +4,7 @@
 #include "Character/Component/VisionComponent.h"
 #include "Tarcopy.h"
 #include "GameFramework/Character.h"
+#include "Car/TCCarBase.h"
 
 UVisionComponent::UVisionComponent()
 {
@@ -24,24 +25,38 @@ void UVisionComponent::BeginPlay()
 		VisionMesh->OnComponentEndOverlap.AddDynamic(this, &UVisionComponent::OnVisionMeshEndOverlap);
 	}
 
-	ACharacter* Owner = Cast<ACharacter>(GetOwner());
-	if (IsValid(Owner))
+	ACharacter* Character = Cast<ACharacter>(GetOwner());
+	ATCCarBase* Car = Cast<ATCCarBase>(GetOwner());
+	if (IsValid(Character))
 	{
-		if (GetNetMode() == ENetMode::NM_DedicatedServer || Owner->IsLocallyControlled() == false)
+		if (Character->IsLocallyControlled())
 		{
-			Owner->SetActorHiddenInGame(true);
-			VisionMesh->SetVisibility(false);
+			Character->SetActorHiddenInGame(false);
+			VisionMesh->SetVisibility(true, true);
 		}
 		else
 		{
-			Owner->SetActorHiddenInGame(false);
-			VisionMesh->SetVisibility(true);
-			if (GetWorld())
-			{
-				GetWorld()->GetTimerManager().SetTimer(VisibilityCheckTimer, this, &UVisionComponent::CheckVisibilityAll, 0.1f, true);
-			}
+			Character->SetActorHiddenInGame(true);
+			VisionMesh->SetVisibility(false, true);
 		}
 	}
+	else if (IsValid(Car))
+	{
+		Car->SetActorHiddenInGame(false);
+		VisionMesh->SetVisibility(false, true);
+	}
+
+
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().SetTimer(VisibilityCheckTimer, this, &UVisionComponent::CheckVisibilityAll, 0.1f, true);
+	}
+
+	//if (GetNetMode() == ENetMode::NM_DedicatedServer || IsLocallyControlled() == false)
+	//{
+	//	SetActorHiddenInGame(true);
+	//	VisionComponent->SetVisibility(false, true);
+	//}
 }
 
 void UVisionComponent::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -61,7 +76,6 @@ void UVisionComponent::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedC
 	if (IsValid(Character))
 	{
 		OverlappedCharacters.Add(Character);
-		UE_LOG(LogTemp, Error, TEXT("Overlapped Num : %d"), OverlappedCharacters.Num())
 	}
 }
 
@@ -78,7 +92,7 @@ void UVisionComponent::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedCom
 	}
 
 	ACharacter* Character = Cast<ACharacter>(OtherActor);
-	if (IsValid(Character))
+	if (IsValid(Character) && OverlappedCharacters.Contains(Character))
 	{
 		OverlappedCharacters.Remove(Character);
 		OtherActor->SetActorHiddenInGame(true);
@@ -111,6 +125,8 @@ void UVisionComponent::InitSetting()
 
 void UVisionComponent::CheckVisibilityAll()
 {
+
+	UE_LOG(LogTemp, Error, TEXT("Overlapped Num : %d"), OverlappedCharacters.Num())
 	for (ACharacter* OverlappedActor : OverlappedCharacters)
 	{
 		FVector MyLocation = GetOwner()->GetActorLocation();
@@ -145,12 +161,10 @@ void UVisionComponent::CheckVisibilityAll()
 
 		if (bHitWall)
 		{
-			UE_LOG(LogTemp, Error, TEXT("Hit"))
 			OverlappedActor->SetActorHiddenInGame(true);
 		}
 		else
 		{
-			UE_LOG(LogTemp, Error, TEXT("Not Hit"))
 			OverlappedActor->SetActorHiddenInGame(false);
 		}
 	}

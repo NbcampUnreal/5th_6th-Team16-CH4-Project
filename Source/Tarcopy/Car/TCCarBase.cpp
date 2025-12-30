@@ -26,6 +26,7 @@
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/SceneComponent.h"
 #include "Character/MyCharacter.h"
+#include "Character/Component/VisionComponent.h"
 
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
@@ -96,6 +97,9 @@ ATCCarBase::ATCCarBase() :
 	AutoPossessAI = EAutoPossessAI::Disabled;
 
 	NetCullDistanceSquared = FMath::Square(15000.f);
+
+	VisionComponent = CreateDefaultSubobject<UVisionComponent>(TEXT("VisionComponent"));
+	VisionComponent->SetupAttachment(RootComponent);
 }
 
 void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -127,6 +131,8 @@ void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(LightAction, ETriggerEvent::Started, this, &ATCCarBase::ToggleLight);
 
 		EnhancedInputComponent->BindAction(InterAction, ETriggerEvent::Started, this, &ATCCarBase::StartInterAction);
+
+		EnhancedInputComponent->BindAction(WheelAction, ETriggerEvent::Started, this, &ATCCarBase::StartWheel);
 	}
 	else
 	{
@@ -289,6 +295,15 @@ void ATCCarBase::ToggleLight(const FInputActionValue& Value)
 	ServerRPCDoHandLight();
 }
 
+void ATCCarBase::StartWheel(const FInputActionValue& Value)
+{
+	if (!IsLocallyControlled())
+		return;
+
+	const float Input = Value.Get<float>() * -200;
+	SpringArm->TargetArmLength = FMath::Clamp(SpringArm->TargetArmLength + Input, 600.f, 2500.f);
+}
+
 void ATCCarBase::StartInterAction(const FInputActionValue& Value)
 {
 	Activate(this);
@@ -420,7 +435,7 @@ void ATCCarBase::SitByPassenger(APawn* InPawn, APlayerController* InPC)
 	AMyCharacter* MyCharacter = Cast<AMyCharacter>(PlayerCharacter);
 	if (MyCharacter)
 	{
-		MyCharacter->SetPlayerVisible();
+		MyCharacter->SetPlayerVisiblityInClient(false);
 	}
 
 }
@@ -433,12 +448,7 @@ void ATCCarBase::SitByDriver(APawn* InPawn, APlayerController* InPC)
 
 	ACharacter* PlayerCharacter = Cast<ACharacter>(InPawn);
 	if (!PlayerCharacter) return;
-	
-	AMyCharacter* MyCharacter = Cast<AMyCharacter>(PlayerCharacter);
-	if(MyCharacter)
-	{
-		MyCharacter->SetPlayerVisible();
-	}
+
 
 	PlayerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
@@ -453,6 +463,12 @@ void ATCCarBase::SitByDriver(APawn* InPawn, APlayerController* InPC)
 
 	PC->ServerRPCSetOwningCar(this, InPawn, true);
 	PC->ServerRPCChangePossess(this);
+
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(PlayerCharacter);
+	if (MyCharacter)
+	{
+		MyCharacter->SetPlayerVisiblityInClient(false);
+	}
 }
 
 void ATCCarBase::ExitVehicle(APawn* InPawn, APlayerController* InPC)
@@ -479,7 +495,7 @@ void ATCCarBase::ExitVehicle(APawn* InPawn, APlayerController* InPC)
 	AMyCharacter* MyCharacter = Cast<AMyCharacter>(Pawn);
 	if (MyCharacter)
 	{
-		MyCharacter->SetPlayerVisible();
+		MyCharacter->SetPlayerVisiblityInClient(true);
 	}
 
 	PC->ServerRPCRequestExit(Pawn, InPC, this);
@@ -532,6 +548,7 @@ void ATCCarBase::AddPassenger(APawn* InPawn, bool IsDriver)
 	}
 
 	Passengers.Add(InPawn);
+	MulticastHideCharacter(InPawn);
 }
 
 void ATCCarBase::ServerRPCUpdateFuel_Implementation(float InValue)
@@ -558,6 +575,11 @@ void ATCCarBase::Activate(AActor* InInstigator)
 	if (!PC) return;
 
 	ShowInterActionUI(PC);
+}
+
+void ATCCarBase::MulticastHideCharacter_Implementation(APawn* InPawn)
+{
+	InPawn->SetActorHiddenInGame(true);
 }
 
 bool ATCCarBase::FindDismountLocation(APawn* InPawn, FVector& OutLocation) const
@@ -749,7 +771,6 @@ void ATCCarBase::ShowCharacter(APawn* InPawn, APlayerController* InPC)
 	InPawn->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	PlayerCharacter->TeleportTo(OutLocation, OutRotation);
 
-	PlayerCharacter->SetActorHiddenInGame(false);
 	PlayerCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 
 	MulticastShowCharacter(InPawn, OutLocation, OutRotation);
@@ -762,6 +783,8 @@ void ATCCarBase::MulticastShowCharacter_Implementation(APawn* InPawn, const FVec
 
 	UCapsuleComponent* Capsule = PlayerCharacter->GetCapsuleComponent();
 	Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+	PlayerCharacter->SetActorHiddenInGame(false);
 
 }
 
