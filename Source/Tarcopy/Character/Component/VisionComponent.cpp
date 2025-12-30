@@ -176,7 +176,7 @@ void UVisionComponent::CheckVisibilityAll()
 				Params
 			);
 
-			DrawDebugLine(GetWorld(), MyLocation, OtherLocation, FColor::Red, false, 0.1f);
+			/*DrawDebugLine(GetWorld(), MyLocation, OtherLocation, FColor::Red, false, 0.1f);
 			UKismetSystemLibrary::LineTraceSingle(
 				GetWorld(),
 				MyLocation,
@@ -190,7 +190,7 @@ void UVisionComponent::CheckVisibilityAll()
 				FLinearColor::Red,
 				FLinearColor::Green,
 				0.1f
-			);
+			);*/
 
 			if (bHitWall)
 			{

@@ -16,6 +16,7 @@
 #include "Car/TCCarBase.h"
 #include "Inventory/WorldContainerComponent.h"
 #include "Components/BoxComponent.h"
+#include "Tarcopy.h"
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
@@ -212,42 +213,46 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 		return;
 	}
 
-	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
-	if (AnimInst)
-	{
-		PlayAnimMontage(AM_Attack);
-		bIsAttack = true;
-		GetCharacterMovement()->DisableMovement();
-		FOnMontageEnded AttackMontageEnded;
-		AttackMontageEnded.BindUObject(this, &AMyAICharacter::OnAttackMontageEnded);
-		AnimInst->Montage_SetEndDelegate(AttackMontageEnded, AM_Attack);
-	}
-
 	FHitResult Hit;
-	FVector StartLocation = ContextActor->GetActorLocation() + FVector({ 0.f, 0.f, 80.f });
-	FVector EndLocation = DamagedActor->GetActorLocation() + FMath::FRandRange(0.f, 80.f);
+	FVector StartLocation = ContextActor->GetActorLocation() + FVector( 0.f, 0.f, 80.f );
+	FVector EndLocation = DamagedActor->GetActorLocation()/* + FVector( 0.f, 0.f, FMath::FRandRange(0.f, 80.f) )*/;
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
 	Params.bTraceComplex = true;
 	Params.bReturnPhysicalMaterial = true;
 
-	bool bIsWallHit = GetWorld()->LineTraceSingleByChannel(
+	bool bIsTargetHit = GetWorld()->LineTraceSingleByChannel(
 		Hit,
 		StartLocation,
 		EndLocation,
-		ECC_Visibility,
+		ECC_EnemyAttack,
 		Params
 	);
 
-	if (!bIsWallHit)
+	if (bIsTargetHit)
 	{
-		UGameplayStatics::ApplyPointDamage(DamagedActor,
-											AttackDamage + FMath::FRandRange(-10.f, 10.f),
-											EndLocation - StartLocation, 
-											Hit, 
-											GetController(), 
-											this, 
-											UDamageType::StaticClass());
+		APawn* HitActor = Cast<APawn>(Hit.GetActor());
+		if (IsValid(HitActor))
+		{
+			UGameplayStatics::ApplyPointDamage(HitActor,
+				AttackDamage + FMath::FRandRange(-10.f, 10.f),
+				EndLocation - StartLocation,
+				Hit,
+				GetController(),
+				this,
+				UDamageType::StaticClass());
+
+			UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
+			if (AnimInst)
+			{
+				PlayAnimMontage(AM_Attack);
+				bIsAttack = true;
+				GetCharacterMovement()->DisableMovement();
+				FOnMontageEnded AttackMontageEnded;
+				AttackMontageEnded.BindUObject(this, &AMyAICharacter::OnAttackMontageEnded);
+				AnimInst->Montage_SetEndDelegate(AttackMontageEnded, AM_Attack);
+			}
+		}
 	}
 }
 
