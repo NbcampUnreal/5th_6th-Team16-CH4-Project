@@ -131,6 +131,8 @@ void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(LightAction, ETriggerEvent::Started, this, &ATCCarBase::ToggleLight);
 
 		EnhancedInputComponent->BindAction(InterAction, ETriggerEvent::Started, this, &ATCCarBase::StartInterAction);
+
+		EnhancedInputComponent->BindAction(WheelAction, ETriggerEvent::Started, this, &ATCCarBase::StartWheel);
 	}
 	else
 	{
@@ -291,6 +293,15 @@ void ATCCarBase::StopHandbrake(const FInputActionValue& Value)
 void ATCCarBase::ToggleLight(const FInputActionValue& Value)
 {
 	ServerRPCDoHandLight();
+}
+
+void ATCCarBase::StartWheel(const FInputActionValue& Value)
+{
+	if (!IsLocallyControlled())
+		return;
+
+	const float Input = Value.Get<float>() * -200;
+	SpringArm->TargetArmLength = FMath::Clamp(SpringArm->TargetArmLength + Input, 600.f, 2500.f);
 }
 
 void ATCCarBase::StartInterAction(const FInputActionValue& Value)
@@ -540,7 +551,7 @@ void ATCCarBase::AddPassenger(APawn* InPawn, bool IsDriver)
 	}
 
 	Passengers.Add(InPawn);
-	InPawn->SetActorHiddenInGame(true);
+	MulticastHideCharacter(InPawn);
 }
 
 void ATCCarBase::ServerRPCUpdateFuel_Implementation(float InValue)
@@ -567,6 +578,11 @@ void ATCCarBase::Activate(AActor* InInstigator)
 	if (!PC) return;
 
 	ShowInterActionUI(PC);
+}
+
+void ATCCarBase::MulticastHideCharacter_Implementation(APawn* InPawn)
+{
+	InPawn->SetActorHiddenInGame(true);
 }
 
 bool ATCCarBase::FindDismountLocation(APawn* InPawn, FVector& OutLocation) const
@@ -758,7 +774,6 @@ void ATCCarBase::ShowCharacter(APawn* InPawn, APlayerController* InPC)
 	InPawn->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	PlayerCharacter->TeleportTo(OutLocation, OutRotation);
 
-	PlayerCharacter->SetActorHiddenInGame(false);
 	PlayerCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 
 	MulticastShowCharacter(InPawn, OutLocation, OutRotation);
@@ -771,6 +786,8 @@ void ATCCarBase::MulticastShowCharacter_Implementation(APawn* InPawn, const FVec
 
 	UCapsuleComponent* Capsule = PlayerCharacter->GetCapsuleComponent();
 	Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+	PlayerCharacter->SetActorHiddenInGame(false);
 
 }
 

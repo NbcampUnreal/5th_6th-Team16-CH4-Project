@@ -81,6 +81,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* InterAction;
 
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* WheelAction;
+
 public:
 	ATCCarBase();
 
@@ -116,6 +119,8 @@ protected:
 	void StopHandbrake(const FInputActionValue& Value);
 
 	void ToggleLight(const FInputActionValue& Value);
+
+	void StartWheel(const FInputActionValue& Value);
 
 	void StartInterAction(const FInputActionValue& Value);
 
@@ -200,10 +205,12 @@ public:
 	UFUNCTION()
 	void ShowCharacter(APawn* InPawn, APlayerController* InPC);
 
-	UFUNCTION(NetMulticast,Reliable)
+	UFUNCTION(NetMulticast, Reliable)
 
 	void MulticastShowCharacter(APawn* InPawn, const FVector& OutLocation,const FRotator& OutRotation);
 
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastHideCharacter(APawn* InPawn);
 	UFUNCTION()
 	bool FindDismountLocation(APawn* InPawn, FVector& OutLocation) const;
 
