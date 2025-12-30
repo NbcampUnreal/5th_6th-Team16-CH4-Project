@@ -242,9 +242,6 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 				this,
 				UDamageType::StaticClass());
 
-			UE_LOG(LogTemp, Warning, TEXT("Name : %s"), *(Hit.GetActor()->GetName()));
-				DrawDebugLine(GetWorld(), StartLocation, Hit.Location, FColor::Green, false, 1);
-
 			UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
 			if (AnimInst)
 			{
