@@ -116,14 +116,6 @@ AMyCharacter::AMyCharacter() :
 	LootScanner->SetupAttachment(RootComponent);
 }
 
-AMyCharacter::~AMyCharacter()
-{
-	if (IsValid(GetWorld()))
-	{
-		GetWorldTimerManager().ClearTimer(OpenTitleLevelHandler);
-	}
-}
-
 // Called when the game starts or when spawned
 void AMyCharacter::BeginPlay()
 {
@@ -139,6 +131,14 @@ void AMyCharacter::BeginPlay()
 	if (IsValid(HealthComponent))
 	{
 		HealthComponent->OnDead.AddUObject(this, &AMyCharacter::HandleDeath);
+	}
+}
+
+void AMyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (IsValid(GetWorld()))
+	{
+		GetWorldTimerManager().ClearAllTimersForObject(this);
 	}
 }
 

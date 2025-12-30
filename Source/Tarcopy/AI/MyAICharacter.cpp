@@ -49,13 +49,6 @@ AMyAICharacter::AMyAICharacter() :
 	WorldContainerComponent->SetupAttachment(RootComponent);
 }
 
-AMyAICharacter::~AMyAICharacter()
-{
-	if (IsValid(GetWorld()))
-	{
-		GetWorldTimerManager().ClearTimer(EndOverlapTimer);
-	}
-}
 
 void AMyAICharacter::BeginPlay()
 {
@@ -82,6 +75,14 @@ void AMyAICharacter::BeginPlay()
 	if (IsValid(HealthComponent))
 	{
 		HealthComponent->OnDead.AddUObject(this, &AMyAICharacter::HandleDeath);
+	}
+}
+
+void AMyAICharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (IsValid(GetWorld()))
+	{
+		GetWorldTimerManager().ClearAllTimersForObject(this);
 	}
 }
 

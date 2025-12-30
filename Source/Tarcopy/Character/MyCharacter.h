@@ -28,7 +28,6 @@ class TARCOPY_API AMyCharacter : public ACharacter
 
 public:
 	AMyCharacter();
-	~AMyCharacter();
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -40,6 +39,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 #pragma endregion
 
