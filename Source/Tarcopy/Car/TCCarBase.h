@@ -196,6 +196,10 @@ public:
 	UFUNCTION()
 	void ShowCharacter(APawn* InPawn, APlayerController* InPC);
 
+	UFUNCTION(NetMulticast,Reliable)
+
+	void MulticastShowCharacter(APawn* InPawn, const FVector& OutLocation,const FRotator& OutRotation);
+
 	UFUNCTION()
 	bool FindDismountLocation(APawn* InPawn, FVector& OutLocation) const;
 
