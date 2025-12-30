@@ -853,12 +853,12 @@ void AMyCharacter::SetPlayerVisiblityInClient(bool bShouldVisible)
 	{
 		if (bShouldVisible)
 		{
-			SetActorHiddenInGame(true);
+			/*SetActorHiddenInGame(true);*/
 			VisionComponent->SetVisibility(false);
 		}
 		else
 		{
-			SetActorHiddenInGame(false);
+			/*SetActorHiddenInGame(false);*/
 			VisionComponent->SetVisibility(true);
 		}
 	}
