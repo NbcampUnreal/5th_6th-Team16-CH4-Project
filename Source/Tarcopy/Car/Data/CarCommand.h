@@ -8,9 +8,9 @@
 UENUM(BlueprintType)
 enum class ECarCommand : uint8
 {
-	Enter,
 	Exit,
-	SwitchSeat,
+	SitByPassenger,
 	AddFuel,
-	DrainFuel
+	DrainFuel,
+	SitByDriver
 };

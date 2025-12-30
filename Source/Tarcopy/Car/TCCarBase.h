@@ -17,6 +17,7 @@ class UTCCarCombatComponent;
 class UTCCarWidget;
 class UUISubsystem;
 class UTCCarActivate;
+class USceneComponent;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
@@ -40,6 +41,9 @@ class ATCCarBase : public AWheeledVehiclePawn, public IActivateInterface
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTCCarCombatComponent> CombatComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	USceneComponent* SceneComponent;
+
 	UPROPERTY(EditDefaultsOnly)
 	UStaticMeshComponent* Light;
 
@@ -48,6 +52,8 @@ class ATCCarBase : public AWheeledVehiclePawn, public IActivateInterface
 
 	UPROPERTY(EditDefaultsOnly)
 	USpotLightComponent* HeadLight_L;
+
+	
  
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> ChaosVehicleMovement;
 
@@ -185,30 +191,17 @@ public:
 
 	virtual void OnRep_Controller() override;
 
-	UFUNCTION()
-	void OnRep_bPossessed();
-
-
-
 	virtual void Activate(AActor* InInstigator) override;
 
-	UFUNCTION(Server, Reliable)
-	void ServerRPCHideCharacter(ACharacter* InCharacter);
+	UFUNCTION()
+	void ShowCharacter(APawn* InPawn, APlayerController* InPC);
 
-	UFUNCTION(Server, Reliable)
-	void ServerRPCShowCharacter();
+	UFUNCTION(NetMulticast,Reliable)
+
+	void MulticastShowCharacter(APawn* InPawn, const FVector& OutLocation,const FRotator& OutRotation);
 
 	UFUNCTION()
-	bool FindDismountLocation(FVector& OutLocation) const;
-
-	UPROPERTY(Replicated)
-	APawn* RidePawn;
-
-	UPROPERTY()
-	TEnumAsByte<ECollisionEnabled::Type> TempSaveCollision;
-
-	UPROPERTY(ReplicatedUsing = OnRep_bPossessed)
-	uint8 bPossessed : 1;
+	bool FindDismountLocation(APawn* InPawn, FVector& OutLocation) const;
 
 #pragma endregion
 
@@ -235,7 +228,7 @@ public:
 	void ShowInterActionUI(APlayerController* InPC);
 
 	UFUNCTION()
-	void EnterVehicle(APawn* InPawn, APlayerController* InPC);
+	void SitByPassenger(APawn* InPawn, APlayerController* InPC);
 
 	UFUNCTION()
 	void ExitVehicle(APawn* InPawn, APlayerController* InPC);
@@ -245,6 +238,24 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnCarRideStateChanged OnCarRideChanged;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Passengers)
+	TArray<APawn*> Passengers;
+
+	UFUNCTION()
+	void OnRep_Passengers();
+
+	UFUNCTION()
+	void AddPassenger(APawn* InPawn,bool IsDriver);
+
+	UPROPERTY(Replicated)
+	bool bCanRide;
+
+	UFUNCTION()
+	void SitByDriver(APawn* InPawn, APlayerController* InPC);
+
+	UPROPERTY(Replicated)
+	APawn* DriverPawn;
 
 #pragma region endregion
 	
