@@ -24,6 +24,7 @@ enum class EUIType : uint8
     Car,
     CarInteraction,
     MoodleList,
+    Health,
     Test
 };
 

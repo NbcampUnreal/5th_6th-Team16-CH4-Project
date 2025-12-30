@@ -20,7 +20,6 @@ ULootScannerComponent::ULootScannerComponent()
 	ContainerSense->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	ContainerSense->SetCollisionObjectType(ECC_WorldDynamic);
 	ContainerSense->SetCollisionResponseToAllChannels(ECR_Ignore);
-	ContainerSense->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
 	ContainerSense->SetGenerateOverlapEvents(true);
 
 	GroundSense = CreateDefaultSubobject<USphereComponent>(TEXT("GroundSense"));
@@ -28,7 +27,6 @@ ULootScannerComponent::ULootScannerComponent()
 	GroundSense->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	GroundSense->SetCollisionObjectType(ECC_WorldDynamic);
 	GroundSense->SetCollisionResponseToAllChannels(ECR_Ignore);
-	GroundSense->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 	GroundSense->SetGenerateOverlapEvents(true);
 }
 
@@ -58,6 +56,9 @@ void ULootScannerComponent::BeginPlay()
 
 	GroundInventoryData = NewObject<UInventoryData>(this);
 	GroundInventoryData->Init(GroundGridSize);
+
+	ContainerSense->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
+	GroundSense->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 }
 
 void ULootScannerComponent::RebuildGroundInventory()

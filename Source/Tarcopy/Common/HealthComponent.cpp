@@ -3,6 +3,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Common/BodyDamageModifierSetting.h"
 #include "Item/EquipComponent.h"
+#include "Character/MyCharacter.h"
+#include "Controller/MyPlayerController.h"
 
 UHealthComponent::UHealthComponent()
 {
@@ -70,5 +72,14 @@ float UHealthComponent::TakeDamage(float Damage, const FHitResult& HitResult)
 
 void UHealthComponent::OnRep_PrintHP()
 {
+	ACharacter* Owner = Cast<ACharacter>(GetOwner());
+	AMyPlayerController* PC = IsValid(Owner) == true ? Owner->GetController<AMyPlayerController>() : nullptr;
+	if (IsValid(PC) == false)
+	{
+		return;
+	}
+
+	PC->SetHealthUI(CurrentHP, MaxHP);
+
 	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("Hit: %.2f/%.2f"), CurrentHP, MaxHP));
 }
