@@ -13,6 +13,7 @@ class UUW_Inventory;
 class UBorder;
 class UItemInstance;
 class UUW_ItemInfo;
+class UImage;
 
 /**
  * 
@@ -38,11 +39,16 @@ private:
 
 	void SetItemInfo();
 
+	void UpdateIcon();
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> ItemBorder;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> ItemBG;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Img;
 
 	UPROPERTY()
 	TWeakObjectPtr<UItemInstance> Item;

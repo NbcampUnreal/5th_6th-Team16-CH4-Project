@@ -25,5 +25,5 @@ private:
 	TObjectPtr<UTextBlock> ConditionTxt;
 
 	UPROPERTY()
-	TWeakObjectPtr<UDurabilityComponent> ChachedComponent;
+	TWeakObjectPtr<UDurabilityComponent> CachedComponent;
 };

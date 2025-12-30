@@ -6,7 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "UW_MoodleIcon.generated.h"
 
-class UImage;
+class UProgressBar;
 
 /**
  * 
@@ -24,5 +24,5 @@ private:
 
 private:
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UImage> BackgroundFill;
+	TObjectPtr<UProgressBar> BackgroundFill;
 };

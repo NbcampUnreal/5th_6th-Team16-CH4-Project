@@ -16,12 +16,12 @@
 #include "Inventory/LootScannerComponent.h"
 #include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "UI/ItemInfo/UW_ItemInfo.h"
+#include "Components/Image.h"
+#include "Item/Data/ItemData.h"
 
 void UUW_InventoryItem::NativeConstruct()
 {
 	Super::NativeConstruct();
-	UE_LOG(LogTemp, Warning, TEXT("[UI] InventoryItem NativeConstruct this=%p name=%s"),
-		this, *GetName());
 }
 
 FReply UUW_InventoryItem::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -98,6 +98,7 @@ void UUW_InventoryItem::InitItem(UItemInstance* InItem, UInventoryData* InSource
 	bRotated = bInRotated;
 
 	SetItemInfo();
+	UpdateIcon();
 }
 
 void UUW_InventoryItem::ApplyProxyVisual()
@@ -169,4 +170,25 @@ void UUW_InventoryItem::SetItemInfo()
 	Tooltip = CreateWidget<UUW_ItemInfo>(GetOwningPlayer(), TooltipClass);
 	Tooltip->BindItem(Item.Get());
 	SetToolTip(Tooltip);
+}
+
+void UUW_InventoryItem::UpdateIcon()
+{
+	if (!Img)
+	{
+		return;
+	}
+
+	UItemInstance* ItemInst = Item.Get();
+	const FItemData* Data = ItemInst ? ItemInst->GetData() : nullptr;
+
+	if (!Data || !Data->ItemIcon)
+	{
+		return;
+	}
+
+	Img->SetBrushFromTexture(Data->ItemIcon, true);
+
+	Img->SetRenderTransformAngle(bRotated ? 90.0f : 0.0f);
+	Img->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
 }

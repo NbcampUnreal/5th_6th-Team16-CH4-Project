@@ -68,10 +68,10 @@ void UUW_TempItem::UpdateTempItem()
 
 void UUW_TempItem::SetHunger(float CurrentValue, float MaxValue)
 {
-	TextHunger->SetText(FText::FromString(FString::Printf(TEXT("%f / %f"), CurrentValue, MaxValue)));
+	//TextHunger->SetText(FText::FromString(FString::Printf(TEXT("%f / %f"), CurrentValue, MaxValue)));
 }
 
 void UUW_TempItem::SetThirst(float CurrentValue, float MaxValue)
 {
-	TextThirst->SetText(FText::FromString(FString::Printf(TEXT("%f / %f"), CurrentValue, MaxValue)));
+	//TextThirst->SetText(FText::FromString(FString::Printf(TEXT("%f / %f"), CurrentValue, MaxValue)));
 }

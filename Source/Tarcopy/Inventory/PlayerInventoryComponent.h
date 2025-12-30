@@ -61,8 +61,8 @@ private:
 	UFUNCTION()
 	void OnRep_PlayerInventoryData();
 
-	UFUNCTION(Client, Reliable)
-	void Client_ForceRefreshInventoryUI();
+	//UFUNCTION(Client, Reliable)
+	//void Client_ForceRefreshInventoryUI();
 
 public:
 	FOnPlayerInventoryReady OnInventoryReady;

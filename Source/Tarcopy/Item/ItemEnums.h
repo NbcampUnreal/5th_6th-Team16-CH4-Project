@@ -19,6 +19,7 @@ enum class EItemType : uint8
 	Material				UMETA(DisplayName = "Material"),			// 재료
 	Appearance				UMETA(DisplayName = "Appearance"),			// 외형 (염색약, 마스카라 등 치장 잡템류)
 	Junk					UMETA(DisplayName = "Junk"),				// 잡템
+	VehicleMaintenance		UMETA(DisplayName = "Vehicle")	// 차량용 아이템
 };
 
 // 손으로 들 수 있는 아이템의 기능 카테고리

@@ -21,7 +21,7 @@ AItemWrapperActor::AItemWrapperActor()
 	LootSphere->SetCollisionObjectType(ECC_WorldDynamic);
 	LootSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	LootSphere->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
-	LootSphere->SetGenerateOverlapEvents(true);
+	LootSphere->SetGenerateOverlapEvents(false);
 
 	DefaultMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DefaultMesh"));
 	DefaultMesh->SetupAttachment(SceneRoot);
@@ -63,6 +63,8 @@ void AItemWrapperActor::SetItemInstance(UItemInstance* InItemInstance)
 	ItemInstance = InItemInstance;
 	ItemInstance->SetOwnerObject(this);
 
+	OnRep_SetItem();
+
 	const FItemData* ItemData = ItemInstance->GetData();
 	if (ItemData == nullptr)
 		return;
@@ -81,4 +83,9 @@ void AItemWrapperActor::OnRep_SetMesh()
 	{
 		DefaultMesh->SetStaticMesh(CurrentMeshAsset);
 	}
+}
+
+void AItemWrapperActor::OnRep_SetItem()
+{
+	LootSphere->SetGenerateOverlapEvents(true);
 }

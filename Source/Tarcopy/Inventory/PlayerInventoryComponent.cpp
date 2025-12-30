@@ -161,7 +161,10 @@ void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceI
         return;
     }
 
-	SourceInventory->RemoveItem(Item);
+	if (!SourceInventory->RemoveItem(Item))
+	{
+		return;
+	}
 
 	UItemSpawnSubsystem* ItemSpawnSubsystem = GetWorld()->GetSubsystem<UItemSpawnSubsystem>();
 	if (IsValid(ItemSpawnSubsystem) == false)
@@ -246,7 +249,7 @@ void UPlayerInventoryComponent::Server_RequestLootFromWorld_Implementation(AItem
 	{
 		OwnerActor->ForceNetUpdate();
 	}
-	Client_ForceRefreshInventoryUI();
+	//Client_ForceRefreshInventoryUI();
 }
 
 ULootScannerComponent* UPlayerInventoryComponent::FindLootScanner() const
@@ -272,16 +275,16 @@ void UPlayerInventoryComponent::OnRep_PlayerInventoryData()
 	OnInventoryReady.Broadcast();
 }
 
-void UPlayerInventoryComponent::Client_ForceRefreshInventoryUI_Implementation()
-{
-	if (PlayerInventoryData)
-	{
-		PlayerInventoryData->FixupAfterReplication();
-		PlayerInventoryData->OnInventoryChanged.Broadcast();
-	}
-
-	OnInventoryReady.Broadcast();
-}
+//void UPlayerInventoryComponent::Client_ForceRefreshInventoryUI_Implementation()
+//{
+//	if (PlayerInventoryData)
+//	{
+//		PlayerInventoryData->FixupAfterReplication();
+//		PlayerInventoryData->OnInventoryChanged.Broadcast();
+//	}
+//
+//	OnInventoryReady.Broadcast();
+//}
 
 void UPlayerInventoryComponent::Server_ConsumeGroundWorldItem_Implementation(UItemInstance* Item)
 {

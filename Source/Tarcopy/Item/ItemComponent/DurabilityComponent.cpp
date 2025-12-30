@@ -73,6 +73,14 @@ void UDurabilityComponent::LoseDurability(float Amount)
 	Condition -= Amount;
 	Condition = FMath::Max(Condition, 0.0f);
 
+	if (Condition <= 0.0f)
+	{
+		if (OwnerItem.IsValid() == true)
+		{
+			OwnerItem->RemoveFromSource();
+		}
+	}
+
 	OnRep_PrintCondition();
 }
 
