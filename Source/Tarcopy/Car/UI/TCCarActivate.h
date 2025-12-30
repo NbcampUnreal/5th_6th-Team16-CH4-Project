@@ -38,4 +38,5 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UCommandButtonWidget> CommandButtonClass;
 	
+
 };
