@@ -160,7 +160,10 @@ void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceI
         return;
     }
 
-	SourceInventory->RemoveItem(Item);
+	if (!SourceInventory->RemoveItem(Item))
+	{
+		return;
+	}
 
 	if (!WorldItemClass)
 	{

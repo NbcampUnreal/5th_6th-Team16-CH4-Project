@@ -20,8 +20,6 @@
 void UUW_InventoryItem::NativeConstruct()
 {
 	Super::NativeConstruct();
-	UE_LOG(LogTemp, Warning, TEXT("[UI] InventoryItem NativeConstruct this=%p name=%s"),
-		this, *GetName());
 }
 
 FReply UUW_InventoryItem::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
