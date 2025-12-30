@@ -20,6 +20,10 @@ protected:
 
 public:
 	float TakeDamage(float Damage, const FHitResult& HitResult);
+	void RestoreHP(float InHP);
+
+	FORCEINLINE float GetCurrentHP() const { return CurrentHP; }
+	FORCEINLINE float GetMaxHP() const { return MaxHP; }
 
 protected:
 	UFUNCTION()

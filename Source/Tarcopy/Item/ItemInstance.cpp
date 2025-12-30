@@ -12,6 +12,7 @@
 #include "Engine/ActorChannel.h"
 #include "Inventory/InventoryData.h"
 #include "Item/ItemWrapperActor/ItemWrapperActor.h"
+#include "Item/EquipComponent.h"
 
 bool UItemInstance::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
 {
@@ -218,5 +219,15 @@ bool UItemInstance::RemoveFromSource()
 	{
 		return Inventory->RemoveItem(this);
 	}
+
+	if (OwnerCharacter.IsValid() == true)
+	{
+		UEquipComponent* EquipComponent = OwnerCharacter->FindComponentByClass<UEquipComponent>();
+		if (IsValid(EquipComponent) == true)
+		{
+			EquipComponent->ServerRPC_UnequipItem(this, EUnequipType::Destroy);
+		}
+	}
+
 	return false;
 }
