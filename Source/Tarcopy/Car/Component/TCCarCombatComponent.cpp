@@ -169,7 +169,7 @@ void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* O
 	
 	if (!GetOwner()) return;
 	if (OtherActor == GetOwner()) return;
-	
+
 	float Damage = 0.f;
 	if (ACharacter* HitActor = Cast<ACharacter>(OtherActor))
 	{
@@ -179,7 +179,7 @@ void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* O
 		Dir = Dir.GetSafeNormal();
 		float Speed = Velocity.Size();
 
-		if (Speed <= 50.f) return;
+		if (Speed <= 200.f) return;
 
 		HitActor->LaunchCharacter(Dir * Speed * 1.5, true, true);
 		Damage = 5.f;

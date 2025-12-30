@@ -34,7 +34,12 @@ bool UItemComponentBase::CallRemoteFunction(UFunction* Function, void* Parms, FO
 
 bool UItemComponentBase::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
 {
-	return Channel->ReplicateSubobject(this, *Bunch, *RepFlags);
+	bool bWroteSomething = Channel->ReplicateSubobject(this, *Bunch, *RepFlags);
+	if (OwnerItem.IsValid() == true)
+	{
+		bWroteSomething |= Channel->ReplicateSubobject(OwnerItem.Get(), *Bunch, *RepFlags);
+	}
+	return bWroteSomething;
 }
 
 void UItemComponentBase::SetOwnerItem(UItemInstance* InOwnerItem)
@@ -52,6 +57,11 @@ UItemInstance* UItemComponentBase::GetOwnerItem() const
 ACharacter* UItemComponentBase::GetOwnerCharacter() const
 {
 	return OwnerItem.IsValid() == true ? OwnerItem->GetOwnerCharacter() : nullptr;
+}
+
+UInventoryData* UItemComponentBase::GetOwnerInventory() const
+{
+	return OwnerItem.IsValid() == true ? OwnerItem->GetOwnerInventory() : nullptr;
 }
 
 bool UItemComponentBase::HasAuthority() const

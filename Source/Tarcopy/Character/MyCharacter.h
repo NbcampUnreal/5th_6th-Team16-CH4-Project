@@ -18,6 +18,7 @@ enum class EHoldableType : uint8;
 class UAnimPresetMap;
 class UPlayerInventoryComponent;
 class ULootScannerComponent;
+class UVisionComponent;
 
 UCLASS()
 class TARCOPY_API AMyCharacter : public ACharacter
@@ -39,6 +40,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 #pragma endregion
 
@@ -53,7 +55,8 @@ protected:
 	TObjectPtr<USpringArmComponent> SpringArm;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UStaticMeshComponent> VisionMesh;
+	/*TObjectPtr<UStaticMeshComponent> VisionMesh;*/
+	TObjectPtr<UVisionComponent> VisionComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Interaction", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USphereComponent> InteractionSphere;
@@ -79,20 +82,20 @@ protected:
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
 
-	UFUNCTION()
-	virtual void OnVisionMeshBeginOverlap(
-		UPrimitiveComponent* OverlappedComp,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,
-		int32 OtherBodyIndex,
-		bool bFromSweep,
-		const FHitResult& SweepResult);
-	UFUNCTION()
-	virtual void OnVisionMeshEndOverlap(
-		UPrimitiveComponent* OverlappedComp,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,
-		int32 OtherBodyIndex);
+	//UFUNCTION()
+	//virtual void OnVisionMeshBeginOverlap(
+	//	UPrimitiveComponent* OverlappedComp,
+	//	AActor* OtherActor,
+	//	UPrimitiveComponent* OtherComp,
+	//	int32 OtherBodyIndex,
+	//	bool bFromSweep,
+	//	const FHitResult& SweepResult);
+	//UFUNCTION()
+	//virtual void OnVisionMeshEndOverlap(
+	//	UPrimitiveComponent* OverlappedComp,
+	//	AActor* OtherActor,
+	//	UPrimitiveComponent* OtherComp,
+	//	int32 OtherBodyIndex);
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
@@ -104,6 +107,13 @@ public:
 
 protected:
 	TSet<TWeakObjectPtr<AActor>> OverlappingDoors;
+
+#pragma endregion
+
+#pragma region Vision Component
+
+public:
+	void SetPlayerVisible();
 
 #pragma endregion
 
@@ -198,25 +208,29 @@ protected:
 #pragma endregion
 
 #pragma region Combat
-	public:
-		virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+public:
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
-	protected:
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
-		TObjectPtr<UAnimMontage> AM_Hit;
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	TObjectPtr<UAnimMontage> AM_Hit;
+	UPROPERTY(Replicated, ReplicatedUsing = "OnRep_bIsHit")
+	bool bIsHit;
 
-		UPROPERTY(Replicated, ReplicatedUsing = "OnRep_bIsHit")
-		bool bIsHit;
+	UFUNCTION()
+	void OnRep_bIsHit();
+	UFUNCTION()
+	void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
-		UFUNCTION()
-		void OnRep_bIsHit();
-		UFUNCTION()
-		void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	UFUNCTION()
+	void HandleDeath();
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_HandleDeath();
+	void ClientHandleDeath();
+	void StartFadeToBlack(float FadeTime);
+	FTimerHandle OpenTitleLevelHandler;
+	void OpenTitleLevel();
 
-		UFUNCTION()
-		void HandleDeath();
-		UFUNCTION(NetMulticast, Reliable)
-		void MultiRPC_HandleDeath();
 #pragma endregion
 
 #pragma region TestItem

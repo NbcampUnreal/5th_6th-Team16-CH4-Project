@@ -36,4 +36,6 @@ protected:
 	float MaxHP = 100.0f;
 	UPROPERTY(ReplicatedUsing = OnRep_PrintHP)
 	float CurrentHP = 100.0f;
+	UPROPERTY(Replicated)
+	uint8 bIsDead : 1 = false;
 };

@@ -42,7 +42,10 @@
 #include "Inventory/LootScannerComponent.h"
 #include "Common/HealthComponent.h"
 #include "Animation/AnimMontage.h"
+#include <EnhancedInputSubsystems.h>
 #include "UI/UISubsystem.h"
+#include "Framework/TarcopyGameStateBase.h"
+#include "Character/Component/VisionComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -79,11 +82,14 @@ AMyCharacter::AMyCharacter() :
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 
-	VisionMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisionMesh"));
-	VisionMesh->SetupAttachment(RootComponent);
-	VisionMesh->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
-	VisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshBeginOverlap);
-	VisionMesh->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshEndOverlap);
+	//VisionMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisionMesh"));
+	//VisionMesh->SetupAttachment(RootComponent);
+	//VisionMesh->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+	//VisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshBeginOverlap);
+	//VisionMesh->OnComponentEndOverlap.AddDynamic(this, &AMyCharacter::OnVisionMeshEndOverlap);
+
+	VisionComponent = CreateDefaultSubobject<UVisionComponent>(TEXT("VisionComponent"));
+	VisionComponent->SetupAttachment(RootComponent);
 
 	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
 	InteractionSphere->SetupAttachment(RootComponent);
@@ -120,16 +126,26 @@ void AMyCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	Tags.Add(FName("InVisible"));
-	if (GetNetMode() == ENetMode::NM_DedicatedServer || IsLocallyControlled() == false)
+	/*if (GetNetMode() == ENetMode::NM_DedicatedServer || IsLocallyControlled() == false)
 	{
 		SetActorHiddenInGame(true);
 		VisionMesh->SetVisibility(false);
-	}
+	}*/
 
 	if (IsValid(HealthComponent))
 	{
 		HealthComponent->OnDead.AddUObject(this, &AMyCharacter::HandleDeath);
 	}
+}
+
+void AMyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (IsValid(GetWorld()))
+	{
+		GetWorldTimerManager().ClearAllTimersForObject(this);
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AMyCharacter::Tick(float DeltaTime)
@@ -178,57 +194,57 @@ float AMyCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AC
 	return Damage;
 }
 
-void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-                                            UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
-                                            const FHitResult& SweepResult)
-{
-	if (!IsLocallyControlled()) return;
-	if (OtherActor->ActorHasTag("InVisible") == false) return;
-
-	FVector MyLocation = GetActorLocation();
-	FVector OtherLocation = OtherActor->GetActorLocation();
-
-	FHitResult Hit;
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(this);
-	Params.AddIgnoredActor(OtherActor);
-	Params.bTraceComplex = true;
-
-	bool bHitWall = GetWorld()->LineTraceSingleByChannel(
-		Hit,
-		MyLocation,
-		OtherLocation,
-		ECC_Visibility,
-		Params
-	);
-
-	/*DrawDebugLine(GetWorld(), MyLocation, OtherLocation, FColor::Red, false, 1.0f);
-	UKismetSystemLibrary::LineTraceSingle(
-		GetWorld(),
-		MyLocation,
-		OtherLocation,
-		UEngineTypes::ConvertToTraceType(ECC_Visibility),
-		false,
-		{ this },
-		EDrawDebugTrace::ForDuration,
-		Hit,
-		true
-	);*/
-
-	if (!bHitWall)
-	{
-		OtherActor->SetActorHiddenInGame(false);
-	}
-}
-
-void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-                                          UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (!IsLocallyControlled()) return;
-	if (OtherActor->ActorHasTag("InVisible") == false) return;
-
-	OtherActor->SetActorHiddenInGame(true);
-}
+//void AMyCharacter::OnVisionMeshBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+//                                            UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
+//                                            const FHitResult& SweepResult)
+//{
+//	if (!IsLocallyControlled()) return;
+//	if (OtherActor->ActorHasTag("InVisible") == false) return;
+//
+//	FVector MyLocation = GetActorLocation();
+//	FVector OtherLocation = OtherActor->GetActorLocation();
+//
+//	FHitResult Hit;
+//	FCollisionQueryParams Params;
+//	Params.AddIgnoredActor(this);
+//	Params.AddIgnoredActor(OtherActor);
+//	Params.bTraceComplex = true;
+//
+//	bool bHitWall = GetWorld()->LineTraceSingleByChannel(
+//		Hit,
+//		MyLocation,
+//		OtherLocation,
+//		ECC_Visibility,
+//		Params
+//	);
+//
+//	/*DrawDebugLine(GetWorld(), MyLocation, OtherLocation, FColor::Red, false, 1.0f);
+//	UKismetSystemLibrary::LineTraceSingle(
+//		GetWorld(),
+//		MyLocation,
+//		OtherLocation,
+//		UEngineTypes::ConvertToTraceType(ECC_Visibility),
+//		false,
+//		{ this },
+//		EDrawDebugTrace::ForDuration,
+//		Hit,
+//		true
+//	);*/
+//
+//	if (!bHitWall)
+//	{
+//		OtherActor->SetActorHiddenInGame(false);
+//	}
+//}
+//
+//void AMyCharacter::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+//                                          UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+//{
+//	if (!IsLocallyControlled()) return;
+//	if (OtherActor->ActorHasTag("InVisible") == false) return;
+//
+//	OtherActor->SetActorHiddenInGame(true);
+//}
 
 void AMyCharacter::OnInteractionSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -621,16 +637,76 @@ void AMyCharacter::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 
 void AMyCharacter::HandleDeath()
 {
+	if (HasAuthority())
+	{
+		GetCharacterMovement()->DisableMovement();
+	}
 	MultiRPC_HandleDeath();
+	SetLifeSpan(300.f);
+}
+
+void AMyCharacter::ClientHandleDeath()
+{
+	if (AMyPlayerController* PC = Cast<AMyPlayerController>(Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		{
+			Subsystem->RemoveMappingContext(PC->IMC_Character);
+		}
+
+		//if (auto* LP = PC->GetLocalPlayer())
+		//{
+		//	if (auto* UIS = LP->GetSubsystem<UUISubsystem>())
+		//	{
+		//		UIS->HideUI(EUIType::Root);
+		//	}
+		//}
+	}
+
+	StartFadeToBlack(5.f);
+	if (IsValid(GetWorld()))
+	{
+		GetWorldTimerManager().SetTimer(OpenTitleLevelHandler, this, &AMyCharacter::OpenTitleLevel, 7.0f, false);
+	}
+}
+
+void AMyCharacter::StartFadeToBlack(float FadeTime)
+{
+	APlayerCameraManager* PlayerCameraManager = GetController<APlayerController>()->PlayerCameraManager;
+	if (IsValid(PlayerCameraManager))
+	{
+		FLinearColor FadeColor = FLinearColor::Black;
+		PlayerCameraManager->StartCameraFade(0.0f, 1.0f, FadeTime, FadeColor, true, true);
+	}
+}
+
+void AMyCharacter::OpenTitleLevel()
+{
+	if (IsValid(GetWorld()))
+	{
+		ATarcopyGameStateBase* GS = GetWorld()->GetGameState<ATarcopyGameStateBase>();
+		if (IsValid(GS))
+		{
+			GS->GoToTitle();
+		}
+	}
 }
 
 void AMyCharacter::MultiRPC_HandleDeath_Implementation()
 {
-	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
-	//GetCharacterMovement()->DisableMovement();
-	//GetMesh()->SetAllBodiesSimulatePhysics(true);
-	// 레그돌, 지면에만 충돌, 다른 물체와는 no collision, 약한 참조자로 참조하고 1분뒤에 제거
-	//GetCapsuleComponent()->Setcollision
+	//UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
+
+	if (IsLocallyControlled())
+	{
+		ClientHandleDeath();
+	}
+	USkeletalMeshComponent* SMComp = GetMesh();
+	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
+
+	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SMComp->SetAllBodiesSimulatePhysics(true);
+	CapsuleComp->SetCollisionProfileName(TEXT("Ragdoll"));
+	SMComp->SetCollisionProfileName(TEXT("Ragdoll"));
 }
 
 
@@ -720,13 +796,21 @@ void AMyCharacter::GetNearbyInventoryDatas(TArray<class UInventoryData*>& Invent
 	UPlayerInventoryComponent* InventoryComponent = FindComponentByClass<UPlayerInventoryComponent>();
 	if (IsValid(InventoryComponent) == true)
 	{
-		InventoryDatas.Add(InventoryComponent->GetPlayerInventoryData());
+		UInventoryData* InventoryData = InventoryComponent->GetPlayerInventoryData();
+		if (IsValid(InventoryData) == true)
+		{
+			InventoryDatas.Add(InventoryData);
+		}
 	}
 
 	ULootScannerComponent* LootScannerComponent = FindComponentByClass<ULootScannerComponent>();
 	if (IsValid(LootScannerComponent) == true)
 	{
-		InventoryDatas.Add(LootScannerComponent->GetGroundInventoryData());
+		UInventoryData* InventoryData = LootScannerComponent->GetGroundInventoryData();
+		if (IsValid(InventoryData) == true)
+		{
+			InventoryDatas.Add(InventoryData);
+		}
 		for (const auto& OverlappedContainer : LootScannerComponent->OverlappedContainers)
 		{
 			InventoryDatas.Add(OverlappedContainer->GetInventoryData());
@@ -763,6 +847,15 @@ void AMyCharacter::RemoveInteractableDoor(AActor* DoorActor)
 	if (IsValid(DoorActor))
 	{
 		OverlappingDoors.Remove(DoorActor);
+	}
+}
+
+void AMyCharacter::SetPlayerVisible()
+{
+	if (IsValid(VisionComponent))
+	{
+		SetActorHiddenInGame(false);
+		VisionComponent->SetVisibility(true);
 	}
 }
 

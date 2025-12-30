@@ -13,7 +13,7 @@ class TARCOPY_API UFirearmComponent : public UWeaponComponent
 
 public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
-	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
+	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context) override;
 
 	virtual void SetOwnerHoldingItemMesh() override;
 	virtual void SetOwnerAnimPreset() override;

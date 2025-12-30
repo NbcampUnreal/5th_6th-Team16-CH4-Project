@@ -11,6 +11,7 @@
 #include "Engine/ActorChannel.h"
 #include "Item/ItemComponent/ItemComponentBase.h"
 #include "Item/ItemWrapperActor/ItemWrapperActor.h"
+#include "AI/MyAICharacter.h"
 
 UWorldContainerComponent::UWorldContainerComponent()
 {
@@ -22,10 +23,10 @@ void UWorldContainerComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-    if (!GetOwner() || !GetOwner()->HasAuthority())
-    {
-        return;
-    }
+    //if (!GetOwner() || !GetOwner()->HasAuthority())
+    //{
+    //    return;
+    //}
 
     AActor* Owner = GetOwner();
     if (!Owner)
@@ -54,6 +55,12 @@ void UWorldContainerComponent::BeginPlay()
 
         SenseBox->SetCollisionResponseToAllChannels(ECR_Ignore);
         SenseBox->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+
+        AMyAICharacter* AI = GetOwner<AMyAICharacter>();
+        if (IsValid(AI))
+        {
+            SenseBox->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
+        }
     }
 
 	if (!ContainerId.IsValid())

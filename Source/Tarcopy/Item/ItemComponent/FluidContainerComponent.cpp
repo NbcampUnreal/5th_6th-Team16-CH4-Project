@@ -15,7 +15,7 @@ void UFluidContainerComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 
 }
 
-void UFluidContainerComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
+void UFluidContainerComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
 {
 }
 

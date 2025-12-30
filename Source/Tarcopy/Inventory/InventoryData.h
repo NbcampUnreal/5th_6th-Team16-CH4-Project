@@ -87,13 +87,13 @@ public:
 
 	FIntPoint GetGridSize() const { return GridSize; }
 
-	bool TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bool bRotated);
+	bool TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bool bRotated, bool bOwnItem = true);
 
 	bool CanAddItem(UItemInstance* Item, FIntPoint& OutOrigin, bool& bOutRotated, UItemInstance* IgnoreItem = nullptr);
 
 	bool TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, const FIntPoint& NewOrigin, bool bRotated);
 
-	int32 GetItemCountByItemId(FName InItemId, TArray<UItemInstance*> OutCandidates) const;
+	int32 GetItemCountByItemId(FName InItemId, TArray<UItemInstance*>& OutCandidates) const;
 
 	bool TryConsumeItemsByItemId(FName InItemId, int32 Count);
 
