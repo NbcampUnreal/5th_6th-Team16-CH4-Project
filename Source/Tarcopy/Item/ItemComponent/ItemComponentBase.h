@@ -13,6 +13,9 @@ class TARCOPY_API UItemComponentBase : public UObject
 {
 	GENERATED_BODY()
 
+public:
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags);
+
 protected:
 	virtual bool IsSupportedForNetworking() const override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
@@ -25,9 +28,11 @@ public:
 
 	ACharacter* GetOwnerCharacter() const;
 
+	class UInventoryData* GetOwnerInventory() const;
+
 	bool HasAuthority() const;
 
-	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) {}
+	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context) {}
 
 	virtual void CancelAction() {}
 

@@ -12,6 +12,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Item/ItemCommand/EquipCommand.h"
 #include "Item/ItemComponent/DurabilityComponent.h"
+#include "Item/EquipComponent.h"
+#include "Inventory/PlayerInventoryComponent.h"
+#include "Inventory/InventoryData.h"
 
 const float UFirearmComponent::PerfectShotMultiplier = 1.5f;
 
@@ -23,13 +26,21 @@ void UFirearmComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 		return;
 }
 
-void UFirearmComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands)
+void UFirearmComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
 {
-	Super::GetCommands(OutCommands);
+	Super::GetCommands(OutCommands, Context);
 
 	const FItemData* OwnerItemData = GetOwnerItemData();
 	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
 	FText TextItemName = OwnerItemData->TextName;
+
+	if (Context.Instigator.IsValid() == false)
+		return;
+
+	UEquipComponent* EquipComponent = Context.Instigator->FindComponentByClass<UEquipComponent>();
+	UPlayerInventoryComponent* InventoryComponent = Context.Instigator->FindComponentByClass<UPlayerInventoryComponent>();
+	if (IsValid(EquipComponent) == false || IsValid(InventoryComponent) == false)
+		return;
 
 	bool bIsEquipped = IsValid(GetOwnerCharacter()) == true;
 	UEquipCommand* EquipCommand = NewObject<UEquipCommand>(this);
@@ -40,7 +51,26 @@ void UFirearmComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& 
 	EquipCommand->bEquip = !bIsEquipped;
 	EquipCommand->BodyLocation = Data->BodyLocation;
 	// 인벤토리에서 공간 있는지 체크해야 함
-	EquipCommand->bExecutable = true;
+	UInventoryData* InventoryData = InventoryComponent->GetPlayerInventoryData();
+	FIntPoint Origin;
+	bool bRotated;
+	if (bIsEquipped == true)
+	{
+		EquipCommand->bExecutable = IsValid(InventoryData) == true && InventoryData->CanAddItem(OwnerItem.Get(), Origin, bRotated) == true;
+	}
+	else
+	{
+		TArray<UItemInstance*> ReplaceItems;
+		EquipComponent->GetNeedToReplace(Data->BodyLocation, ReplaceItems);
+		if (ReplaceItems.Num() == 1)
+		{
+			EquipCommand->bExecutable = IsValid(InventoryData) == true && InventoryData->CanAddItem(OwnerItem.Get(), Origin, bRotated, ReplaceItems[0]) == true;
+		}
+		else
+		{
+			EquipCommand->bExecutable = true;
+		}
+	}
 	OutCommands.Add(EquipCommand);
 }
 
@@ -139,7 +169,7 @@ void UFirearmComponent::CheckHit(const FVector& StartLocation, const FVector& En
 	Params.bReturnPhysicalMaterial = true;
 	// 적 캡슐 Visibility 끄고 나머진 켜기
 	FCollisionShape SphereCollision = FCollisionShape::MakeSphere(10.0f);
-	bool bHit = GetWorld()->SweepSingleByChannel(HitResult, StartLocation, EndLocation, FQuat::Identity, ECC_Visibility, SphereCollision, Params);
+	bool bHit = GetWorld()->SweepSingleByChannel(HitResult, StartLocation, EndLocation, FQuat::Identity, ECC_PlayerAttack, SphereCollision, Params);
 	FVector ActualEndLocation = bHit == true ? HitResult.ImpactPoint : EndLocation;
 
 	// 나이아가라 트레일 연출

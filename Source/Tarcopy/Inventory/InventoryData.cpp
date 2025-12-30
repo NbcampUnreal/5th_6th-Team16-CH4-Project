@@ -29,7 +29,7 @@ void UInventoryData::Init(const FIntPoint& InGridSize)
 	ReplicatedItems.Owner = this;
 }
 
-bool UInventoryData::TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bool bRotated)
+bool UInventoryData::TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bool bRotated, bool bOwnItem)
 {
 	if (!IsValid(Item))
 	{
@@ -41,6 +41,11 @@ bool UInventoryData::TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bo
 		return false;
 	}
 
+	if (bOwnItem == true)
+	{
+		Item->SetOwnerObject(this);
+	}
+
 	FInventoryItemEntry& Entry = ReplicatedItems.Items.AddDefaulted_GetRef();
 	Entry.Item = Item;
 	Entry.Origin = Origin;
@@ -50,6 +55,30 @@ bool UInventoryData::TryAddItem(UItemInstance* Item, const FIntPoint& Origin, bo
 	ReplicatedItems.MarkArrayDirty();
 	RebuildCellsFromReplicatedItems();
 	return true;
+}
+
+bool UInventoryData::CanAddItem(UItemInstance* Item, FIntPoint& OutOrigin, bool& bOutRotated, UItemInstance* IgnoreItem)
+{
+	for (int32 Y = 0; Y < GridSize.Y; ++Y)
+	{
+		for (int32 X = 0; X < GridSize.X; ++X)
+		{
+			if (CheckCanPlace(Item, FIntPoint(X, Y), false, IgnoreItem))
+			{
+				OutOrigin = FIntPoint(X, Y);
+				bOutRotated = false;
+				return true;
+			}
+			if (CheckCanPlace(Item, FIntPoint(X, Y), true, IgnoreItem))
+			{
+				OutOrigin = FIntPoint(X, Y);
+				bOutRotated = true;
+				return true;
+			}
+		}
+	}
+	OutOrigin = FIntPoint(-1, -1);
+	return false;
 }
 
 bool UInventoryData::TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, const FIntPoint& NewOrigin, bool bRotated)
@@ -108,6 +137,9 @@ bool UInventoryData::TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, 
 		NewEntry.Item = Item;
 		NewEntry.Origin = NewOrigin;
 		NewEntry.bRotated = bRotated;
+
+		Item->SetOwnerObject(Dest);
+
 		Dest->ReplicatedItems.MarkItemDirty(NewEntry);
 		Dest->ReplicatedItems.MarkArrayDirty();
 
@@ -118,7 +150,7 @@ bool UInventoryData::TryRelocateItem(UItemInstance* Item, UInventoryData* Dest, 
 }
 
 
-int32 UInventoryData::GetItemCountByItemId(FName InItemId, TArray<UItemInstance*> OutCandidates) const
+int32 UInventoryData::GetItemCountByItemId(FName InItemId, TArray<UItemInstance*>& OutCandidates) const
 {
 	int32 Count = 0;
 

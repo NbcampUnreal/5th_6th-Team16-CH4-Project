@@ -11,5 +11,5 @@ class TARCOPY_API UDefaultItemComponent : public UItemComponentBase
 
 public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
-	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
+	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context) override;
 };

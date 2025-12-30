@@ -42,6 +42,9 @@
 #include "Inventory/LootScannerComponent.h"
 #include "Common/HealthComponent.h"
 #include "Animation/AnimMontage.h"
+#include <EnhancedInputSubsystems.h>
+#include "UI/UISubsystem.h"
+#include "Framework/TarcopyGameStateBase.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -106,6 +109,19 @@ AMyCharacter::AMyCharacter() :
 	HoldingItemMeshComponent->SetupAttachment(RootComponent);
 	HoldingItemMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HoldingItemMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+
+	Inventory = CreateDefaultSubobject<UPlayerInventoryComponent>(TEXT("Inventory"));
+	
+	LootScanner = CreateDefaultSubobject<ULootScannerComponent>(TEXT("LootScanner"));
+	LootScanner->SetupAttachment(RootComponent);
+}
+
+AMyCharacter::~AMyCharacter()
+{
+	if (IsValid(GetWorld()))
+	{
+		GetWorldTimerManager().ClearTimer(OpenTitleLevelHandler);
+	}
 }
 
 // Called when the game starts or when spawned
@@ -118,6 +134,11 @@ void AMyCharacter::BeginPlay()
 	{
 		SetActorHiddenInGame(true);
 		VisionMesh->SetVisibility(false);
+	}
+
+	if (IsValid(HealthComponent))
+	{
+		HealthComponent->OnDead.AddUObject(this, &AMyCharacter::HandleDeath);
 	}
 }
 
@@ -591,6 +612,7 @@ void AMyCharacter::OnRep_bIsHit()
 	if (bIsHit)
 	{
 		DisableInput(Cast<AMyPlayerController>(Controller));
+		EquipComponent->CancelActions();
 		PlayAnimMontage(AM_Hit);
 	}
 	else
@@ -606,6 +628,81 @@ void AMyCharacter::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 	if (bInterrupted) return;
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 }
+
+void AMyCharacter::HandleDeath()
+{
+	if (HasAuthority())
+	{
+		GetCharacterMovement()->DisableMovement();
+	}
+	MultiRPC_HandleDeath();
+	SetLifeSpan(300.f);
+}
+
+void AMyCharacter::ClientHandleDeath()
+{
+	if (AMyPlayerController* PC = Cast<AMyPlayerController>(Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		{
+			Subsystem->RemoveMappingContext(PC->IMC_Character);
+		}
+
+		//if (auto* LP = PC->GetLocalPlayer())
+		//{
+		//	if (auto* UIS = LP->GetSubsystem<UUISubsystem>())
+		//	{
+		//		UIS->HideUI(EUIType::Root);
+		//	}
+		//}
+	}
+
+	StartFadeToBlack(5.f);
+	if (IsValid(GetWorld()))
+	{
+		GetWorldTimerManager().SetTimer(OpenTitleLevelHandler, this, &AMyCharacter::OpenTitleLevel, 7.0f, false);
+	}
+}
+
+void AMyCharacter::StartFadeToBlack(float FadeTime)
+{
+	APlayerCameraManager* PlayerCameraManager = GetController<APlayerController>()->PlayerCameraManager;
+	if (IsValid(PlayerCameraManager))
+	{
+		FLinearColor FadeColor = FLinearColor::Black;
+		PlayerCameraManager->StartCameraFade(0.0f, 1.0f, FadeTime, FadeColor, true, true);
+	}
+}
+
+void AMyCharacter::OpenTitleLevel()
+{
+	if (IsValid(GetWorld()))
+	{
+		ATarcopyGameStateBase* GS = GetWorld()->GetGameState<ATarcopyGameStateBase>();
+		if (IsValid(GS))
+		{
+			GS->GoToTitle();
+		}
+	}
+}
+
+void AMyCharacter::MultiRPC_HandleDeath_Implementation()
+{
+	//UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
+
+	if (IsLocallyControlled())
+	{
+		ClientHandleDeath();
+	}
+	USkeletalMeshComponent* SMComp = GetMesh();
+	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
+
+	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SMComp->SetAllBodiesSimulatePhysics(true);
+	CapsuleComp->SetCollisionProfileName(TEXT("Ragdoll"));
+	SMComp->SetCollisionProfileName(TEXT("Ragdoll"));
+}
+
 
 void AMyCharacter::SetItem()
 {
@@ -693,13 +790,21 @@ void AMyCharacter::GetNearbyInventoryDatas(TArray<class UInventoryData*>& Invent
 	UPlayerInventoryComponent* InventoryComponent = FindComponentByClass<UPlayerInventoryComponent>();
 	if (IsValid(InventoryComponent) == true)
 	{
-		InventoryDatas.Add(InventoryComponent->GetPlayerInventoryData());
+		UInventoryData* InventoryData = InventoryComponent->GetPlayerInventoryData();
+		if (IsValid(InventoryData) == true)
+		{
+			InventoryDatas.Add(InventoryData);
+		}
 	}
 
 	ULootScannerComponent* LootScannerComponent = FindComponentByClass<ULootScannerComponent>();
 	if (IsValid(LootScannerComponent) == true)
 	{
-		InventoryDatas.Add(LootScannerComponent->GetGroundInventoryData());
+		UInventoryData* InventoryData = LootScannerComponent->GetGroundInventoryData();
+		if (IsValid(InventoryData) == true)
+		{
+			InventoryDatas.Add(InventoryData);
+		}
 		for (const auto& OverlappedContainer : LootScannerComponent->OverlappedContainers)
 		{
 			InventoryDatas.Add(OverlappedContainer->GetInventoryData());
@@ -916,6 +1021,34 @@ void AMyCharacter::MulticastRPC_ApplyDoorTransforms_Implementation(const TArray<
 
 void AMyCharacter::TabAction(const FInputActionValue& Value)
 {
+	if (bIsVisible)
+	{
+		if (auto* PC = Cast<APlayerController>(GetController()))
+		{
+			if (auto* LP = PC->GetLocalPlayer())
+			{
+				if (auto* UIS = LP->GetSubsystem<UUISubsystem>())
+				{
+					UIS->HideUI(EUIType::Player);
+					bIsVisible = false;
+				}
+			}
+		}
+	}
+	else
+	{
+		if (auto* PC = Cast<APlayerController>(GetController()))
+		{
+			if (auto* LP = PC->GetLocalPlayer())
+			{
+				if (auto* UIS = LP->GetSubsystem<UUISubsystem>())
+				{
+					UIS->ShowUI(EUIType::Player);
+					bIsVisible = true;
+				}
+			}
+		}
+	}
 }
 
 void AMyCharacter::OnRotateInventoryItem()

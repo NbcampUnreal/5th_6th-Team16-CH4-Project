@@ -14,10 +14,12 @@
 #include "Common/HealthComponent.h"
 #include "Components/StateTreeComponent.h"
 #include "Car/TCCarBase.h"
+#include "Inventory/WorldContainerComponent.h"
+#include "Components/BoxComponent.h"
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
-	AttackDamage(30),
+	AttackDamage(25),
 	bIsAttack(false),
 	bIsHit(false)
 {
@@ -42,6 +44,17 @@ AMyAICharacter::AMyAICharacter() :
 
 	StateTreeComponent = CreateDefaultSubobject<UStateTreeComponent>(TEXT("StateTreeComponent"));
 	StateTreeComponent->SetStartLogicAutomatically(false);
+
+	WorldContainerComponent = CreateDefaultSubobject<UWorldContainerComponent>(TEXT("WorldContainerComponent"));
+	WorldContainerComponent->SetupAttachment(RootComponent);
+}
+
+AMyAICharacter::~AMyAICharacter()
+{
+	if (IsValid(GetWorld()))
+	{
+		GetWorldTimerManager().ClearTimer(EndOverlapTimer);
+	}
 }
 
 void AMyAICharacter::BeginPlay()
@@ -58,6 +71,17 @@ void AMyAICharacter::BeginPlay()
 	else
 	{
 		StateTreeComponent->StopLogic("");
+		//UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("bIsRagdolled : %d"), bIsRagdolled), true, true, FColor::Green, 10);
+		//if (bIsRagdolled)
+		//{
+		//	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Ragdolled"), true, true, FColor::Green, 10);
+		//	SetRagdolled();
+		//}
+	}
+
+	if (IsValid(HealthComponent))
+	{
+		HealthComponent->OnDead.AddUObject(this, &AMyAICharacter::HandleDeath);
 	}
 }
 
@@ -67,6 +91,7 @@ void AMyAICharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 
 	DOREPLIFETIME(ThisClass, bIsAttack);
 	DOREPLIFETIME(ThisClass, bIsHit);
+	//DOREPLIFETIME(ThisClass, bIsRagdolled);
 }
 
 void AMyAICharacter::OnVisionMeshBeginOverlap(
@@ -77,27 +102,37 @@ void AMyAICharacter::OnVisionMeshBeginOverlap(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	if (HasAuthority() == false) return;
+	if (HasAuthority() == false)
+	{
+		return;
+	}
 
 	AMyCharacter* Player = Cast<AMyCharacter>(OtherActor);
 	ATCCarBase* Car = Cast<ATCCarBase>(OtherActor);
 	if (IsValid(Player))
 	{
-		if (Player->IsPlayerControlled() == false) return;
+		if (Player->IsPlayerControlled() == false)
+		{
+			return;
+		}
 		if (OtherComp == Player->GetCapsuleComponent())
 		{
 			TargetActor = Player;
-			UE_LOG(LogTemp, Warning, TEXT("Target"))
 			StateTreeComponent->SendStateTreeEvent(ToChase);
+			GetWorldTimerManager().ClearTimer(EndOverlapTimer);
 		}
 	}
 	else if (IsValid(Car))
 	{
-		if (Car->IsPawnControlled() == false) return;
+		if (Car->IsPawnControlled() == false) 
+		{
+			return;
+		}
 		if (OtherComp == Car->GetMesh())
 		{
 			TargetActor = Car;
 			StateTreeComponent->SendStateTreeEvent(ToChase);
+			GetWorldTimerManager().ClearTimer(EndOverlapTimer);
 		}
 	}
 }
@@ -108,27 +143,37 @@ void AMyAICharacter::OnVisionMeshEndOverlap(
 	UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex)
 {
-	if (HasAuthority() == false) return;
-	if (TargetActor != OtherActor) return;
+	if (HasAuthority() == false)
+	{
+		return;
+	}
+	if (TargetActor != OtherActor)
+	{
+		return;
+	}
 
 	AMyCharacter* Player = Cast<AMyCharacter>(OtherActor);
 	ATCCarBase* Car = Cast<ATCCarBase>(OtherActor);
 	if (IsValid(Player))
 	{
-		if (Player->IsPlayerControlled() == false) return;
+		if (Player->IsPlayerControlled() == false) 
+		{
+			return;
+		}
 		if (OtherComp == Player->GetCapsuleComponent())
 		{
-			TargetActor = nullptr;
-			StateTreeComponent->SendStateTreeEvent(ToPatrol);
+			GetWorldTimerManager().SetTimer(EndOverlapTimer, this, &AMyAICharacter::ChaseToPatrol, 1.0f, false);			
 		}
 	}
 	else if (IsValid(Car))
 	{
-		if (Car->IsPawnControlled() == false) return;
+		if (Car->IsPawnControlled() == false) 
+		{
+			return;
+		}
 		if (OtherComp == Car->GetMesh())
 		{
-			TargetActor = nullptr;
-			StateTreeComponent->SendStateTreeEvent(ToPatrol);
+			GetWorldTimerManager().SetTimer(EndOverlapTimer, this, &AMyAICharacter::ChaseToPatrol, 1.0f, false);
 		}
 	}
 }
@@ -159,7 +204,10 @@ void AMyAICharacter::OnRep_bIsHit()
 
 void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 {
-	if (bIsAttack || bIsHit) return;
+	if (bIsAttack || bIsHit)
+	{
+		return;
+	}
 
 	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
 	if (AnimInst)
@@ -172,7 +220,6 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 		AnimInst->Montage_SetEndDelegate(AttackMontageEnded, AM_Attack);
 	}
 
-	// Notify로 옮기기
 	FHitResult Hit;
 	FVector StartLocation = ContextActor->GetActorLocation() + FVector({ 0.f, 0.f, 80.f });
 	FVector EndLocation = DamagedActor->GetActorLocation() + FMath::FRandRange(0.f, 80.f);
@@ -192,7 +239,7 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 	if (!bIsWallHit)
 	{
 		UGameplayStatics::ApplyPointDamage(DamagedActor,
-											AttackDamage, 
+											AttackDamage + FMath::FRandRange(-10.f, 10.f),
 											EndLocation - StartLocation, 
 											Hit, 
 											GetController(), 
@@ -227,15 +274,46 @@ float AMyAICharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, 
 		}
 	}
 
+	PatrolToChase(EventInstigator);
+
 	return Damage;
 }
 
 void AMyAICharacter::HandleDeath()
 {
+	MultiRPC_HandleDeath();
+
+	//if (HasAuthority())
+	//	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("In Server")), true, true, FColor::Green, 10);
+
+	//bIsRagdolled = true;
+	SetLifeSpan(60.f);
+	//PrintRag();
+}
+void AMyAICharacter::SetRagdolled()
+{
+	StateTreeComponent->StopLogic("Dead");
 	GetCharacterMovement()->DisableMovement();
-	GetMesh()->SetAllBodiesSimulatePhysics(true);
-	// 레그돌, 지면에만 충돌, 다른 물체와는 no collision, 약한 참조자로 참조하고 1분뒤에 제거
-	//GetCapsuleComponent()->Setcollision
+
+	USkeletalMeshComponent* SMComp = GetMesh();
+	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
+
+	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SMComp->SetAllBodiesSimulatePhysics(true);
+	CapsuleComp->SetCollisionProfileName(TEXT("Ragdoll"));
+	SMComp->SetCollisionProfileName(TEXT("Ragdoll"));
+}
+
+//void AMyAICharacter::PrintRag_Implementation()
+//{
+//	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("bIsRagdolled : %d"), bIsRagdolled), true, true, FColor::Green, 10);
+//}
+
+void AMyAICharacter::MultiRPC_HandleDeath_Implementation()
+{
+	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
+	SetRagdolled();
+	WorldContainerComponent->GetSenseBox()->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 }
 
 void AMyAICharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -250,4 +328,22 @@ void AMyAICharacter::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 	bIsHit = false;
 	if (bInterrupted) return;
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+}
+
+void AMyAICharacter::PatrolToChase(AController* EventInstigator)
+{
+	if (HasAuthority() == false || IsValid(EventInstigator) == false)
+	{
+		return;
+	}
+
+	TargetActor = EventInstigator->GetPawn();
+	SetActorRotation((TargetActor->GetActorLocation() - GetActorLocation()).Rotation());
+	StateTreeComponent->SendStateTreeEvent(ToChase);
+}
+
+void AMyAICharacter::ChaseToPatrol()
+{
+	TargetActor = nullptr;
+	StateTreeComponent->SendStateTreeEvent(ToPatrol);
 }

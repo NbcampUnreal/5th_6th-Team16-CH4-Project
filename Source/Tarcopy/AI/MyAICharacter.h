@@ -11,6 +11,7 @@ class UStaticMeshComponent;
 class AMyCharacter;
 class UStateTreeComponent;
 struct FStateTreeEvent;
+class UWorldContainerComponent;
 
 UCLASS()
 class TARCOPY_API AMyAICharacter : public ACharacter
@@ -21,6 +22,7 @@ class TARCOPY_API AMyAICharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	AMyAICharacter();
+	~AMyAICharacter();
 	virtual void BeginPlay() override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
@@ -46,6 +48,8 @@ protected:
 		AActor* OtherActor,
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
+
+	FTimerHandle EndOverlapTimer;
 #pragma endregion
 
 #pragma region Combat
@@ -71,7 +75,18 @@ public:
 
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
+	UFUNCTION()
 	void HandleDeath();
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_HandleDeath();
+
+	//UPROPERTY(Replicated)
+	//bool bIsRagdolled;
+
+	void SetRagdolled();
+
+	//UFUNCTION(NetMulticast, Reliable)
+	//void PrintRag();
 #pragma endregion
 
 #pragma region Animation
@@ -105,6 +120,16 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "StateTree")
 	TObjectPtr<UStateTreeComponent> StateTreeComponent;
+
+protected:
+	void PatrolToChase(AController* Instigator);
+	void ChaseToPatrol();
+#pragma endregion
+
+#pragma region Inventory
+
+protected:
+	TObjectPtr<UWorldContainerComponent> WorldContainerComponent;
 
 #pragma endregion
 };

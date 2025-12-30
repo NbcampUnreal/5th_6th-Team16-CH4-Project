@@ -11,6 +11,7 @@
 enum class EItemComponent : uint8;
 struct FItemData;
 class UItemComponentBase;
+class UInventoryData;
 
 DECLARE_MULTICAST_DELEGATE(FOnItemUpdated);
 
@@ -20,6 +21,9 @@ class TARCOPY_API UItemInstance : public UObject
 	GENERATED_BODY()
 
 public:
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags);
+
+protected:
 	virtual bool IsSupportedForNetworking() const override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual int32 GetFunctionCallspace(UFunction* Function, FFrame* Stack) override;
@@ -50,6 +54,7 @@ public:
 
 	void SetOwnerObject(UObject* InOwnerObject);
 	UObject* GetOwnerObject() const { return OwnerObject.IsValid() == true ? OwnerObject.Get() : nullptr; }
+	UInventoryData* GetOwnerInventory() const { return OwnerInventory.IsValid() == true ? OwnerInventory.Get() : nullptr; }
 
 	void SetOwnerCharacter(ACharacter* InOwnerCharacter);
 	ACharacter* GetOwnerCharacter() const { return OwnerCharacter.IsValid() == true ? OwnerCharacter.Get() : nullptr; };
@@ -82,6 +87,8 @@ protected:
 
 	UPROPERTY(ReplicatedUsing = OnRep_SetOwner)
 	TWeakObjectPtr<UObject> OwnerObject;
+	UPROPERTY(Replicated)
+	TWeakObjectPtr<UInventoryData> OwnerInventory;
 	UPROPERTY(ReplicatedUsing = OnRep_SetOwnerCharacter)
 	TWeakObjectPtr<ACharacter> OwnerCharacter;
 

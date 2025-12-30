@@ -4,6 +4,18 @@
 #include "Item/ItemComponent/ItemComponentBase.h"
 #include "CraftComponent.generated.h"
 
+USTRUCT()
+struct FItemSource
+{
+	GENERATED_BODY()
+
+	class UInventoryData* OwnerInventory;
+	UItemInstance* ItemInstance;
+
+	FItemSource() {}
+	FItemSource(UInventoryData* Inven, UItemInstance* InItem) : OwnerInventory(Inven), ItemInstance(InItem) {}
+};
+
 struct FCraftData;
 
 UCLASS()
@@ -13,5 +25,9 @@ class TARCOPY_API UCraftComponent : public UItemComponentBase
 
 public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
-	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands) override;
+	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context) override;
+
+public:
+	UFUNCTION(Server, Reliable)
+	void ServereRPC_Craft(const FName& CraftId);
 };

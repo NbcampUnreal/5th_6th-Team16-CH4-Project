@@ -20,6 +20,7 @@
 #include "Car/TCCarBase.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
+#include "Item/EquipComponent.h"
 
 
 AMyPlayerController::AMyPlayerController() :
@@ -69,9 +70,12 @@ void AMyPlayerController::BeginPlay()
 				UUW_PlayerPanel* PlayerPanel = Cast<UUW_PlayerPanel>(Widget);
 
 				APawn* P = GetLocalPlayer()->GetPlayerController(GetWorld())->GetPawn();
-				UPlayerInventoryComponent* InvComp = P->FindComponentByClass<UPlayerInventoryComponent>();
 
+				UPlayerInventoryComponent* InvComp = P->FindComponentByClass<UPlayerInventoryComponent>();
 				PlayerPanel->BindPlayerInventory(InvComp);
+
+				UEquipComponent* EquipmentComp = P->FindComponentByClass<UEquipComponent>();
+				PlayerPanel->BindEquipComponent(EquipmentComp);
 			}
 		}
 	}

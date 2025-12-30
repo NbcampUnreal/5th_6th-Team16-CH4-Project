@@ -16,6 +16,8 @@ class UMoodleComponent;
 class UCameraObstructionComponent;
 enum class EHoldableType : uint8;
 class UAnimPresetMap;
+class UPlayerInventoryComponent;
+class ULootScannerComponent;
 
 UCLASS()
 class TARCOPY_API AMyCharacter : public ACharacter
@@ -26,6 +28,7 @@ class TARCOPY_API AMyCharacter : public ACharacter
 
 public:
 	AMyCharacter();
+	~AMyCharacter();
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -196,20 +199,29 @@ protected:
 #pragma endregion
 
 #pragma region Combat
-	public:
-		virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+public:
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
-	protected:
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
-		TObjectPtr<UAnimMontage> AM_Hit;
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	TObjectPtr<UAnimMontage> AM_Hit;
+	UPROPERTY(Replicated, ReplicatedUsing = "OnRep_bIsHit")
+	bool bIsHit;
 
-		UPROPERTY(Replicated, ReplicatedUsing = "OnRep_bIsHit")
-		bool bIsHit;
+	UFUNCTION()
+	void OnRep_bIsHit();
+	UFUNCTION()
+	void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
-		UFUNCTION()
-		void OnRep_bIsHit();
-		UFUNCTION()
-		void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	UFUNCTION()
+	void HandleDeath();
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_HandleDeath();
+	void ClientHandleDeath();
+	void StartFadeToBlack(float FadeTime);
+	FTimerHandle OpenTitleLevelHandler;
+	void OpenTitleLevel();
+
 #pragma endregion
 
 #pragma region TestItem
@@ -236,9 +248,18 @@ public:
 
 
 #pragma region Inventory
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UPlayerInventoryComponent> Inventory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<ULootScannerComponent> LootScanner;
+
 	UFUNCTION()
 	virtual void TabAction(const FInputActionValue& Value);
 
 	void OnRotateInventoryItem();
+
+	uint32 bIsVisible : 1 = true;
 #pragma endregion
 };

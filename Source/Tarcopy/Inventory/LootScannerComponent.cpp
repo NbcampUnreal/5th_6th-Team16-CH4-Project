@@ -16,7 +16,6 @@ ULootScannerComponent::ULootScannerComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	ContainerSense = CreateDefaultSubobject<USphereComponent>(TEXT("ContainerSense"));
-	ContainerSense->SetupAttachment(this);
 	ContainerSense->InitSphereRadius(ContainerScanRadius);
 	ContainerSense->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	ContainerSense->SetCollisionObjectType(ECC_WorldDynamic);
@@ -25,7 +24,6 @@ ULootScannerComponent::ULootScannerComponent()
 	ContainerSense->SetGenerateOverlapEvents(true);
 
 	GroundSense = CreateDefaultSubobject<USphereComponent>(TEXT("GroundSense"));
-	GroundSense->SetupAttachment(this);
 	GroundSense->InitSphereRadius(GroundScanRadius);
 	GroundSense->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	GroundSense->SetCollisionObjectType(ECC_WorldDynamic);
@@ -39,6 +37,15 @@ ULootScannerComponent::ULootScannerComponent()
 void ULootScannerComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (ContainerSense)
+	{
+		ContainerSense->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+	}
+	if (GroundSense)
+	{
+		GroundSense->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+	}
 
 	ContainerSense->SetSphereRadius(ContainerScanRadius);
 	GroundSense->SetSphereRadius(GroundScanRadius);
@@ -85,7 +92,7 @@ void ULootScannerComponent::RebuildGroundInventory()
 		{
 			for (int32 X = 0; X < GroundGridSize.X && !bPlaced; ++X)
 			{
-				if (GroundInventoryData->TryAddItem(ItemInstance, FIntPoint(X, Y), false))
+				if (GroundInventoryData->TryAddItem(ItemInstance, FIntPoint(X, Y), false, false))
 				{
 					bPlaced = true;
 				}
