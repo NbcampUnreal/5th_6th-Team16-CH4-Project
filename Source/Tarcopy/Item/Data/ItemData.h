@@ -19,6 +19,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FText TextDesc;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UTexture2D> ItemIcon;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UStaticMesh> DefaultMesh;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FIntPoint InventoryBound = FIntPoint(2, 1);

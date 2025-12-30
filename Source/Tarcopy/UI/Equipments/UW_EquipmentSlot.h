@@ -9,6 +9,7 @@
 class UItemInstance;
 class UImage;
 class USizeBox;
+class UUW_ItemInfo;
 
 /**
  * 
@@ -19,13 +20,24 @@ class TARCOPY_API UUW_EquipmentSlot : public UUserWidget
 	GENERATED_BODY()
 	
 public:
-	void SetItem(UItemInstance*);
+	void SetItem(UItemInstance* InItem);
 	void SetSize(FVector2D NewSize);
 
 private:
+	void SetItemInfo();
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USizeBox> SlotSize;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Img;
+
+	UPROPERTY()
+	TWeakObjectPtr<UItemInstance> Item;
+
+	UPROPERTY()
+	TObjectPtr<UUW_ItemInfo> Tooltip;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Tooltip")
+	TSubclassOf<UUW_ItemInfo> TooltipClass;
 };

@@ -4,17 +4,6 @@
 #include "Components/ActorComponent.h"
 #include "MoodleComponent.generated.h"
 
-USTRUCT()
-struct FMoodleSyncData
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	float Value = 0.0f;
-	UPROPERTY()
-	float ServerTime = 0.0f;
-};
-
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class TARCOPY_API UMoodleComponent : public UActorComponent
 {

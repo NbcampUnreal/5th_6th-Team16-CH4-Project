@@ -95,12 +95,17 @@ void UFoodComponent::Ingest(AActor* InInstigator, int32 ConsumeAmount)
 	if (IsValid(Moodle) == false)
 		return;
 
-	Amount -= ConsumeAmount;
-	OnRep_PrintAmount();
-
 	float RestoreRatio = (float)ConsumeAmount / TotalAmount;
 	Moodle->RestoreHunger(Data->Hunger * RestoreRatio);
 	Moodle->RestoreThirst(Data->Thirst * RestoreRatio);
+
+	Amount -= ConsumeAmount;
+	OnRep_PrintAmount();
+
+	if (Amount <= 0 && OwnerItem.IsValid() == true)
+	{
+		OwnerItem->RemoveFromSource();
+	}
 }
 
 void UFoodComponent::OnRep_PrintAmount()

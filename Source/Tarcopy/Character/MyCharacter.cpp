@@ -651,13 +651,13 @@ void AMyCharacter::ClientHandleDeath()
 			Subsystem->RemoveMappingContext(PC->IMC_Character);
 		}
 
-		//if (auto* LP = PC->GetLocalPlayer())
-		//{
-		//	if (auto* UIS = LP->GetSubsystem<UUISubsystem>())
-		//	{
-		//		UIS->HideUI(EUIType::Root);
-		//	}
-		//}
+		if (auto* LP = PC->GetLocalPlayer())
+		{
+			if (auto* UIS = LP->GetSubsystem<UUISubsystem>())
+			{
+				UIS->ResetAllUI();
+			}
+		}
 	}
 
 	StartFadeToBlack(5.f);

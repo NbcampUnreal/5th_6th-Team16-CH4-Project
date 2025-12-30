@@ -114,18 +114,7 @@ void UCraftSubsystem::ExecuteCraft(AActor* InInstiagor, const FName& CraftId)
 			if (IsValid(ItemSources[Idx]) == false)
 				continue;
 
-			if (AItemWrapperActor* ItemActor = ItemSources[Idx]->GetTypedOuter<AItemWrapperActor>())
-			{
-				ItemActor->Destroy();
-			}
-			else
-			{
-				UInventoryData* Inventory = ItemSources[Idx]->GetOwnerInventory();
-				if (IsValid(Inventory) == true)
-				{
-					Inventory->RemoveItem(ItemSources[Idx]);
-				}
-			}
+			ItemSources[Idx]->RemoveFromSource();
 		}
 	}
 

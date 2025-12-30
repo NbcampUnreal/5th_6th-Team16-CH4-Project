@@ -387,7 +387,7 @@ void FInventoryItemList::PostReplicatedAdd(const TArrayView<int32>&, int32)
 {
 	if (Owner)
 	{
-		Owner->FixupAfterReplication();
+		Owner->ForceRefreshNextTick();
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("[Client] PostReplicatedAdd Owner=%s (%p) IsBound=%d Items=%d"),
@@ -401,8 +401,7 @@ void FInventoryItemList::PostReplicatedChange(const TArrayView<int32>&, int32)
 {
 	if (Owner)
 	{
-		Owner->RebuildCellsFromReplicatedItems();
-		Owner->OnInventoryChanged.Broadcast();
+		Owner->ForceRefreshNextTick();
 	}
 }
 
@@ -410,7 +409,6 @@ void FInventoryItemList::PostReplicatedRemove(const TArrayView<int32>&, int32)
 {
 	if (Owner)
 	{
-		Owner->RebuildCellsFromReplicatedItems();
-		Owner->OnInventoryChanged.Broadcast();
+		Owner->ForceRefreshNextTick();
 	}
 }

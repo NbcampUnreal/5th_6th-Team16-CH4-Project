@@ -28,7 +28,7 @@ void UDropCommand::OnExecute(const FItemCommandContext& Context)
 		UEquipComponent* EquipComponent = Context.Instigator->FindComponentByClass<UEquipComponent>();
 		if (IsValid(EquipComponent) == true)
 		{
-			EquipComponent->ServerRPC_UnequipItem(OwnerItem.Get(), true);
+			EquipComponent->ServerRPC_UnequipItem(OwnerItem.Get(), EUnequipType::Drop);
 		}
 	}
 }

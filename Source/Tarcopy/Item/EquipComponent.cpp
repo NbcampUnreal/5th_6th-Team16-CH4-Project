@@ -153,12 +153,12 @@ void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item,
 		*Item->GetOwnerCharacter()->GetName() : TEXT("Item No Owner"));*/
 }
 
-void UEquipComponent::ServerRPC_UnequipItem_Implementation(UItemInstance* Item, bool bDrop)
+void UEquipComponent::ServerRPC_UnequipItem_Implementation(UItemInstance* Item, EUnequipType Type)
 {
-	UnequipItem(Item, bDrop);
+	UnequipItem(Item, Type);
 }
 
-void UEquipComponent::UnequipItem(UItemInstance* Item, bool bDrop)
+void UEquipComponent::UnequipItem(UItemInstance* Item, EUnequipType Type)
 {
 	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwner());
 	if (IsValid(OwnerCharacter) == false || OwnerCharacter->HasAuthority() == false)
@@ -188,6 +188,7 @@ void UEquipComponent::UnequipItem(UItemInstance* Item, bool bDrop)
 	if (bEquipped == false)
 		return;
 
+	Item->CancelAllComponentActions();
 	Item->SetOwnerCharacter(nullptr);
 
 	UClothingComponent* ClothComponent = Item->GetItemComponent<UClothingComponent>();
@@ -205,7 +206,10 @@ void UEquipComponent::UnequipItem(UItemInstance* Item, bool bDrop)
 		NetMulticast_SetOwnerHoldingItemEmpty();
 	}
 
-	if (bDrop == false)
+	if (Type == EUnequipType::Destroy)
+		return;
+
+	if (Type == EUnequipType::ReturnInventory)
 	{
 		UPlayerInventoryComponent* InventoryComponent = GetOwner()->FindComponentByClass<UPlayerInventoryComponent>();
 		if (IsValid(InventoryComponent) == true)
@@ -235,31 +239,10 @@ bool UEquipComponent::RemoveItemFromInventory(UItemInstance* Item)
 	if (IsValid(OwnerCharacter) == false || OwnerCharacter->HasAuthority() == false)
 		return false;
 
-	if (OwnerCharacter->HasAuthority() == false)
-		return false;
-
 	if (IsValid(Item) == false)
 		return false;
 
-	const FItemData* ItemData = Item->GetData();
-	if (ItemData == nullptr)
-		return false;
-
-	bool bIsExist = false;
-	if (AItemWrapperActor* ActorItem = Item->GetTypedOuter<AItemWrapperActor>())
-	{
-		bIsExist = true;
-		ActorItem->Destroy();
-	}
-	else
-	{
-		UInventoryData* InventoryData = Item->GetOwnerInventory();
-		if (IsValid(InventoryData) == true)
-		{
-			bIsExist = InventoryData->RemoveItem(Item);
-		}
-	}
-	return bIsExist;
+	return Item->RemoveFromSource();
 }
 
 void UEquipComponent::CalculateFinalDamageTakenMultiplier()

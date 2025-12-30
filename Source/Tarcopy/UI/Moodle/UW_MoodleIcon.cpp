@@ -3,12 +3,12 @@
 
 #include "UI/Moodle/UW_MoodleIcon.h"
 
-#include "Components/Image.h"
+#include "Components/ProgressBar.h"
 
 void UUW_MoodleIcon::SetRatio(float InRatio)
 {
-	BackgroundFill->SetRenderScale(FVector2D(1.f, InRatio));
-	BackgroundFill->SetColorAndOpacity(GetMoodColor(InRatio));
+	BackgroundFill->SetPercent(InRatio);
+	BackgroundFill->SetFillColorAndOpacity(GetMoodColor(InRatio));
 }
 
 FLinearColor UUW_MoodleIcon::GetMoodColor(float Ratio)

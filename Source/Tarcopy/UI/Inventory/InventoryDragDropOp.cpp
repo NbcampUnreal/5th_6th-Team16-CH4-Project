@@ -63,8 +63,8 @@ void UInventoryDragDropOp::DragCancelled_Implementation(const FPointerEvent& Poi
 
 	InvComp->RequestDropItemToWorld(SourceInventory, ItemPtr, bRotated);
 
-	if (SourceInventoryWidget)
-	{
-		SourceInventoryWidget->RefreshItems();
-	}
+	//if (SourceInventoryWidget)
+	//{
+	//	SourceInventoryWidget->RefreshItems();
+	//}
 }

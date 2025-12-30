@@ -16,6 +16,7 @@ enum class EDataTableType
 	CraftTable,
 	ContainerTable,
 	DurabilityTable,
+	MedicalTable,
 };
 
 UCLASS(Blueprintable)
