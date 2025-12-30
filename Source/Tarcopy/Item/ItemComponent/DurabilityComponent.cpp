@@ -4,8 +4,9 @@
 #include "Item/ItemInstance.h"
 #include "Item/Data/ItemData.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "Item/ItemCommand/RepairCommand.h"
+#include "Item/ItemCommand/ItemNetworkCommand.h"
 #include "Net/UnrealNetwork.h"
+#include "Item/ItemNetworkContext.h"
 
 void UDurabilityComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
@@ -14,10 +15,8 @@ void UDurabilityComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 	if (Data == nullptr)
 		return;
 
-	if (HasAuthority() == false)
-		return;
-
 	Condition = Data->MaxCondition;
+	OnRep_PrintCondition();
 }
 
 void UDurabilityComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
@@ -28,11 +27,14 @@ void UDurabilityComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>
 
 	ensureMsgf(Data != nullptr, TEXT("No DurabilityData"));
 
-	URepairCommand* RepairCommand = NewObject<URepairCommand>(this);
-	RepairCommand->OwnerComponent = this;
+	UItemNetworkCommand* RepairCommand = NewObject<UItemNetworkCommand>(this);
+	FItemNetworkContext IngestAllActionContext;
+	IngestAllActionContext.TargetItemComponent = this;
+	IngestAllActionContext.ActionTag = TEXT("RestoreDurability");
+	IngestAllActionContext.FloatParams.Add(1);
+	RepairCommand->ActionContext = IngestAllActionContext;
 	RepairCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Repair {0}")), TextItemName);
 	RepairCommand->bExecutable = true;
-	RepairCommand->Amount = 1.0f;
 	OutCommands.Add(RepairCommand);
 }
 
@@ -56,22 +58,26 @@ void UDurabilityComponent::OnRep_SetComponent()
 	Data = DataTableSubsystem->GetTable(EDataTableType::DurabilityTable)->FindRow<FDurabilityData>(ItemData->ItemId, FString(""));
 }
 
+void UDurabilityComponent::OnExecuteAction(AActor* InInstigator, const FItemNetworkContext& NetworkContext)
+{
+	Super::OnExecuteAction(InInstigator, NetworkContext);
+
+	if (NetworkContext.ActionTag == TEXT("RestoreDurability"))
+	{
+		RestoreDurability(NetworkContext.FloatParams[0]);
+	}
+}
+
 void UDurabilityComponent::LoseDurability(float Amount)
 {
-	if (HasAuthority() == false)
-		return;
-
 	Condition -= Amount;
 	Condition = FMath::Max(Condition, 0.0f);
 
 	OnRep_PrintCondition();
 }
 
-void UDurabilityComponent::ServerRPC_RestoreDurability_Implementation(float Amount)
+void UDurabilityComponent::RestoreDurability(float Amount)
 {
-	if (HasAuthority() == false)
-		return;
-
 	if (Data == nullptr)
 	{
 		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("No Durability data"));
@@ -80,7 +86,7 @@ void UDurabilityComponent::ServerRPC_RestoreDurability_Implementation(float Amou
 
 	Condition += Amount;
 	Condition = FMath::Min(Condition, Data->MaxCondition);
-	
+
 	OnRep_PrintCondition();
 }
 

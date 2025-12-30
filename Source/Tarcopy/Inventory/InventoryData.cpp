@@ -7,6 +7,7 @@
 #include "Misc/Guid.h"
 #include "Item/Data/ItemData.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/ActorChannel.h"
 
 void UInventoryData::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -274,6 +275,21 @@ void UInventoryData::ForceRefreshNextTick()
 				FixupAfterReplication();
 			});
 	}
+}
+
+bool UInventoryData::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool bWrote = Channel->ReplicateSubobject(this, *Bunch, *RepFlags);
+
+	for (const FInventoryItemEntry& Entry : ReplicatedItems.Items)
+	{
+		if (IsValid(Entry.Item))
+		{
+			bWrote |= Entry.Item->ReplicateSubobjects(Channel, Bunch, RepFlags);
+		}
+	}
+
+	return bWrote;
 }
 
 bool UInventoryData::CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated, const UItemInstance* IgnoreItem) const

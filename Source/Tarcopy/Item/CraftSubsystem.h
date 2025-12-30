@@ -24,6 +24,8 @@ public:
 	void LoadRecipes();
 	const FCraftRecipe* GetCraftRecipe(const FName& IngredientId);
 
+	void ExecuteCraft(AActor* InInstiagor, const FName& CraftId);
+
 protected:
 	UPROPERTY()
 	uint8 bIsLoaded : 1 = false;

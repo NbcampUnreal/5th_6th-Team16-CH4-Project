@@ -42,6 +42,14 @@ bool UItemComponentBase::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* 
 	return bWroteSomething;
 }
 
+void UItemComponentBase::ExecuteAction(AActor* InInstigator, const FItemNetworkContext& NetworkContext)
+{
+	if (IsValid(InInstigator) == false)
+		return;
+
+	OnExecuteAction(InInstigator, NetworkContext);
+}
+
 void UItemComponentBase::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	OwnerItem = InOwnerItem;

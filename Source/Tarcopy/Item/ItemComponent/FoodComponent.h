@@ -19,13 +19,15 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void OnRep_SetComponent() override;
 
+	virtual void OnExecuteAction(AActor* InInstigator, const struct FItemNetworkContext& NetworkContext) override;
+
 public:
-	UFUNCTION(Server, Reliable)
-	void ServerRPC_Ingest(int32 ConsumeAmount);
+	FORCEINLINE const FFoodData* GetData() { return Data; }
+
+private:
+	void Ingest(AActor* InInstigator, int32 ConsumeAmount);
 	UFUNCTION()
 	void OnRep_PrintAmount();
-
-	FORCEINLINE const FFoodData* GetData() { return Data; }
 
 private:
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_PrintAmount)

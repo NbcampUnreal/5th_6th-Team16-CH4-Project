@@ -27,7 +27,9 @@ public:
 	virtual void SetOwnerItem(UItemInstance* InOwnerItem) override;
 	virtual void GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context) override;
 
+protected:
+	virtual void OnExecuteAction(AActor* InInstigator, const struct FItemNetworkContext& ActionContext) override;
+
 public:
-	UFUNCTION(Server, Reliable)
-	void ServereRPC_Craft(const FName& CraftId);
+	void ExecuteCraft(AActor* InInstigator, const FName& CraftId);
 };

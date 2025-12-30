@@ -75,9 +75,6 @@ private:
 	FIntPoint DefaultInventorySize = FIntPoint(5, 2);
 
 	UPROPERTY(EditDefaultsOnly, Category = "World Drop")
-	TSubclassOf<AItemWrapperActor> WorldItemClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "World Drop")
 	float DropForwardOffset = 80.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "World Drop")

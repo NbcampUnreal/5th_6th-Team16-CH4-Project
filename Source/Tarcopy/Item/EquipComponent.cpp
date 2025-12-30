@@ -13,6 +13,7 @@
 #include "Item/ItemComponent/ClothingComponent.h"
 #include "Item/Data/ClothDefensePreset.h"
 #include "Inventory/PlayerInventoryComponent.h"
+#include "Item/ItemSpawnSubsystem.h"
 
 const float UEquipComponent::WeightMultiplier = 0.3f;
 
@@ -221,16 +222,11 @@ void UEquipComponent::UnequipItem(UItemInstance* Item, bool bDrop)
 		}
 	}
 
-	FVector SpawnLocation = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 40.0f;
-	AItemWrapperActor* ItemWrapperActor = GetWorld()->SpawnActor<AItemWrapperActor>(
-		AItemWrapperActor::StaticClass(),
-		SpawnLocation,
-		FRotator::ZeroRotator);
+	UItemSpawnSubsystem* ItemSpawnSubsystem = GetWorld()->GetSubsystem<UItemSpawnSubsystem>();
+	if (IsValid(ItemSpawnSubsystem) == false)
+		return;
 
-	if (IsValid(ItemWrapperActor) == true)
-	{
-		ItemWrapperActor->SetItemInstance(Item);
-	}
+	ItemSpawnSubsystem->SpawnItemAtGround(GetOwner(), Item);
 }
 
 bool UEquipComponent::RemoveItemFromInventory(UItemInstance* Item)

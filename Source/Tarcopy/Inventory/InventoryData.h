@@ -109,6 +109,8 @@ public:
 
 	void ForceRefreshNextTick();
 
+	bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags);
+
 private:
 	bool CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated, const UItemInstance* IgnoreItem = nullptr) const;
 
