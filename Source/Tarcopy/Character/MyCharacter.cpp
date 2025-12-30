@@ -847,13 +847,14 @@ void AMyCharacter::RemoveInteractableDoor(AActor* DoorActor)
 	}
 }
 
-void AMyCharacter::SetPlayerVisible(bool bShouldVisible)
+void AMyCharacter::SetPlayerVisiblityInClient(bool bShouldVisible)
 {
-	if (IsValid(VisionComponent))
+	if (IsLocallyControlled() && IsValid(VisionComponent))
 	{
 		if (bShouldVisible)
 		{
-
+			SetActorHiddenInGame(true);
+			VisionComponent->SetVisibility(false);
 		}
 		else
 		{
