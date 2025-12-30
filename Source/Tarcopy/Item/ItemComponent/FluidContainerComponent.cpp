@@ -5,6 +5,7 @@
 #include "Item/Data/ItemData.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "Item/ItemNetworkContext.h"
 
 void UFluidContainerComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
@@ -17,6 +18,7 @@ void UFluidContainerComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 
 void UFluidContainerComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
 {
+	Super::GetCommands(OutCommands, Context);
 }
 
 void UFluidContainerComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -40,7 +42,17 @@ void UFluidContainerComponent::OnRep_SetComponent()
 	Data = DataTableSubsystem->GetTable(EDataTableType::FluidContainerTable)->FindRow<FFluidContainerData>(ItemData->ItemId, FString(""));
 }
 
-void UFluidContainerComponent::ServerRPC_Fill_Implementation(float InAmount)
+void UFluidContainerComponent::OnExecuteAction(AActor* InInstigator, const struct FItemNetworkContext& NetworkContext)
+{
+	Super::OnExecuteAction(InInstigator, NetworkContext);
+
+	if (NetworkContext.ActionTag == TEXT("Fill"))
+	{
+		Fill(NetworkContext.FloatParams[0]);
+	}
+}
+
+void UFluidContainerComponent::Fill(float InAmount)
 {
 }
 

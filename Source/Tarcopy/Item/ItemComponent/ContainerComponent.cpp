@@ -13,14 +13,25 @@ void UContainerComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
 
-	if (HasAuthority() == false)
-		return;
-
 	if (Data == nullptr)
 		return;
 
 	InventoryData = NewObject<UInventoryData>(this);
 	InventoryData->Init(Data->ContainerBound);
+
+	TArray<FString> ItemNames = { TEXT("Rag0"), TEXT("Rag0"), TEXT("Leather0"), TEXT("Leather0"), TEXT("WoodStick0"), TEXT("SteelBar0"), TEXT("Food0")};
+
+	for (const auto& ItemName : ItemNames)
+	{
+		UItemInstance* NewItem = NewObject<UItemInstance>(this);
+		NewItem->SetItemId(FName(ItemName));
+		FIntPoint Origin;
+		bool bRotated;
+		if (InventoryData->CanAddItem(NewItem, Origin, bRotated) == true)
+		{
+			InventoryData->TryAddItem(NewItem, Origin, bRotated);
+		}
+	}
 }
 
 void UContainerComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
@@ -42,7 +53,7 @@ bool UContainerComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch*
 {
 	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 
-	bWroteSomething |= Channel->ReplicateSubobject(InventoryData, *Bunch, *RepFlags);
+	bWroteSomething |= InventoryData->ReplicateSubobjects(Channel, Bunch, RepFlags);
 	return bWroteSomething;
 }
 

@@ -12,6 +12,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
 #include "Item/ItemComponent/ItemComponentBase.h"
+#include "Item/ItemSpawnSubsystem.h"
 
 // Sets default values for this component's properties
 UPlayerInventoryComponent::UPlayerInventoryComponent()
@@ -165,36 +166,11 @@ void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceI
 		return;
 	}
 
-	if (!WorldItemClass)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("DropItemToWorld_Internal: WorldItemClass is null"));
+	UItemSpawnSubsystem* ItemSpawnSubsystem = GetWorld()->GetSubsystem<UItemSpawnSubsystem>();
+	if (IsValid(ItemSpawnSubsystem) == false)
 		return;
-	}
 
-	ACharacter* OwnerChar = Cast<ACharacter>(GetOwner());
-	const FVector BaseLoc = OwnerChar ? OwnerChar->GetActorLocation() : GetOwner()->GetActorLocation();
-	const FVector Forward = OwnerChar ? OwnerChar->GetActorForwardVector() : GetOwner()->GetActorForwardVector();
-
-	const FVector SpawnLoc = BaseLoc + Forward * DropForwardOffset + FVector(0.f, 0.f, DropUpOffset);
-	const FRotator SpawnRot = FRotator::ZeroRotator;
-
-	FTransform SpawnTM(SpawnRot, SpawnLoc);
-
-	AItemWrapperActor* Spawned = GetWorld()->SpawnActorDeferred<AItemWrapperActor>(
-		WorldItemClass,
-		SpawnTM,
-		GetOwner(),
-		nullptr,
-		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn
-	);
-
-	if (!IsValid(Spawned))
-	{
-		return;
-	}
-
-	Spawned->SetItemInstance(Item);
-	UGameplayStatics::FinishSpawningActor(Spawned, SpawnTM);
+	ItemSpawnSubsystem->SpawnItemAtGround(GetOwner(), Item);
 
 	if (ULootScannerComponent* Scanner = FindLootScanner())
 	{
