@@ -91,7 +91,7 @@ void UVisionComponent::OnVisionMeshEndOverlap(UPrimitiveComponent* OverlappedCom
 	if (IsValid(Character) && OverlappedCharacters.Contains(Character))
 	{
 		OverlappedCharacters.Remove(Character);
-		if (Cast<APawn>(GetOwner())->IsLocallyControlled())
+		if (IsVisible())
 		{
 			OtherActor->SetActorHiddenInGame(true);
 		}
@@ -155,7 +155,7 @@ void UVisionComponent::InitSetting()
 
 void UVisionComponent::CheckVisibilityAll()
 {
-	if (Cast<APawn>(GetOwner())->IsLocallyControlled() && IsVisible() && VisionMesh->IsVisible())
+	if (IsVisible() && VisionMesh->IsVisible())
 	{
 		for (ACharacter* OverlappedActor : OverlappedCharacters)
 		{

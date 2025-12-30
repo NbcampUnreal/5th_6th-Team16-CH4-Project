@@ -84,21 +84,6 @@ protected:
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
 
-	//UFUNCTION()
-	//virtual void OnVisionMeshBeginOverlap(
-	//	UPrimitiveComponent* OverlappedComp,
-	//	AActor* OtherActor,
-	//	UPrimitiveComponent* OtherComp,
-	//	int32 OtherBodyIndex,
-	//	bool bFromSweep,
-	//	const FHitResult& SweepResult);
-	//UFUNCTION()
-	//virtual void OnVisionMeshEndOverlap(
-	//	UPrimitiveComponent* OverlappedComp,
-	//	AActor* OtherActor,
-	//	UPrimitiveComponent* OtherComp,
-	//	int32 OtherBodyIndex);
-
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCameraObstructionComponent> CameraObstruction;
