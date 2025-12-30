@@ -116,7 +116,7 @@ protected:
 #pragma region Vision Component
 
 public:
-	void SetPlayerVisible();
+	void SetPlayerVisible(bool bShouldVisible);
 
 #pragma endregion
 

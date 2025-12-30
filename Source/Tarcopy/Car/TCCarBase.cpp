@@ -26,6 +26,7 @@
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/SceneComponent.h"
 #include "Character/MyCharacter.h"
+#include "Character/Component/VisionComponent.h"
 
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
@@ -96,6 +97,9 @@ ATCCarBase::ATCCarBase() :
 	AutoPossessAI = EAutoPossessAI::Disabled;
 
 	NetCullDistanceSquared = FMath::Square(15000.f);
+
+	VisionComponent = CreateDefaultSubobject<UVisionComponent>(TEXT("VisionComponent"));
+	VisionComponent->SetupAttachment(RootComponent);
 }
 
 void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -433,12 +437,7 @@ void ATCCarBase::SitByDriver(APawn* InPawn, APlayerController* InPC)
 
 	ACharacter* PlayerCharacter = Cast<ACharacter>(InPawn);
 	if (!PlayerCharacter) return;
-	
-	AMyCharacter* MyCharacter = Cast<AMyCharacter>(PlayerCharacter);
-	if(MyCharacter)
-	{
-		MyCharacter->SetPlayerVisible();
-	}
+
 
 	PlayerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
@@ -453,6 +452,12 @@ void ATCCarBase::SitByDriver(APawn* InPawn, APlayerController* InPC)
 
 	PC->ServerRPCSetOwningCar(this, InPawn, true);
 	PC->ServerRPCChangePossess(this);
+
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(PlayerCharacter);
+	if (MyCharacter)
+	{
+		MyCharacter->SetPlayerVisible();
+	}
 }
 
 void ATCCarBase::ExitVehicle(APawn* InPawn, APlayerController* InPC)
