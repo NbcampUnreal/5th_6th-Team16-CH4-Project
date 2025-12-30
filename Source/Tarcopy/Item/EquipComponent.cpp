@@ -235,31 +235,10 @@ bool UEquipComponent::RemoveItemFromInventory(UItemInstance* Item)
 	if (IsValid(OwnerCharacter) == false || OwnerCharacter->HasAuthority() == false)
 		return false;
 
-	if (OwnerCharacter->HasAuthority() == false)
-		return false;
-
 	if (IsValid(Item) == false)
 		return false;
 
-	const FItemData* ItemData = Item->GetData();
-	if (ItemData == nullptr)
-		return false;
-
-	bool bIsExist = false;
-	if (AItemWrapperActor* ActorItem = Item->GetTypedOuter<AItemWrapperActor>())
-	{
-		bIsExist = true;
-		ActorItem->Destroy();
-	}
-	else
-	{
-		UInventoryData* InventoryData = Item->GetOwnerInventory();
-		if (IsValid(InventoryData) == true)
-		{
-			bIsExist = InventoryData->RemoveItem(Item);
-		}
-	}
-	return bIsExist;
+	return Item->RemoveFromSource();
 }
 
 void UEquipComponent::CalculateFinalDamageTakenMultiplier()

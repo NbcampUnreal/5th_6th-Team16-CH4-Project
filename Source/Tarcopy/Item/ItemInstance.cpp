@@ -11,6 +11,7 @@
 #include "Item/ItemComponent/HoldableComponent.h"
 #include "Engine/ActorChannel.h"
 #include "Inventory/InventoryData.h"
+#include "Item/ItemWrapperActor/ItemWrapperActor.h"
 
 bool UItemInstance::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
 {
@@ -199,4 +200,23 @@ void UItemInstance::CancelAllComponentActions()
 
 		Component->CancelAction();
 	}
+}
+
+bool UItemInstance::RemoveFromSource()
+{
+	if (HasAuthority() == false)
+		return false;
+
+	if (AItemWrapperActor* ItemActor = GetTypedOuter<AItemWrapperActor>())
+	{
+		ItemActor->Destroy();
+		return true;
+	}
+
+	UInventoryData* Inventory = GetOwnerInventory();
+	if (IsValid(Inventory) == true)
+	{
+		return Inventory->RemoveItem(this);
+	}
+	return false;
 }
