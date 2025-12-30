@@ -25,6 +25,7 @@
 #include "Car/UI/TCCarActivate.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/SceneComponent.h"
+#include "Character/MyCharacter.h"
 
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
@@ -416,6 +417,12 @@ void ATCCarBase::SitByPassenger(APawn* InPawn, APlayerController* InPC)
 		}
 	}
 
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(PlayerCharacter);
+	if (MyCharacter)
+	{
+		MyCharacter->SetPlayerVisible();
+	}
+
 }
 
 void ATCCarBase::SitByDriver(APawn* InPawn, APlayerController* InPC)
@@ -426,6 +433,12 @@ void ATCCarBase::SitByDriver(APawn* InPawn, APlayerController* InPC)
 
 	ACharacter* PlayerCharacter = Cast<ACharacter>(InPawn);
 	if (!PlayerCharacter) return;
+	
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(PlayerCharacter);
+	if(MyCharacter)
+	{
+		MyCharacter->SetPlayerVisible();
+	}
 
 	PlayerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
@@ -463,6 +476,12 @@ void ATCCarBase::ExitVehicle(APawn* InPawn, APlayerController* InPC)
 		UISubsystem->HideUI(EUIType::Car);
 	}
 
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(Pawn);
+	if (MyCharacter)
+	{
+		MyCharacter->SetPlayerVisible();
+	}
+
 	PC->ServerRPCRequestExit(Pawn, InPC, this);
 }
 
@@ -491,6 +510,7 @@ void ATCCarBase::AddPassenger(APawn* InPawn, bool IsDriver)
 	InPawn->AttachToComponent(
 		SceneComponent,
 		FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
 	InPawn->SetActorRelativeLocation(FVector::ZeroVector);
 	InPawn->SetActorRelativeRotation(FRotator::ZeroRotator);
 
