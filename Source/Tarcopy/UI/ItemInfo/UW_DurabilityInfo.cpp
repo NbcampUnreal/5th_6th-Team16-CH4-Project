@@ -10,8 +10,8 @@
 
 void UUW_DurabilityInfo::BindItem(UItemInstance* InItem)
 {
-	ChachedComponent = InItem->GetItemComponent<UDurabilityComponent>();
-	auto Data = ChachedComponent->GetData();
+	CachedComponent = InItem->GetItemComponent<UDurabilityComponent>();
+	auto Data = CachedComponent->GetData();
 
-	ConditionTxt->SetText(FText::FromString(FString::Printf(TEXT("%.1f / %.1f"), ChachedComponent->GetCondition(), Data->MaxCondition)));
+	ConditionTxt->SetText(FText::FromString(FString::Printf(TEXT("%.1f / %.1f"), CachedComponent->GetCondition(), Data->MaxCondition)));
 }

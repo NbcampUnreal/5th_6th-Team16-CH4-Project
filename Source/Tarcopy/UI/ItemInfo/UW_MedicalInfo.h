@@ -4,26 +4,22 @@
 
 #include "CoreMinimal.h"
 #include "UI/ItemInfo/UW_ItemInfoEntry.h"
-#include "UW_DurabilityInfo.generated.h"
+#include "UW_MedicalInfo.generated.h"
 
 class UTextBlock;
-class UDurabilityComponent;
 
 /**
  * 
  */
 UCLASS()
-class TARCOPY_API UUW_DurabilityInfo : public UUW_ItemInfoEntry
+class TARCOPY_API UUW_MedicalInfo : public UUW_ItemInfoEntry
 {
 	GENERATED_BODY()
 
 public:
 	virtual void BindItem(UItemInstance* InItem) override;
-	
+
 private:
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> ConditionTxt;
-
-	UPROPERTY()
-	TWeakObjectPtr<UDurabilityComponent> CachedComponent;
+	TObjectPtr<UTextBlock> RestoreAmountTxt;
 };
