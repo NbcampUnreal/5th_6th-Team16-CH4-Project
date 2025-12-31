@@ -101,6 +101,10 @@ void UFirearmComponent::OnExecuteAttack(const FVector& TargetLocation)
 	if (IsValid(MyCharacter) == false)
 		return;
 
+	bool bIsAiming = MyCharacter->IsAiming();
+	if (bIsAiming == false)
+		return;
+
 	UCharacterMovementComponent* CharacterMovement = MyCharacter->GetCharacterMovement();
 	if (IsValid(CharacterMovement) == false)
 		return;

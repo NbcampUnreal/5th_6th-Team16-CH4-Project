@@ -311,6 +311,11 @@ void AMyCharacter::MulticastRPC_Crouch_Implementation()
 	}
 }
 
+void AMyCharacter::ServerRPC_SetAiming_Implementation(bool bInIsAttackMode)
+{
+	bIsAttackMode = bInIsAttackMode;
+}
+
 void AMyCharacter::Wheel(const FInputActionValue& Value)
 {
 	if (!IsLocallyControlled())
@@ -323,6 +328,7 @@ void AMyCharacter::Wheel(const FInputActionValue& Value)
 void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
 {
 	bIsAttackMode = false;
+	ServerRPC_SetAiming(false);
 
 	AMyPlayerController* MyPC = GetOwner<AMyPlayerController>();
 	if (!IsValid(MyPC))
@@ -382,6 +388,7 @@ void AMyCharacter::TriggeredRightClick(const FInputActionValue& Value)
 		return;
 
 	bIsAttackMode = true;
+	ServerRPC_SetAiming(true);
 	ServerRPC_SetSpeed(BaseWalkSpeed * CrouchSpeedMultiplier);
 }
 
@@ -393,6 +400,7 @@ void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
 		ServerRPC_StopTurnToMouse();
 		ServerRPC_SetSpeed(BaseWalkSpeed);
 		bIsAttackMode = false;
+		ServerRPC_SetAiming(false);
 	}
 }
 

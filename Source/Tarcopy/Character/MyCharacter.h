@@ -154,6 +154,8 @@ protected:
 
 public:
 	bool IsAiming() { return bIsAttackMode; }
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_SetAiming(bool bInIsAttackMode);
 
 protected:
 	UFUNCTION()
