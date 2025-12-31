@@ -427,7 +427,7 @@ FVector AMyCharacter::GetAttackTargetLocation() const
 	FName BoneName = NAME_None;
 	bool bHit = GetAimTarget(AimTarget, BoneName);
 	// default : 앞을 향한 충분한 먼 거리
-	FVector TargetLocation = GetActorForwardVector() * 10000.0f;
+	FVector TargetLocation = GetActorLocation() + GetActorForwardVector() * 10000.0f;
 	if (IsValid(AimTarget) == true)
 	{
 		// 적을 조준 중이라면, 조준 중인 적의 Bone을 향해 공격
