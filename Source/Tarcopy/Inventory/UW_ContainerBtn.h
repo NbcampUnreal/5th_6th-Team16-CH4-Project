@@ -7,7 +7,7 @@
 #include "UW_ContainerBtn.generated.h"
 
 class UButton;
-class UTextBlock;
+class UImage;
 class UInventoryData;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnClickedWithInventory, UInventoryData* /*Inventory*/);
@@ -27,27 +27,39 @@ protected:
     virtual void NativeConstruct() override;
 
 public:
-    void BindInventory(UInventoryData* InInventory, const FText& InDisplayName);
+    void BindInventory(UInventoryData* InInventory, FName Type);
+
+    void RefreshVisual(FName Type);
 
 private:
-    void RefreshVisual();
-
     UFUNCTION()
     void HandleClicked();
 
 public:
     FOnClickedWithInventory OnClickedWithInventory;
 
-private:
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UButton> ContainerBtn;
 
+private:
     UPROPERTY(meta = (BindWidget))
-    TObjectPtr<UTextBlock> ContainerName;
+    TObjectPtr<UImage> ContainerImg;
 
     UPROPERTY()
     FText DisplayName;
 
     UPROPERTY()
     TObjectPtr<UInventoryData> Inventory;
+
+    UPROPERTY(EditDefaultsOnly, Category = "UI|Icons")
+    TObjectPtr<UTexture2D> Icon_Box;
+
+    UPROPERTY(EditDefaultsOnly, Category = "UI|Icons")
+    TObjectPtr<UTexture2D> Icon_Bag;
+
+    UPROPERTY(EditDefaultsOnly, Category = "UI|Icons")
+    TObjectPtr<UTexture2D> Icon_Zombie;
+
+    UPROPERTY(EditDefaultsOnly, Category = "UI|Icons")
+    TObjectPtr<UTexture2D> Icon_Ground;
 };

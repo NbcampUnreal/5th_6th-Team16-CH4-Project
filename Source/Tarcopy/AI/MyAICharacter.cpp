@@ -47,6 +47,7 @@ AMyAICharacter::AMyAICharacter() :
 	StateTreeComponent->SetStartLogicAutomatically(false);
 
 	WorldContainerComponent = CreateDefaultSubobject<UWorldContainerComponent>(TEXT("WorldContainerComponent"));
+	WorldContainerComponent->SetContainerType(TEXT("Zombie"));
 	WorldContainerComponent->SetupAttachment(RootComponent);
 }
 

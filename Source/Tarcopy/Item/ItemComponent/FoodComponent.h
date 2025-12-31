@@ -23,6 +23,7 @@ protected:
 
 public:
 	FORCEINLINE const FFoodData* GetData() { return Data; }
+	FORCEINLINE float GetRemainAmount() { return Amount / TotalAmount; }
 
 private:
 	void Ingest(AActor* InInstigator, int32 ConsumeAmount);

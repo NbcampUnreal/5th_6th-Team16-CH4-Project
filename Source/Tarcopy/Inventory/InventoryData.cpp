@@ -8,6 +8,7 @@
 #include "Item/Data/ItemData.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
+#include "GameFramework/Actor.h"
 
 void UInventoryData::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -294,6 +295,34 @@ bool UInventoryData::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunc
 	}
 
 	return bWrote;
+}
+
+AActor* UInventoryData::GetOwnerActor() const
+{
+	if (AActor* OuterActor = GetTypedOuter<AActor>())
+	{
+		return OuterActor;
+	}
+
+	for (UObject* OuterObj = GetOuter(); OuterObj; OuterObj = OuterObj->GetOuter())
+	{
+		if (AActor* A = Cast<AActor>(OuterObj))
+		{
+			return A;
+		}
+	}
+
+	return nullptr;
+}
+
+FVector UInventoryData::GetOwnerLocation() const
+{
+	if (AActor* OwnerActor = GetOwnerActor())
+	{
+		return OwnerActor->GetActorLocation();
+	}
+
+	return FVector::ZeroVector;
 }
 
 bool UInventoryData::CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated, const UItemInstance* IgnoreItem) const

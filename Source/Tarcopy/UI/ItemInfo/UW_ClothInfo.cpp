@@ -14,4 +14,6 @@ void UUW_ClothInfo::BindItem(UItemInstance* InItem)
 
 	auto Display = StaticEnum<EBodyLocation>()->GetDisplayNameTextByValue((int64)Data->BodyLocation);;
 	BodyLocationTxt->SetText(Display);
+
+	DamageReduceTxt->SetText(FText::FromString(FString::Printf(TEXT("%.1f"), Data->DamageReduce)));
 }

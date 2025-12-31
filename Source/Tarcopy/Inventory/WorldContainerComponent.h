@@ -17,16 +17,19 @@ class TARCOPY_API UWorldContainerComponent : public USceneComponent
 public:
 	UWorldContainerComponent();
 
-	FText GetDisplayName() const { return DisplayName; }
-	FIntPoint GetGridSize() const { return GridSize; }
-	UInventoryData* GetInventoryData() const { return InventoryData; }
-	UBoxComponent* GetSenseBox() { return SenseBox; }
-
 protected:
 	virtual void BeginPlay() override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+
+public:
+	FText GetDisplayName() const { return DisplayName; }
+	FIntPoint GetGridSize() const { return GridSize; }
+	UInventoryData* GetInventoryData() const { return InventoryData; }
+	UBoxComponent* GetSenseBox() { return SenseBox; }
+	void SetContainerType(FName InType);
+	FName GetContainerType() { return ContainerType; }
 
 private:
 	UFUNCTION()
