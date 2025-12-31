@@ -33,6 +33,7 @@ void UVisionComponent::BeginPlay()
 		VisionMesh->OnComponentEndOverlap.AddDynamic(this, &UVisionComponent::OnVisionMeshEndOverlap);
 	}
 
+	InActivateVisionComponent();
 	ACharacter* Character = Cast<ACharacter>(GetOwner());
 	ATCCarBase* Car = Cast<ATCCarBase>(GetOwner());
 	if (IsValid(Character))
@@ -45,13 +46,11 @@ void UVisionComponent::BeginPlay()
 		else
 		{
 			Character->SetActorHiddenInGame(true);
-			InActivateVisionComponent();
 		}
 	}
 	else if (IsValid(Car))
 	{
 		Car->SetActorHiddenInGame(false);
-		InActivateVisionComponent();
 	}
 }
 
@@ -159,7 +158,7 @@ void UVisionComponent::CheckVisibilityAll()
 	{
 		for (ACharacter* OverlappedActor : OverlappedCharacters)
 		{
-			FVector MyLocation = GetOwner()->GetActorLocation();
+			FVector MyLocation = GetOwner()->GetActorLocation() + FVector(0.f, 0.f, 100.f);
 			FVector OtherLocation = OverlappedActor->GetActorLocation();
 
 			FHitResult Hit;
