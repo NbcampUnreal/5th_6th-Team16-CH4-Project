@@ -20,6 +20,9 @@ struct FCarPartHP
 
 	UPROPERTY()
 	float PartHP = 0.f;
+
+	UPROPERTY()
+	uint8 bIsDestroyed : 1 = false;
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -118,5 +121,9 @@ public:
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastCarPlayHitSound();
 
-	
+	UFUNCTION(Client, Reliable)
+	void ClientRPCRequestExit(APawn* InCar, APawn* InPawn, APlayerController* InPC);
+
+	UPROPERTY(Replicated)
+	uint8 DestroyedMain : 1 = false;
 };

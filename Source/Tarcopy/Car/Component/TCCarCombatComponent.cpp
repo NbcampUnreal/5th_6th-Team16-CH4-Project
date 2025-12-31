@@ -14,6 +14,8 @@
 #include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Character/MyCharacter.h"
+#include "Controller/MyPlayerController.h"
 
 UTCCarCombatComponent::UTCCarCombatComponent() :
 	DamageFactor(0.00001),
@@ -58,7 +60,7 @@ void UTCCarCombatComponent::BeginPlay()
 		{
 			VehicleMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 			VehicleMesh->SetNotifyRigidBodyCollision(true);
-			if (GetOwner()->HasAuthority()) 
+			if (GetOwner()->HasAuthority())
 			{
 				VehicleMesh->OnComponentHit.AddDynamic(this, &UTCCarCombatComponent::OnVehicleHit);
 			}
@@ -121,10 +123,11 @@ void UTCCarCombatComponent::DestroyPart(UPrimitiveComponent* DestroyComponent)
 
 void UTCCarCombatComponent::DestroyWindow(UPrimitiveComponent* DestroyComponent)
 {
-	DestroyComponent->SetVisibility(false);
-	DestroyComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	/*DestroyComponent->SetVisibility(false);
+	DestroyComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);*/
 
 	//glass effect spawn
+	DestroyDefault(DestroyComponent);
 }
 
 void UTCCarCombatComponent::DestroyWheel(UPrimitiveComponent* DestroyComponent)
@@ -136,7 +139,34 @@ void UTCCarCombatComponent::DestroyWheel(UPrimitiveComponent* DestroyComponent)
 
 void UTCCarCombatComponent::DestroyMain(UPrimitiveComponent* DestroyComponent)
 {
+	if (DestroyedMain) return;
+	DestroyedMain = true;
+	for (auto &Mesh : Meshes)
+	{
+		DestroyPart(Mesh);
+	}
+	
 
+	ATCCarBase* Car = Cast<ATCCarBase>(GetOwner());
+	if (!Car) return;
+	AMyPlayerController* PC = Cast<AMyPlayerController>(Car->GetController());
+	if (PC)
+	{
+		PC->Possess(Car->DriverPawn);
+	}
+	for (auto Passenger : Car->Passengers)
+	{
+		ClientRPCRequestExit(Car, Passenger, Cast<APlayerController>(Passenger->GetController()));
+		UGameplayStatics::ApplyPointDamage(
+			Passenger,  
+			500.f,            
+			GetOwner()->GetActorForwardVector(),
+			FHitResult(),     
+			GetOwner()->GetInstigatorController(),
+			GetOwner(),                
+			UDamageType::StaticClass()
+		);
+	}
 }
 
 void UTCCarCombatComponent::DestroyDefault(UPrimitiveComponent* DestroyComponent)
@@ -167,7 +197,7 @@ void UTCCarCombatComponent::DisableWheelPhysics(UPrimitiveComponent* DestroyComp
 
 void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	
+
 	if (!GetOwner()) return;
 	if (OtherActor == GetOwner()) return;
 
@@ -177,12 +207,14 @@ void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* O
 
 	LastHitTime = Now;
 
+	UE_LOG(LogTemp, Error, TEXT("%s"), *OtherComp->GetName());
+
 	float Damage = 0.f;
 	if (ACharacter* HitActor = Cast<ACharacter>(OtherActor))
 	{
 		ATCCarBase* Car = Cast<ATCCarBase>(GetOwner());
 		if (!Car) return;
-		
+
 		float Speed = Car->GetChaosVehicleMovement()->GetForwardSpeed();
 		float SpeedKmh = Speed * 0.036f;
 		FVector Dir = (HitActor->GetActorLocation() - GetOwner()->GetActorLocation());
@@ -217,7 +249,7 @@ void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* O
 	}
 
 	const FVector WorldPoint = Hit.ImpactPoint;
-	
+
 
 	for (auto Zone : DamageZone)
 	{
@@ -225,17 +257,17 @@ void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* O
 		{
 			ApplyDamage(Zone, Damage, WorldPoint);
 		}
-	}	
+	}
 }
 
-void UTCCarCombatComponent::ApplyDamage(UBoxComponent* InBox, float Damage,const FVector& WorldPoint)
+void UTCCarCombatComponent::ApplyDamage(UBoxComponent* InBox, float Damage, const FVector& WorldPoint)
 {
 	if (!GetOwner()->HasAuthority()) return;
 	if (!InBox) return;
 
 	for (const FName& Tag : InBox->ComponentTags)
 	{
-		for (FCarPartHP &Part : PartsHP)
+		for (FCarPartHP& Part : PartsHP)
 		{
 			if (ComponentName[Part.PartName]->ComponentHasTag(Tag))
 			{
@@ -244,10 +276,13 @@ void UTCCarCombatComponent::ApplyDamage(UBoxComponent* InBox, float Damage,const
 				Part.PartHP = FMath::Clamp(Part.PartHP - Damage, 0.f, PartDataMap[ComponentName[Part.PartName]].MaxHealth);
 				UE_LOG(LogTemp, Error, TEXT("Component Name %s , CurrentHP %.0f"), *Part.PartName.ToString(), Part.PartHP);
 
+
 				if (Part.PartHP <= 0)
 				{
 					DestroyPart(ComponentName[Part.PartName]);
+					Part.bIsDestroyed = true;
 				}
+
 
 				/*if (ComponentName[Part.PartName]->ComponentHasTag("Main"))
 				{
@@ -284,6 +319,13 @@ UPrimitiveComponent* UTCCarCombatComponent::GetTestMesh()
 	UE_LOG(LogTemp, Error, TEXT("%d"), Meshes.Num());
 	TestMesh = Meshes[RandIndex];
 	return TestMesh;
+}
+
+void UTCCarCombatComponent::ClientRPCRequestExit_Implementation(APawn* InCar, APawn* InPawn, APlayerController* InPC)
+{
+	ATCCarBase* Car = Cast<ATCCarBase>(InCar);
+	if (!Car) return;
+	Car->ExitVehicle(InPawn, InPC);
 }
 
 void UTCCarCombatComponent::MulticastCarPlayHitSound_Implementation()

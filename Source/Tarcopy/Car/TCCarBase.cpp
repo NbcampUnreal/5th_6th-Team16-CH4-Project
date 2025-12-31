@@ -62,7 +62,6 @@ ATCCarBase::ATCCarBase() :
 	Camera->SetHiddenInGame(true);
 
 	GetMesh()->SetSimulatePhysics(true);
-	GetMesh()->SetCollisionProfileName(FName("CarProfile"));
 
 	Light = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Glass"));
 	Light->SetupAttachment(GetRootComponent());
@@ -488,6 +487,7 @@ void ATCCarBase::SitByDriver(APawn* InPawn, APlayerController* InPC)
 void ATCCarBase::OnRep_bEngineOn()
 {
 	//시동기능 생기면추가 이동예정
+	if(bEngineOn)
 	if (EngineAudioComp)
 	{
 		EngineAudioComp->Play();
@@ -517,6 +517,11 @@ void ATCCarBase::OnRep_bEngineOn()
 			true,
 			0.f
 		);
+	}
+	if (!bEngineOn)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(SoundHandler);
+		EngineAudioComp->Stop();
 	}
 	//
 }
