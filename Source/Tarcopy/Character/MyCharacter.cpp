@@ -65,6 +65,14 @@ AMyCharacter::AMyCharacter() :
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
+	if (GetMesh())
+	{
+		GetMesh()->bEnableUpdateRateOptimizations = false;
+		GetMesh()->bNoSkeletonUpdate = false;
+		GetMesh()->bPauseAnims = false;
+		GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+	}
+
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
@@ -737,6 +745,14 @@ void AMyCharacter::SetAnimPreset(EHoldableType Type)
 		return;
 
 	AnimInstance->SetAnimDataAsset(*Preset);
+}
+
+FVector AMyCharacter::GetAttackStartLocation() const
+{
+	if (IsValid(HoldingItemMeshComponent) == false)
+		return GetActorLocation();
+	
+	return HoldingItemMeshComponent->GetSocketLocation(TEXT("Muzzle"));
 }
 
 void AMyCharacter::GetNearbyInventoryDatas(TArray<class UInventoryData*>& InventoryDatas)

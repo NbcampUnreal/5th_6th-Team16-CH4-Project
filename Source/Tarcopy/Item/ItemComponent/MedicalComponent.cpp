@@ -25,7 +25,7 @@ void UMedicalComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& 
 	if (IsValid(HealthComponent) == false)
 		return;
 
-	ensureMsgf(Data != nullptr, TEXT("No MedicalData"));
+	ensureMsgf(GetData() != nullptr, TEXT("No MedicalData"));
 
 	UItemNetworkCommand* RepairCommand = NewObject<UItemNetworkCommand>(this);
 	FItemNetworkContext IngestAllActionContext;
@@ -39,15 +39,9 @@ void UMedicalComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& 
 
 void UMedicalComponent::OnRep_SetComponent()
 {
-	const FItemData* ItemData = GetOwnerItemData();
-	if (ItemData == nullptr)
-		return;
+	Super::OnRep_SetComponent();
 
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return;
-
-	Data = DataTableSubsystem->GetTable(EDataTableType::MedicalTable)->FindRow<FMedicalData>(ItemData->ItemId, FString(""));
+	SetData();
 }
 
 void UMedicalComponent::OnExecuteAction(AActor* InInstigator, const FItemNetworkContext& NetworkContext)
@@ -65,7 +59,7 @@ void UMedicalComponent::RestoreHealth(AActor* InInstigator)
 	if (OwnerItem.IsValid() == false)
 		return;
 
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 		return;
 
 	if (IsValid(InInstigator) == false)
@@ -77,4 +71,26 @@ void UMedicalComponent::RestoreHealth(AActor* InInstigator)
 
 	HealthComponent->RestoreHP(Data->RestoreAmount);
 	OwnerItem->RemoveFromSource();
+}
+
+void UMedicalComponent::SetData()
+{
+	const FItemData* ItemData = GetOwnerItemData();
+	if (ItemData == nullptr)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	Data = DataTableSubsystem->GetTable(EDataTableType::MedicalTable)->FindRow<FMedicalData>(ItemData->ItemId, FString(""));
+}
+
+const FMedicalData* UMedicalComponent::GetData()
+{
+	if (Data == nullptr)
+	{
+		SetData();
+	}
+	return Data;
 }

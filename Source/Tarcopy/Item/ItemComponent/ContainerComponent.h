@@ -24,7 +24,10 @@ protected:
 
 public:
 	UInventoryData* GetInventoryData() const { return InventoryData; }
-	FORCEINLINE const FContainerData* GetData() { return Data; }
+	const FContainerData* GetData();
+
+private:
+	void SetData();
 
 private:
 	UPROPERTY(Replicated)

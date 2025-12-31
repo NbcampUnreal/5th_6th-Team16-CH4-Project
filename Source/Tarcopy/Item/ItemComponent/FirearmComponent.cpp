@@ -15,15 +15,14 @@
 #include "Item/EquipComponent.h"
 #include "Inventory/PlayerInventoryComponent.h"
 #include "Inventory/InventoryData.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 const float UFirearmComponent::PerfectShotMultiplier = 1.5f;
 
 void UFirearmComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
-
-	if (Data == nullptr)
-		return;
 }
 
 void UFirearmComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
@@ -35,6 +34,9 @@ void UFirearmComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& 
 	FText TextItemName = OwnerItemData->TextName;
 
 	if (Context.Instigator.IsValid() == false)
+		return;
+
+	if (GetData() == nullptr)
 		return;
 
 	UEquipComponent* EquipComponent = Context.Instigator->FindComponentByClass<UEquipComponent>();
@@ -76,7 +78,7 @@ void UFirearmComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& 
 
 void UFirearmComponent::SetOwnerHoldingItemMesh()
 {
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 		return;
 
 	SetOwnerHoldingItemMeshAtSocket(Data->Socket);
@@ -84,7 +86,7 @@ void UFirearmComponent::SetOwnerHoldingItemMesh()
 
 void UFirearmComponent::SetOwnerAnimPreset()
 {
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 		return;
 
 	SetOwnerAnimPresetByHoldableType(Data->HoldableType);
@@ -92,7 +94,7 @@ void UFirearmComponent::SetOwnerAnimPreset()
 
 void UFirearmComponent::OnExecuteAttack(const FVector& TargetLocation)
 {
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 		return;
 
 	AMyCharacter* MyCharacter = Cast<AMyCharacter>(GetOwnerCharacter());
@@ -142,20 +144,14 @@ void UFirearmComponent::CancelAction()
 
 void UFirearmComponent::OnRep_SetComponent()
 {
-	const FItemData* ItemData = GetOwnerItemData();
-	if (ItemData == nullptr)
-		return;
+	Super::OnRep_SetComponent();
 
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return;
-
-	Data = DataTableSubsystem->GetTable(EDataTableType::FirearmTable)->FindRow<FFirearmData>(ItemData->ItemId, FString(""));
+	SetData();
 }
 
 void UFirearmComponent::CheckHit(const FVector& StartLocation, const FVector& EndLocation)
 {
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 		return;
 
 	ACharacter* OwnerCharacter = GetOwnerCharacter();
@@ -173,6 +169,7 @@ void UFirearmComponent::CheckHit(const FVector& StartLocation, const FVector& En
 	FVector ActualEndLocation = bHit == true ? HitResult.ImpactPoint : EndLocation;
 
 	// 나이아가라 트레일 연출
+	NetMulticast_ShowFireEffect(ActualEndLocation);
 
 	float MinRangeSquared = FMath::Square(Data->MinRange);
 	float MaxRangeSquared = FMath::Square(Data->MaxRange);
@@ -224,6 +221,9 @@ void UFirearmComponent::CheckHit(const FVector& StartLocation, const FVector& En
 
 void UFirearmComponent::NetMulticast_PlayAttackMontage_Implementation()
 {
+	if (GetData() == nullptr)
+		return;
+
 	ACharacter* OwnerCharacter = GetOwnerCharacter();
 	if (IsValid(OwnerCharacter) == false)
 		return;
@@ -236,6 +236,9 @@ void UFirearmComponent::NetMulticast_PlayAttackMontage_Implementation()
 
 void UFirearmComponent::NetMulticast_StopAttackMontage_Implementation()
 {
+	if (GetData() == nullptr)
+		return;
+
 	ACharacter* OwnerCharacter = GetOwnerCharacter();
 	if (IsValid(OwnerCharacter) == false)
 		return;
@@ -244,4 +247,47 @@ void UFirearmComponent::NetMulticast_StopAttackMontage_Implementation()
 		return;
 
 	OwnerCharacter->StopAnimMontage(Data->Montage);
+}
+
+void UFirearmComponent::NetMulticast_ShowFireEffect_Implementation(const FVector& EndLocation)
+{
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(GetOwnerCharacter());
+	if (IsValid(MyCharacter) == false)
+		return;
+
+	FVector StartLocation = MyCharacter->GetAttackStartLocation();
+	UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		Data->TrailEffect,
+		StartLocation);
+
+	if (IsValid(NiagaraComponent) == true)
+	{
+		NiagaraComponent->SetVariableVec3(TEXT("StartLocation"), StartLocation);
+		NiagaraComponent->SetVariableVec3(TEXT("EndLocation"), EndLocation);
+
+		NiagaraComponent->SetAutoDestroy(true);
+	}
+}
+
+void UFirearmComponent::SetData()
+{
+	const FItemData* ItemData = GetOwnerItemData();
+	if (ItemData == nullptr)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	Data = DataTableSubsystem->GetTable(EDataTableType::FirearmTable)->FindRow<FFirearmData>(ItemData->ItemId, FString(""));
+}
+
+const FFirearmData* UFirearmComponent::GetData()
+{
+	if (Data == nullptr)
+	{
+		SetData();
+	}
+	return Data;
 }
