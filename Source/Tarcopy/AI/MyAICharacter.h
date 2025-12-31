@@ -157,4 +157,5 @@ protected:
 	UFUNCTION()
 	void OnRep_bIsDead();
 	
+#pragma endregion
 };
