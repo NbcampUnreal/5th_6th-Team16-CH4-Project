@@ -23,7 +23,6 @@ void UDurabilityComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>
 {
 	const FItemData* OwnerItemData = GetOwnerItemData();
 	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
-	FText TextItemName = OwnerItemData->TextName;
 
 	ensureMsgf(GetData() != nullptr, TEXT("No DurabilityData"));
 
@@ -31,9 +30,9 @@ void UDurabilityComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>
 	FItemNetworkContext IngestAllActionContext;
 	IngestAllActionContext.TargetItemComponent = this;
 	IngestAllActionContext.ActionTag = TEXT("RestoreDurability");
-	IngestAllActionContext.FloatParams.Add(1);
+	IngestAllActionContext.FloatParams.Add(1.0f);
 	RepairCommand->ActionContext = IngestAllActionContext;
-	RepairCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Repair {0}")), TextItemName);
+	RepairCommand->TextDisplay = FText::FromString(FString::Printf(TEXT("Repair %.1f"), 1.0f));
 	RepairCommand->bExecutable = true;
 	OutCommands.Add(RepairCommand);
 }

@@ -19,7 +19,7 @@ void UContainerComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 	InventoryData = NewObject<UInventoryData>(this);
 	InventoryData->Init(Data->ContainerBound);
 
-	TArray<FString> ItemNames = { TEXT("Rag0"), TEXT("Rag0"), TEXT("Leather0"), TEXT("Leather0"), TEXT("WoodStick0"), TEXT("SteelBar0"), TEXT("Food0")};
+	TArray<FString> ItemNames = { TEXT("Rag0"), TEXT("Rag0"), TEXT("Leather0"), TEXT("Leather0"), TEXT("WoodStick0"), TEXT("SteelBar0"), TEXT("Food0") };
 
 	for (const auto& ItemName : ItemNames)
 	{
@@ -40,7 +40,7 @@ void UContainerComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>
 	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
 	FText TextItemName = OwnerItemData->TextName;
 
-	ensureMsgf(GetData() != nullptr, TEXT("No FoodData"));
+	ensureMsgf(GetData() != nullptr, TEXT("No ContainerData"));
 
 	UOpenContainerCommand* OpenContainerCommand = NewObject<UOpenContainerCommand>(this);
 	OpenContainerCommand->OwnerComponent = this;

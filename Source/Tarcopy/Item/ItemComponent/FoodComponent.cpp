@@ -31,7 +31,7 @@ void UFoodComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& Out
 	IngestQuarterActionContext.ActionTag = TEXT("Ingest");
 	IngestQuarterActionContext.FloatParams.Add(1.0f);
 	IngestQuarterCommand->ActionContext = IngestQuarterActionContext;
-	IngestQuarterCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Ingest Quarter of {0}")), TextItemName);
+	IngestQuarterCommand->TextDisplay = FText::FromString(TEXT("Ingest 1/4"));
 	IngestQuarterCommand->bExecutable = Amount >= 1;
 	OutCommands.Add(IngestQuarterCommand);
 
@@ -41,7 +41,7 @@ void UFoodComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& Out
 	IngestHalfActionContext.ActionTag = TEXT("Ingest");
 	IngestHalfActionContext.FloatParams.Add(2.0f);
 	IngestHalfCommand->ActionContext = IngestHalfActionContext;
-	IngestHalfCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Ingest Half of {0}")), TextItemName);
+	IngestHalfCommand->TextDisplay = FText::FromString(TEXT("Ingest 1/2"));
 	IngestHalfCommand->bExecutable = Amount >= 2;
 	OutCommands.Add(IngestHalfCommand);
 	
@@ -51,7 +51,7 @@ void UFoodComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& Out
 	IngestAllActionContext.ActionTag = TEXT("Ingest");
 	IngestAllActionContext.FloatParams.Add(Amount);
 	IngestAllCommand->ActionContext = IngestAllActionContext;
-	IngestAllCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Ingest All of {0}")), TextItemName);
+	IngestAllCommand->TextDisplay = FText::FromString(TEXT("Ingest All"));
 	IngestAllCommand->bExecutable = Amount >= 1;
 	OutCommands.Add(IngestAllCommand);
 }
