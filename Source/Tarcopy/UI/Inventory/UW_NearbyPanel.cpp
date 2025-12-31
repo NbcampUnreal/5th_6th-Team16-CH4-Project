@@ -122,7 +122,7 @@ void UUW_NearbyPanel::RefreshContainerList()
 	for (UInventoryData* Inv : AvailableInv)
 	{
 		UUW_ContainerBtn* Button = CreateWidget<UUW_ContainerBtn>(GetOwningPlayer(), ContainerBtnClass);
-		FText NameText = FText::FromString(Inv->GetID().ToString());
+		FText NameText = FText::FromString("  ");
 		Button->BindInventory(Inv, NameText);
 		Button->OnClickedWithInventory.AddUObject(this, &UUW_NearbyPanel::HandleContainerSelected);
 		ContainerScrollBox->AddChild(Button);

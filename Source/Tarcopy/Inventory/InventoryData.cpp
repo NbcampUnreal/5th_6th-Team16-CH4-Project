@@ -270,9 +270,13 @@ void UInventoryData::ForceRefreshNextTick()
 {
 	if (UWorld* W = GetWorld())
 	{
-		W->GetTimerManager().SetTimerForNextTick([this]()
+		TWeakObjectPtr<UInventoryData> WeakThis(this);
+		W->GetTimerManager().SetTimerForNextTick([WeakThis]()
 			{
-				FixupAfterReplication();
+				if (WeakThis.IsValid())
+				{
+					WeakThis->FixupAfterReplication();
+				}
 			});
 	}
 }
