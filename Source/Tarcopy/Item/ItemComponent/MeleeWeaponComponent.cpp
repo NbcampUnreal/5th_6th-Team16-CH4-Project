@@ -18,6 +18,7 @@
 #include "Item/EquipComponent.h"
 #include "Inventory/PlayerInventoryComponent.h"
 #include "Inventory/InventoryData.h"
+#include "Item/Data/ItemSoundData.h"
 
 const float UMeleeWeaponComponent::CheckHitDelay = 0.5f;
 
@@ -156,6 +157,8 @@ void UMeleeWeaponComponent::CheckHit()
 	if (IsValid(OwnerCharacter) == false)
 		return;
 
+	NetMulticast_SoundAttack();
+
 	HitActors.Empty();
 
 	float AttackRadius = (Data->MaxRange - Data->MinRange) * 0.5f;
@@ -289,6 +292,27 @@ void UMeleeWeaponComponent::SetData()
 		return;
 
 	Data = DataTableSubsystem->GetTable(EDataTableType::MeleeWeaponTable)->FindRow<FMeleeWeaponData>(ItemData->ItemId, FString(""));
+}
+
+void UMeleeWeaponComponent::NetMulticast_SoundAttack_Implementation()
+{
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(GetOwnerCharacter());
+	if (IsValid(MyCharacter) == false)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	FItemSoundData* SoundData = DataTableSubsystem->GetTable(EDataTableType::ItemSoundTable)->FindRow<FItemSoundData>(TEXT("SFXMeleeWeaponR"), FString(""));
+	if (SoundData == nullptr)
+		return;
+
+	FVector Location = MyCharacter->GetActorLocation();
+	UGameplayStatics::PlaySoundAtLocation(
+		this,
+		SoundData->Sound,
+		Location);
 }
 
 const FMeleeWeaponData* UMeleeWeaponComponent::GetData()
