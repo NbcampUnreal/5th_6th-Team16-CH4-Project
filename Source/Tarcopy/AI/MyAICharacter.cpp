@@ -365,6 +365,7 @@ void AMyAICharacter::SetRagdolled()
 void AMyAICharacter::MultiRPC_HandleDeath_Implementation()
 {
 	SetRagdolled();
+	bIsDead = true;
 	WorldContainerComponent->GetSenseBox()->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 }
 
@@ -400,9 +401,17 @@ void AMyAICharacter::ChaseToPatrol()
 	StateTreeComponent->SendStateTreeEvent(ToPatrol);
 }
 
+void AMyAICharacter::OnRep_bIsDead()
+{
+	if (bIsDead)
+	{
+		EnemyAudioComp->Stop();
+	}
+}
+
 void AMyAICharacter::PlayEnemySound_Implementation(USoundBase* NewSound)
 {
-
+	if (bIsDead) return;
 	if (NewSound)
 	{
 		EnemyAudioComp->SetSound(NewSound);

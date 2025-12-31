@@ -99,6 +99,7 @@ void UTCCarCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 
 void UTCCarCombatComponent::DestroyPart(UPrimitiveComponent* DestroyComponent)
 {
+	MulticastCarPlaySound(CrashSound);
 	if (DestroyComponent->ComponentHasTag("Window"))
 	{
 		DestroyWindow(DestroyComponent);
@@ -168,6 +169,8 @@ void UTCCarCombatComponent::DestroyMain(UPrimitiveComponent* DestroyComponent)
 			UDamageType::StaticClass()
 		);
 	}
+
+	MulticastCarPlaySound(ExplosionSound);
 }
 
 void UTCCarCombatComponent::DestroyDefault(UPrimitiveComponent* DestroyComponent)
@@ -208,8 +211,6 @@ void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* O
 
 	LastHitTime = Now;
 
-	UE_LOG(LogTemp, Error, TEXT("%s"), *OtherComp->GetName());
-
 	float Damage = 0.f;
 	if (ACharacter* HitActor = Cast<ACharacter>(OtherActor))
 	{
@@ -235,9 +236,7 @@ void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* O
 			GetOwner()->GetInstigatorController(),
 			GetOwner(),
 			UDamageType::StaticClass()
-		);
-
-		MulticastCarPlayHitSound();
+		);	
 	}
 	else
 	{
@@ -265,6 +264,8 @@ void UTCCarCombatComponent::ApplyDamage(UBoxComponent* InBox, float Damage, cons
 {
 	if (!GetOwner()->HasAuthority()) return;
 	if (!InBox) return;
+
+	MulticastCarPlaySound(HitSound);
 
 	for (const FName& Tag : InBox->ComponentTags)
 	{
@@ -329,12 +330,12 @@ void UTCCarCombatComponent::ClientRPCRequestExit_Implementation(APawn* InCar, AP
 	Car->ExitVehicle(InPawn, InPC);
 }
 
-void UTCCarCombatComponent::MulticastCarPlayHitSound_Implementation()
+void UTCCarCombatComponent::MulticastCarPlaySound_Implementation(USoundBase* NewSound)
 {
-	if (!HitSound || !GetOwner()) return;
+	if (!NewSound || !GetOwner()) return;
 	UGameplayStatics::PlaySoundAtLocation(
-		GetOwner(),
-		HitSound,
+		GetOwner()->GetWorld(),
+		NewSound,
 		GetOwner()->GetActorLocation()
 	);
 }

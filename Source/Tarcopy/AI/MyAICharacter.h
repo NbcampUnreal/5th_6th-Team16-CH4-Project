@@ -151,6 +151,10 @@ protected:
 	UFUNCTION(NetMulticast,Unreliable)
 	void PlayEnemySound(USoundBase* NewSound);
 
+	UPROPERTY(ReplicatedUsing = OnRep_bIsDead)
+	uint8 bIsDead : 1 = false;
 
+	UFUNCTION()
+	void OnRep_bIsDead();
 	
 };
