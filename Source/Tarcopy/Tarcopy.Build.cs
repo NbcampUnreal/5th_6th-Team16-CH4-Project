@@ -19,7 +19,12 @@ public class Tarcopy : ModuleRules
             "PhysicsCore",
             "AIModule",
             "StateTreeModule",
-            "GameplayStateTreeModule"
+            "GameplayStateTreeModule",
+            "AudioCapture",
+            "AudioCaptureCore",
+            "AudioCaptureWASAPI",
+            "AudioMixer",
+            "SignalProcessing"
         });
 
         PublicIncludePaths.AddRange(new[]
