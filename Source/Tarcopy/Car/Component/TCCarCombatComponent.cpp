@@ -149,6 +149,7 @@ void UTCCarCombatComponent::DestroyMain(UPrimitiveComponent* DestroyComponent)
 
 	ATCCarBase* Car = Cast<ATCCarBase>(GetOwner());
 	if (!Car) return;
+	Car->bCanRide = false;
 	AMyPlayerController* PC = Cast<AMyPlayerController>(Car->GetController());
 	if (PC)
 	{

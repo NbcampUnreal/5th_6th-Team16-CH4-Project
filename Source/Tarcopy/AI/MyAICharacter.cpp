@@ -17,6 +17,7 @@
 #include "Inventory/WorldContainerComponent.h"
 #include "Components/BoxComponent.h"
 #include "Tarcopy.h"
+#include "Components/AudioComponent.h"
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
@@ -48,12 +49,23 @@ AMyAICharacter::AMyAICharacter() :
 
 	WorldContainerComponent = CreateDefaultSubobject<UWorldContainerComponent>(TEXT("WorldContainerComponent"));
 	WorldContainerComponent->SetupAttachment(RootComponent);
+
+	EnemyAudioComp = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudioComp"));
+	EnemyAudioComp->SetupAttachment(GetMesh());
+	EnemyAudioComp->bAutoActivate = false;
+	EnemyAudioComp->bAllowSpatialization = true;
+	EnemyAudioComp->SetIsReplicated(false);
 }
 
 
 void AMyAICharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (HasAuthority())
+	{
+		PlayEnemySound(EnemyIdleSound);
+	}
 
 	Tags.Add(FName("InVisible"));
 	SetActorHiddenInGame(true);
@@ -113,6 +125,7 @@ void AMyAICharacter::OnVisionMeshBeginOverlap(
 
 	AMyCharacter* Player = Cast<AMyCharacter>(OtherActor);
 	ATCCarBase* Car = Cast<ATCCarBase>(OtherActor);
+	
 	if (IsValid(Player))
 	{
 		if (Player->IsPlayerControlled() == false)
@@ -123,12 +136,13 @@ void AMyAICharacter::OnVisionMeshBeginOverlap(
 		{
 			TargetActor = Player;
 			StateTreeComponent->SendStateTreeEvent(ToChase);
+			PlayEnemySound(EnemyFollowingSound);
 			GetWorldTimerManager().ClearTimer(EndOverlapTimer);
 		}
 	}
 	else if (IsValid(Car))
 	{
-		if (Car->IsPawnControlled() == false) 
+		if (Car->IsPawnControlled() == false)
 		{
 			return;
 		}
@@ -136,6 +150,7 @@ void AMyAICharacter::OnVisionMeshBeginOverlap(
 		{
 			TargetActor = Car;
 			StateTreeComponent->SendStateTreeEvent(ToChase);
+			PlayEnemySound(EnemyFollowingSound);
 			GetWorldTimerManager().ClearTimer(EndOverlapTimer);
 		}
 	}
@@ -156,27 +171,30 @@ void AMyAICharacter::OnVisionMeshEndOverlap(
 		return;
 	}
 
+
 	AMyCharacter* Player = Cast<AMyCharacter>(OtherActor);
 	ATCCarBase* Car = Cast<ATCCarBase>(OtherActor);
 	if (IsValid(Player))
 	{
-		if (Player->IsPlayerControlled() == false) 
+		if (Player->IsPlayerControlled() == false)
 		{
 			return;
 		}
 		if (OtherComp == Player->GetCapsuleComponent())
 		{
-			GetWorldTimerManager().SetTimer(EndOverlapTimer, this, &AMyAICharacter::ChaseToPatrol, 1.0f, false);			
+			PlayEnemySound(EnemyIdleSound);
+			GetWorldTimerManager().SetTimer(EndOverlapTimer, this, &AMyAICharacter::ChaseToPatrol, 1.0f, false);
 		}
 	}
 	else if (IsValid(Car))
 	{
-		if (Car->IsPawnControlled() == false) 
+		if (Car->IsPawnControlled() == false)
 		{
 			return;
 		}
 		if (OtherComp == Car->GetMesh())
 		{
+			PlayEnemySound(EnemyIdleSound);
 			GetWorldTimerManager().SetTimer(EndOverlapTimer, this, &AMyAICharacter::ChaseToPatrol, 1.0f, false);
 		}
 	}
@@ -214,8 +232,8 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 	}
 
 	FHitResult Hit;
-	FVector StartLocation = ContextActor->GetActorLocation() + FVector( 0.f, 0.f, 60.f );
-	FVector EndLocation = DamagedActor->GetActorLocation() + FVector( 0.f, 0.f, FMath::FRandRange(0.f, 60.f));
+	FVector StartLocation = ContextActor->GetActorLocation() + FVector(0.f, 0.f, 60.f);
+	FVector EndLocation = DamagedActor->GetActorLocation() + FVector(0.f, 0.f, FMath::FRandRange(0.f, 60.f));
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
 	Params.bTraceComplex = true;
@@ -234,6 +252,7 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 		APawn* HitActor = Cast<APawn>(Hit.GetActor());
 		if (IsValid(HitActor))
 		{
+			PlayEnemySound(EnemyBiteSound);
 			UGameplayStatics::ApplyPointDamage(HitActor,
 				AttackDamage + FMath::FRandRange(-10.f, 10.f),
 				EndLocation - StartLocation,
@@ -261,6 +280,8 @@ float AMyAICharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, 
 	if (!HasAuthority()) return Damage;
 
 	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+
+	PlayEnemySound(EnemyHitSound);
 
 	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
 	if (AnimInst)
@@ -377,4 +398,14 @@ void AMyAICharacter::ChaseToPatrol()
 {
 	TargetActor = nullptr;
 	StateTreeComponent->SendStateTreeEvent(ToPatrol);
+}
+
+void AMyAICharacter::PlayEnemySound_Implementation(USoundBase* NewSound)
+{
+
+	if (NewSound)
+	{
+		EnemyAudioComp->SetSound(NewSound);
+		EnemyAudioComp->Play();
+	}
 }

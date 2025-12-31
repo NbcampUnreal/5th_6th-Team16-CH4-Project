@@ -770,7 +770,7 @@ TArray<ECarCommand> ATCCarBase::GetAvailableCommands()
 	{
 		Commands.Add(ECarCommand::SitByPassenger);
 	}
-	if (!IsDriverPawn)
+	if (!IsDriverPawn && bCanRide)
 	{
 		Commands.Add(ECarCommand::SitByDriver);
 	}
