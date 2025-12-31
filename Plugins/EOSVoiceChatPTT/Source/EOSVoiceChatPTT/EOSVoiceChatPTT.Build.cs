@@ -31,7 +31,7 @@ public class EOSVoiceChatPTT : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			PrivateDependencyModuleNames.Add("AudioCaptureWASAPI");
+			PrivateDependencyModuleNames.Add("AudioCaptureWasapi");
 		}
 	}
 }
