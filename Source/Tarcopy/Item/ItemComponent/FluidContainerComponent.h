@@ -19,11 +19,18 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void OnRep_SetComponent() override;
 
+	virtual void OnExecuteAction(AActor* InInstigator, const struct FItemNetworkContext& NetworkContext) override;
+
 public:
-	UFUNCTION(Server, Reliable)
-	void ServerRPC_Fill(float InAmount);
+	void Fill(float InAmount);
 	UFUNCTION()
 	void OnRep_PrintFluid();
+
+	const FFluidContainerData* GetData();
+	FORCEINLINE const float GetAmount() { return Amount; }
+
+private:
+	void SetData();
 
 protected:
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_PrintFluid)

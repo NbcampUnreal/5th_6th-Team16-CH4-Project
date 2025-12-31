@@ -19,14 +19,20 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void OnRep_SetComponent() override;
 
+	virtual void OnExecuteAction(AActor* InInstigator, const struct FItemNetworkContext& NetworkContext) override;
+
 public:
 	void LoseDurability(float Amount);
-	UFUNCTION(Server, Reliable)
-	void ServerRPC_RestoreDurability(float Amount);
+	void RestoreDurability(float Amount);
+
+	const FDurabilityData* GetData();
+	FORCEINLINE float GetCondition() const { return Condition; }
 
 protected:
 	UFUNCTION()
 	virtual void OnRep_PrintCondition();
+
+	void SetData();
 
 protected:
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_PrintCondition)

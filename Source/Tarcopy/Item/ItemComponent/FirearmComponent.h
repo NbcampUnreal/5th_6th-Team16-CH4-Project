@@ -25,6 +25,9 @@ public:
 protected:
 	virtual void OnRep_SetComponent() override;
 
+public:
+	const FFirearmData* GetData();
+
 private:
 	void CheckHit(const FVector& StartLocation, const FVector& EndLocation);
 
@@ -32,6 +35,10 @@ private:
 	void NetMulticast_PlayAttackMontage();
 	UFUNCTION(NetMulticast, Reliable)
 	void NetMulticast_StopAttackMontage();
+	UFUNCTION(NetMulticast, Reliable)
+	void NetMulticast_ShowFireEffect(const FVector& EndLocation);
+
+	void SetData();
 
 protected:
 	const FFirearmData* Data;

@@ -15,6 +15,14 @@
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Inventory/LootScannerComponent.h"
 #include "Item/ItemWrapperActor/ItemWrapperActor.h"
+#include "UI/ItemInfo/UW_ItemInfo.h"
+#include "Components/Image.h"
+#include "Item/Data/ItemData.h"
+
+void UUW_InventoryItem::NativeConstruct()
+{
+	Super::NativeConstruct();
+}
 
 FReply UUW_InventoryItem::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
@@ -39,7 +47,6 @@ void UUW_InventoryItem::NativeOnDragDetected(const FGeometry& InGeometry, const 
 	Op->SourceInventory = SourceInventory;
 	Op->SourceInventoryWidget = SourceInventoryWidget;
 	Op->bRotated = bRotated;
-
 	Op->GrabOffsetPx = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
 
 	if (APlayerController* PC = GetOwningPlayer())
@@ -89,6 +96,9 @@ void UUW_InventoryItem::InitItem(UItemInstance* InItem, UInventoryData* InSource
 	SourceInventory = InSourceInventory;
 	SourceInventoryWidget = InSourceWidget;
 	bRotated = bInRotated;
+
+	SetItemInfo();
+	UpdateIcon();
 }
 
 void UUW_InventoryItem::ApplyProxyVisual()
@@ -149,4 +159,36 @@ void UUW_InventoryItem::OpenCommandMenu(const FPointerEvent& InMouseEvent)
 
 	const FVector2D ViewportPos = UWidgetLayoutLibrary::GetMousePositionOnViewport(PC);
 	UIS->ShowItemCommandMenu(ItemInst, ViewportPos);
+}
+
+void UUW_InventoryItem::SetItemInfo()
+{
+	if (!TooltipClass || !Item.IsValid())
+	{
+		return;
+	}
+	Tooltip = CreateWidget<UUW_ItemInfo>(GetOwningPlayer(), TooltipClass);
+	Tooltip->BindItem(Item.Get());
+	SetToolTip(Tooltip);
+}
+
+void UUW_InventoryItem::UpdateIcon()
+{
+	if (!Img)
+	{
+		return;
+	}
+
+	UItemInstance* ItemInst = Item.Get();
+	const FItemData* Data = ItemInst ? ItemInst->GetData() : nullptr;
+
+	if (!Data || !Data->ItemIcon)
+	{
+		return;
+	}
+
+	Img->SetBrushFromTexture(Data->ItemIcon, true);
+
+	Img->SetRenderTransformAngle(bRotated ? 90.0f : 0.0f);
+	Img->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
 }

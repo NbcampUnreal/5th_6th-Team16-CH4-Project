@@ -21,6 +21,8 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 #include "Item/EquipComponent.h"
+#include "UI/Moodle/UW_MoodleList.h"
+#include "UI/Moodle/UW_MoodleIcon.h"
 
 
 AMyPlayerController::AMyPlayerController() :
@@ -77,6 +79,17 @@ void AMyPlayerController::BeginPlay()
 				UEquipComponent* EquipmentComp = P->FindComponentByClass<UEquipComponent>();
 				PlayerPanel->BindEquipComponent(EquipmentComp);
 			}
+			if (auto* Widget = UIS->ShowUI(EUIType::MoodleList))
+			{
+				MoodleUI = Cast<UUW_MoodleList>(Widget);
+				MoodleUI->HungerIcon->SetRatio(1.0f);
+				MoodleUI->ThirstIcon->SetRatio(1.0f);
+			}
+			if (auto* Widget = UIS->ShowUI(EUIType::Health))
+			{
+				HealthUI = Cast<UUW_MoodleIcon>(Widget);
+				HealthUI->SetRatio(1.0f);
+			}
 		}
 	}
 }
@@ -106,23 +119,37 @@ void AMyPlayerController::SetItem(UItemInstance* Item)
 
 void AMyPlayerController::SetHungerTextUI(float CurrentValue, float MaxValue)
 {
-	if (IsValid(TempItemInstance) == false)
+	if (!IsValid(MoodleUI))
+	{
 		return;
+	}
 
-	TempItemInstance->SetHunger(CurrentValue, MaxValue);
+	MoodleUI->HungerIcon->SetRatio(CurrentValue / MaxValue);
 }
 
 void AMyPlayerController::SetThirstTextUI(float CurrentValue, float MaxValue)
 {
-	if (IsValid(TempItemInstance) == false)
+	if (!IsValid(MoodleUI))
+	{
 		return;
+	}
 
-	TempItemInstance->SetThirst(CurrentValue, MaxValue);
+	MoodleUI->ThirstIcon->SetRatio(CurrentValue / MaxValue);
 }
 
 void AMyPlayerController::SetStaminaTextUI(float CurrentValue, float MaxValue)
 {
 	//TempItemInstance->SetHunger(CurrentValue, MaxValue);
+}
+
+void AMyPlayerController::SetHealthUI(float CurrentValue, float MaxValue)
+{
+	if (!IsValid(HealthUI))
+	{
+		return;
+	}
+
+	HealthUI->SetRatio(CurrentValue / MaxValue);
 }
 
 void AMyPlayerController::ChangeIMC(UInputMappingContext* InIMC)

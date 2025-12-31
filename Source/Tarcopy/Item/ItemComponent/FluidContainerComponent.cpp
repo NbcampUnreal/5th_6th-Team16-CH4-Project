@@ -5,18 +5,16 @@
 #include "Item/Data/ItemData.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "Item/ItemNetworkContext.h"
 
 void UFluidContainerComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
-
-	if (Data == nullptr)
-		return;
-
 }
 
 void UFluidContainerComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
 {
+	Super::GetCommands(OutCommands, Context);
 }
 
 void UFluidContainerComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -29,6 +27,32 @@ void UFluidContainerComponent::GetLifetimeReplicatedProps(TArray<class FLifetime
 
 void UFluidContainerComponent::OnRep_SetComponent()
 {
+	Super::OnRep_SetComponent();
+
+	SetData();
+}
+
+void UFluidContainerComponent::OnExecuteAction(AActor* InInstigator, const struct FItemNetworkContext& NetworkContext)
+{
+	Super::OnExecuteAction(InInstigator, NetworkContext);
+
+	if (NetworkContext.ActionTag == TEXT("Fill"))
+	{
+		Fill(NetworkContext.FloatParams[0]);
+	}
+}
+
+void UFluidContainerComponent::Fill(float InAmount)
+{
+}
+
+void UFluidContainerComponent::OnRep_PrintFluid()
+{
+	//UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s: %d left"), Amount));
+}
+
+void UFluidContainerComponent::SetData()
+{
 	const FItemData* ItemData = GetOwnerItemData();
 	if (ItemData == nullptr)
 		return;
@@ -40,11 +64,11 @@ void UFluidContainerComponent::OnRep_SetComponent()
 	Data = DataTableSubsystem->GetTable(EDataTableType::FluidContainerTable)->FindRow<FFluidContainerData>(ItemData->ItemId, FString(""));
 }
 
-void UFluidContainerComponent::ServerRPC_Fill_Implementation(float InAmount)
+const FFluidContainerData* UFluidContainerComponent::GetData()
 {
-}
-
-void UFluidContainerComponent::OnRep_PrintFluid()
-{
-	//UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s: %d left"), Amount));
+	if (Data == nullptr)
+	{
+		SetData();
+	}
+	return Data;
 }

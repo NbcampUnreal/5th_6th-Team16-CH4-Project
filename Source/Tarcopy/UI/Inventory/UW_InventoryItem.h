@@ -12,6 +12,8 @@ class UInventoryData;
 class UUW_Inventory;
 class UBorder;
 class UItemInstance;
+class UUW_ItemInfo;
+class UImage;
 
 /**
  * 
@@ -22,6 +24,7 @@ class TARCOPY_API UUW_InventoryItem : public UUserWidget
 	GENERATED_BODY()
 	
 protected:
+	virtual void NativeConstruct() override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 
@@ -34,11 +37,18 @@ private:
 
 	void OpenCommandMenu(const FPointerEvent& InMouseEvent);
 
+	void SetItemInfo();
+
+	void UpdateIcon();
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> ItemBorder;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> ItemBG;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Img;
 
 	UPROPERTY()
 	TWeakObjectPtr<UItemInstance> Item;
@@ -48,6 +58,12 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UUW_Inventory> SourceInventoryWidget;
+
+	UPROPERTY()
+	TObjectPtr<UUW_ItemInfo> Tooltip;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Tooltip")
+	TSubclassOf<UUW_ItemInfo> TooltipClass;
 
 	UPROPERTY()
 	bool bRotated = false;

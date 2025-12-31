@@ -9,6 +9,8 @@
 class UInputAction;
 class UInputMappingContext;
 class UUW_TempItem;
+class UUW_MoodleList;
+class UUW_MoodleIcon;
 
 UCLASS()
 class TARCOPY_API AMyPlayerController : public APlayerController
@@ -73,11 +75,17 @@ public:
 	void SetHungerTextUI(float CurrentValue, float MaxValue);
 	void SetThirstTextUI(float CurrentValue, float MaxValue);
 	void SetStaminaTextUI(float CurrentValue, float MaxValue);
+	void SetHealthUI(float CurrentValue, float MaxValue);
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UUW_TempItem> TempItemClass;
 	UPROPERTY()
 	TObjectPtr<UUW_TempItem> TempItemInstance;
+
+	UPROPERTY()
+	TObjectPtr<UUW_MoodleList> MoodleUI;
+	UPROPERTY()
+	TObjectPtr<UUW_MoodleIcon> HealthUI;
 
 public:
 	void ChangeIMC(UInputMappingContext* InIMC);
@@ -95,4 +103,5 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPCRequestExit(APawn* InPawn, APlayerController* InPC, APawn* InCar);
+
 };

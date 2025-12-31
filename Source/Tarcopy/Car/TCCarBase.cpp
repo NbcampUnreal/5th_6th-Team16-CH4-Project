@@ -25,6 +25,9 @@
 #include "Car/UI/TCCarActivate.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/SceneComponent.h"
+#include "Character/MyCharacter.h"
+#include "Character/Component/VisionComponent.h"
+#include "Components/AudioComponent.h"
 
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
@@ -35,7 +38,8 @@ ATCCarBase::ATCCarBase() :
 	bLightOn(false),
 	bCanMove(true),
 	bCanRide(true),
-	DriverPawn(nullptr)
+	DriverPawn(nullptr),
+	bEngineOn(false)
 {
 	bReplicates = true;
 
@@ -54,10 +58,10 @@ ATCCarBase::ATCCarBase() :
 	SpringArm->bInheritRoll = false;
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Camera->SetupAttachment(SpringArm);
+	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
+	Camera->SetHiddenInGame(true);
 
 	GetMesh()->SetSimulatePhysics(true);
-	GetMesh()->SetCollisionProfileName(FName("CarProfile"));
 
 	Light = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Glass"));
 	Light->SetupAttachment(GetRootComponent());
@@ -95,6 +99,15 @@ ATCCarBase::ATCCarBase() :
 	AutoPossessAI = EAutoPossessAI::Disabled;
 
 	NetCullDistanceSquared = FMath::Square(15000.f);
+
+	VisionComponent = CreateDefaultSubobject<UVisionComponent>(TEXT("VisionComponent"));
+	VisionComponent->SetupAttachment(RootComponent);
+
+	EngineAudioComp = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudioComp"));
+	EngineAudioComp->SetupAttachment(GetMesh());
+	EngineAudioComp->bAutoActivate = false;
+	EngineAudioComp->bAllowSpatialization = true;
+	EngineAudioComp->SetIsReplicated(false);
 }
 
 void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -126,6 +139,8 @@ void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(LightAction, ETriggerEvent::Started, this, &ATCCarBase::ToggleLight);
 
 		EnhancedInputComponent->BindAction(InterAction, ETriggerEvent::Started, this, &ATCCarBase::StartInterAction);
+
+		EnhancedInputComponent->BindAction(WheelAction, ETriggerEvent::Started, this, &ATCCarBase::StartWheel);
 	}
 	else
 	{
@@ -205,33 +220,34 @@ void ATCCarBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
+	if (!HasAuthority()) return;
+
 	TWeakObjectPtr<ATCCarBase> WeakThis(this);
 
-	if (HasAuthority())
+
+	if (UWorld* World = GetWorld())
 	{
-		if (UWorld* World = GetWorld())
-		{
-			World->GetTimerManager().SetTimer(
-				GasHandler,
-				FTimerDelegate::CreateLambda([WeakThis]()
-					{
-						if (!WeakThis.IsValid())
-							return;
+		World->GetTimerManager().SetTimer(
+			GasHandler,
+			FTimerDelegate::CreateLambda([WeakThis]()
+				{
+					if (!WeakThis.IsValid())
+						return;
 
-						float Consumption = 0.f;
+					float Consumption = 0.f;
 
-						float CurrentRPM = WeakThis->ChaosVehicleMovement->GetEngineRotationSpeed();
-						float ClampedRate = FMath::Clamp(CurrentRPM / 6000.f, 0.f, 1.f);
-						Consumption += ClampedRate * WeakThis->MoveFactor;
+					float CurrentRPM = WeakThis->ChaosVehicleMovement->GetEngineRotationSpeed();
+					float ClampedRate = FMath::Clamp(CurrentRPM / 6000.f, 0.f, 1.f);
+					Consumption += ClampedRate * WeakThis->MoveFactor;
 
-						WeakThis->ServerRPCUpdateFuel(-Consumption * 10);
-					}),
-				1.f,
-				true,
-				0.f
-			);
-		}
+					WeakThis->ServerRPCUpdateFuel(-Consumption * 10);
+				}),
+			1.f,
+			true,
+			0.f
+		);
 	}
+
 }
 
 void ATCCarBase::OnRep_Controller()
@@ -245,6 +261,9 @@ void ATCCarBase::OnRep_Controller()
 	OnRep_UpdateGas();
 
 	PC->ChangeIMC(PC->IMC_Car);
+
+
+	UE_LOG(LogTemp, Error, TEXT("%.2f %.2f"), ChaosVehicleMovement->GetForwardSpeed() * 0.036f, ChaosVehicleMovement->GetMaxSpeed() * 0.036f);
 }
 
 
@@ -286,6 +305,15 @@ void ATCCarBase::StopHandbrake(const FInputActionValue& Value)
 void ATCCarBase::ToggleLight(const FInputActionValue& Value)
 {
 	ServerRPCDoHandLight();
+}
+
+void ATCCarBase::StartWheel(const FInputActionValue& Value)
+{
+	if (!IsLocallyControlled())
+		return;
+
+	const float Input = Value.Get<float>() * -200;
+	SpringArm->TargetArmLength = FMath::Clamp(SpringArm->TargetArmLength + Input, 600.f, 2500.f);
 }
 
 void ATCCarBase::StartInterAction(const FInputActionValue& Value)
@@ -351,14 +379,7 @@ void ATCCarBase::DoHandbrakeStop()
 
 void ATCCarBase::ServerRPCDoHandLight_Implementation()
 {
-	if (bLightOn)
-	{
-		bLightOn = false;
-	}
-	else
-	{
-		bLightOn = true;
-	}
+	bLightOn = !bLightOn;
 }
 
 void ATCCarBase::OnRep_UpdateGas()
@@ -372,13 +393,13 @@ void ATCCarBase::OnRep_bLightOn()
 {
 	if (bLightOn)
 	{
-		HeadLight_R->SetVisibility(false);
-		HeadLight_L->SetVisibility(false);
+		HeadLight_R->SetVisibility(true);
+		HeadLight_L->SetVisibility(true);
 	}
 	else
 	{
-		HeadLight_R->SetVisibility(true);
-		HeadLight_L->SetVisibility(true);
+		HeadLight_R->SetVisibility(false);
+		HeadLight_L->SetVisibility(false);
 	}
 }
 
@@ -416,16 +437,28 @@ void ATCCarBase::SitByPassenger(APawn* InPawn, APlayerController* InPC)
 		}
 	}
 
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(PlayerCharacter);
+	if (MyCharacter)
+	{
+		MyCharacter->SetPlayerVisiblityInClient(false);
+		MyCharacter->InActivateVisionComponent();
+		VisionComponent->SetVisibility(true, true);
+		VisionComponent->ActivateVisionComponent();
+	}
+
 }
 
 void ATCCarBase::SitByDriver(APawn* InPawn, APlayerController* InPC)
 {
 	if (!(InPawn->IsLocallyControlled())) return;
+
+
 	AMyPlayerController* PC = Cast<AMyPlayerController>(InPC);
 	if (!PC) return;
 
 	ACharacter* PlayerCharacter = Cast<ACharacter>(InPawn);
 	if (!PlayerCharacter) return;
+
 
 	PlayerCharacter->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
@@ -440,6 +473,57 @@ void ATCCarBase::SitByDriver(APawn* InPawn, APlayerController* InPC)
 
 	PC->ServerRPCSetOwningCar(this, InPawn, true);
 	PC->ServerRPCChangePossess(this);
+
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(PlayerCharacter);
+	if (MyCharacter)
+	{
+		MyCharacter->SetPlayerVisiblityInClient(false);
+		MyCharacter->InActivateVisionComponent();
+		VisionComponent->SetVisibility(true, true);
+		VisionComponent->ActivateVisionComponent();
+	}
+}
+
+void ATCCarBase::OnRep_bEngineOn()
+{
+	//시동기능 생기면추가 이동예정
+	if(bEngineOn)
+	if (EngineAudioComp)
+	{
+		EngineAudioComp->Play();
+	}
+
+	TWeakObjectPtr<ATCCarBase> WeakThis(this);
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			SoundHandler,
+			FTimerDelegate::CreateLambda([WeakThis]()
+				{
+					if (!WeakThis.IsValid())
+						return;
+					float SpeedKmh = WeakThis->ChaosVehicleMovement->GetForwardSpeed();
+					SpeedKmh = FMath::Abs(SpeedKmh) * 0.036f;
+					float Pitch = FMath::GetMappedRangeValueClamped(
+						FVector2D(0.f, 240.f),
+						FVector2D(0.5f, 1.6f),
+						SpeedKmh
+					);
+
+					WeakThis->EngineAudioComp->SetPitchMultiplier(Pitch);
+				}),
+			0.02f,
+			true,
+			0.f
+		);
+	}
+	if (!bEngineOn)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(SoundHandler);
+		EngineAudioComp->Stop();
+	}
+	//
 }
 
 void ATCCarBase::ExitVehicle(APawn* InPawn, APlayerController* InPC)
@@ -461,6 +545,15 @@ void ATCCarBase::ExitVehicle(APawn* InPawn, APlayerController* InPC)
 	if (CarWidgetInstance)
 	{
 		UISubsystem->HideUI(EUIType::Car);
+	}
+
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(Pawn);
+	if (MyCharacter)
+	{
+		MyCharacter->SetPlayerVisiblityInClient(true);
+		MyCharacter->ActivateVisionComponent();
+		VisionComponent->SetVisibility(false, true);
+		VisionComponent->InActivateVisionComponent();
 	}
 
 	PC->ServerRPCRequestExit(Pawn, InPC, this);
@@ -491,6 +584,7 @@ void ATCCarBase::AddPassenger(APawn* InPawn, bool IsDriver)
 	InPawn->AttachToComponent(
 		SceneComponent,
 		FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
 	InPawn->SetActorRelativeLocation(FVector::ZeroVector);
 	InPawn->SetActorRelativeRotation(FRotator::ZeroRotator);
 
@@ -498,10 +592,13 @@ void ATCCarBase::AddPassenger(APawn* InPawn, bool IsDriver)
 	{
 		if (!DriverPawn)
 		{
+			bEngineOn = true;
 			DriverPawn = InPawn;
+			IsDriverPawn = true;
 		}
 		else
 		{
+			IsDriverPawn = false;
 			DriverPawn = nullptr;
 		}
 	}
@@ -512,6 +609,11 @@ void ATCCarBase::AddPassenger(APawn* InPawn, bool IsDriver)
 	}
 
 	Passengers.Add(InPawn);
+	if (Passengers.Num() >= 2)
+	{
+		bCanRide = false;
+	}
+	MulticastHideCharacter(InPawn);
 }
 
 void ATCCarBase::ServerRPCUpdateFuel_Implementation(float InValue)
@@ -538,6 +640,11 @@ void ATCCarBase::Activate(AActor* InInstigator)
 	if (!PC) return;
 
 	ShowInterActionUI(PC);
+}
+
+void ATCCarBase::MulticastHideCharacter_Implementation(APawn* InPawn)
+{
+	InPawn->SetActorHiddenInGame(true);
 }
 
 bool ATCCarBase::FindDismountLocation(APawn* InPawn, FVector& OutLocation) const
@@ -651,7 +758,7 @@ void ATCCarBase::ExecuteCommand(ECarCommand Command, APawn* InPawn, APlayerContr
 	}
 }
 
-TArray<ECarCommand> ATCCarBase::GetAvailableCommands() const
+TArray<ECarCommand> ATCCarBase::GetAvailableCommands()
 {
 	TArray<ECarCommand> Commands;
 
@@ -659,11 +766,11 @@ TArray<ECarCommand> ATCCarBase::GetAvailableCommands() const
 	{
 		Commands.Add(ECarCommand::AddFuel);
 	}
-	if (Passengers.Num() <= 2)
+	if (bCanRide)
 	{
 		Commands.Add(ECarCommand::SitByPassenger);
 	}
-	if (!DriverPawn)
+	if (!IsDriverPawn && bCanRide)
 	{
 		Commands.Add(ECarCommand::SitByDriver);
 	}
@@ -717,19 +824,24 @@ void ATCCarBase::ShowCharacter(APawn* InPawn, APlayerController* InPC)
 
 	if (InPawn == DriverPawn)
 	{
+		bEngineOn = false;
 		PC->ServerRPCChangePossess(DriverPawn);
 		DriverPawn = nullptr;
+		IsDriverPawn = false;
 	}
 
 	if (Passengers.Contains(InPawn))
 	{
 		Passengers.Remove(InPawn);
 	}
+	if (Passengers.Num() < 2)
+	{
+		bCanRide = true;
+	}
 
 	InPawn->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	PlayerCharacter->TeleportTo(OutLocation, OutRotation);
 
-	PlayerCharacter->SetActorHiddenInGame(false);
 	PlayerCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 
 	MulticastShowCharacter(InPawn, OutLocation, OutRotation);
@@ -742,6 +854,8 @@ void ATCCarBase::MulticastShowCharacter_Implementation(APawn* InPawn, const FVec
 
 	UCapsuleComponent* Capsule = PlayerCharacter->GetCapsuleComponent();
 	Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+	PlayerCharacter->SetActorHiddenInGame(false);
 
 }
 

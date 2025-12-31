@@ -61,8 +61,8 @@ private:
 	UFUNCTION()
 	void OnRep_PlayerInventoryData();
 
-	UFUNCTION(Client, Reliable)
-	void Client_ForceRefreshInventoryUI();
+	//UFUNCTION(Client, Reliable)
+	//void Client_ForceRefreshInventoryUI();
 
 public:
 	FOnPlayerInventoryReady OnInventoryReady;
@@ -73,9 +73,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	FIntPoint DefaultInventorySize = FIntPoint(5, 2);
-
-	UPROPERTY(EditDefaultsOnly, Category = "World Drop")
-	TSubclassOf<AItemWrapperActor> WorldItemClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "World Drop")
 	float DropForwardOffset = 80.f;

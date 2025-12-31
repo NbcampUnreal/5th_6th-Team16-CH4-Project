@@ -12,6 +12,9 @@
 #include "Item/ItemComponent/ItemComponentBase.h"
 #include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "AI/MyAICharacter.h"
+#include "Item/ItemSpawnSubsystem.h"
+#include "Inventory/LootRollSubsystem.h"
+#include <Kismet/GameplayStatics.h>
 
 UWorldContainerComponent::UWorldContainerComponent()
 {
@@ -22,11 +25,6 @@ UWorldContainerComponent::UWorldContainerComponent()
 void UWorldContainerComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-    //if (!GetOwner() || !GetOwner()->HasAuthority())
-    //{
-    //    return;
-    //}
 
     AActor* Owner = GetOwner();
     if (!Owner)
@@ -61,27 +59,55 @@ void UWorldContainerComponent::BeginPlay()
         {
             SenseBox->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
         }
+
+        SenseBox->UpdateOverlaps();
+        GetOwner()->ForceNetUpdate();
     }
 
-	if (!ContainerId.IsValid())
-	{
-		ContainerId = FGuid::NewGuid(); // 테스트용
-	}
+    if (!GetOwner()->HasAuthority())
+    {
+        return;
+    }
 
 	InventoryData = NewObject<UInventoryData>(this);
 	InventoryData->Init(GridSize);
 
-    /*UItemInstance* NewItem = NewObject<UItemInstance>(InventoryData);
-    NewItem->SetItemId(TEXT("Axe1"));
+    ULootRollSubsystem* LootSub = UGameInstance::GetSubsystem<ULootRollSubsystem>(GetWorld()->GetGameInstance());
+    if (!LootSub)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[WorldContainer] LootSub is null"));
+        return;
+    }
 
-    InventoryData->TryAddItem(NewItem, FIntPoint::ZeroValue, false);*/
+    TArray<FName> RolledItemIds;
+    if (!LootSub->RollLoot(ContainerType, RolledItemIds))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[WorldContainer] RollLoot failed. ContainerType=%s"), *ContainerType.ToString());
+        return;
+    }
 
-    AItemWrapperActor* ItemActor = GetWorld()->SpawnActor<AItemWrapperActor>(Owner->GetActorLocation(), FRotator::ZeroRotator);
+    for (const FName& ItemId : RolledItemIds)
+    {
+        if (ItemId.IsNone())
+        {
+            continue;
+        }
 
-    UItemInstance* NewItem = NewObject<UItemInstance>(ItemActor);
-    NewItem->SetItemId(FName("Axe1"));
+        UItemInstance* NewItem = NewObject<UItemInstance>(InventoryData);
+        NewItem->SetItemId(ItemId);
 
-    ItemActor->SetItemInstance(NewItem);
+        bool bPlaced = false;
+        for (int32 Y = 0; Y < GridSize.Y && !bPlaced; ++Y)
+        {
+            for (int32 X = 0; X < GridSize.X && !bPlaced; ++X)
+            {
+                if (InventoryData->TryAddItem(NewItem, FIntPoint(X, Y), false, false))
+                {
+                    bPlaced = true;
+                }
+            }
+        }
+    }
 
     GetOwner()->ForceNetUpdate();
 }

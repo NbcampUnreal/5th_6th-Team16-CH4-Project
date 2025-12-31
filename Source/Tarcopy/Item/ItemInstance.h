@@ -63,6 +63,8 @@ public:
 
 	void CancelAllComponentActions();
 
+	bool RemoveFromSource();
+
 protected:
 	UFUNCTION()
 	void OnRep_SetData();
@@ -90,7 +92,7 @@ protected:
 	UPROPERTY(Replicated)
 	TWeakObjectPtr<UInventoryData> OwnerInventory;
 	UPROPERTY(ReplicatedUsing = OnRep_SetOwnerCharacter)
-	TWeakObjectPtr<ACharacter> OwnerCharacter;
+	TWeakObjectPtr<ACharacter> OwnerCharacter;					// 장착중일 때에만 캐릭터 저장
 
 	const FItemData* Data = nullptr;
 

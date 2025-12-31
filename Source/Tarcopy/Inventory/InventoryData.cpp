@@ -7,6 +7,7 @@
 #include "Misc/Guid.h"
 #include "Item/Data/ItemData.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/ActorChannel.h"
 
 void UInventoryData::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -269,11 +270,30 @@ void UInventoryData::ForceRefreshNextTick()
 {
 	if (UWorld* W = GetWorld())
 	{
-		W->GetTimerManager().SetTimerForNextTick([this]()
+		TWeakObjectPtr<UInventoryData> WeakThis(this);
+		W->GetTimerManager().SetTimerForNextTick([WeakThis]()
 			{
-				FixupAfterReplication();
+				if (WeakThis.IsValid())
+				{
+					WeakThis->FixupAfterReplication();
+				}
 			});
 	}
+}
+
+bool UInventoryData::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool bWrote = Channel->ReplicateSubobject(this, *Bunch, *RepFlags);
+
+	for (const FInventoryItemEntry& Entry : ReplicatedItems.Items)
+	{
+		if (IsValid(Entry.Item))
+		{
+			bWrote |= Entry.Item->ReplicateSubobjects(Channel, Bunch, RepFlags);
+		}
+	}
+
+	return bWrote;
 }
 
 bool UInventoryData::CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated, const UItemInstance* IgnoreItem) const
@@ -371,7 +391,7 @@ void FInventoryItemList::PostReplicatedAdd(const TArrayView<int32>&, int32)
 {
 	if (Owner)
 	{
-		Owner->FixupAfterReplication();
+		Owner->ForceRefreshNextTick();
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("[Client] PostReplicatedAdd Owner=%s (%p) IsBound=%d Items=%d"),
@@ -385,8 +405,7 @@ void FInventoryItemList::PostReplicatedChange(const TArrayView<int32>&, int32)
 {
 	if (Owner)
 	{
-		Owner->RebuildCellsFromReplicatedItems();
-		Owner->OnInventoryChanged.Broadcast();
+		Owner->ForceRefreshNextTick();
 	}
 }
 
@@ -394,7 +413,6 @@ void FInventoryItemList::PostReplicatedRemove(const TArrayView<int32>&, int32)
 {
 	if (Owner)
 	{
-		Owner->RebuildCellsFromReplicatedItems();
-		Owner->OnInventoryChanged.Broadcast();
+		Owner->ForceRefreshNextTick();
 	}
 }

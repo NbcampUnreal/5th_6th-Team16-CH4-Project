@@ -16,6 +16,8 @@
 #include "Car/TCCarBase.h"
 #include "Inventory/WorldContainerComponent.h"
 #include "Components/BoxComponent.h"
+#include "Tarcopy.h"
+#include "Components/AudioComponent.h"
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
@@ -47,12 +49,23 @@ AMyAICharacter::AMyAICharacter() :
 
 	WorldContainerComponent = CreateDefaultSubobject<UWorldContainerComponent>(TEXT("WorldContainerComponent"));
 	WorldContainerComponent->SetupAttachment(RootComponent);
+
+	EnemyAudioComp = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudioComp"));
+	EnemyAudioComp->SetupAttachment(GetMesh());
+	EnemyAudioComp->bAutoActivate = false;
+	EnemyAudioComp->bAllowSpatialization = true;
+	EnemyAudioComp->SetIsReplicated(false);
 }
 
 
 void AMyAICharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (HasAuthority())
+	{
+		PlayEnemySound(EnemyIdleSound);
+	}
 
 	Tags.Add(FName("InVisible"));
 	SetActorHiddenInGame(true);
@@ -112,6 +125,7 @@ void AMyAICharacter::OnVisionMeshBeginOverlap(
 
 	AMyCharacter* Player = Cast<AMyCharacter>(OtherActor);
 	ATCCarBase* Car = Cast<ATCCarBase>(OtherActor);
+	
 	if (IsValid(Player))
 	{
 		if (Player->IsPlayerControlled() == false)
@@ -122,12 +136,13 @@ void AMyAICharacter::OnVisionMeshBeginOverlap(
 		{
 			TargetActor = Player;
 			StateTreeComponent->SendStateTreeEvent(ToChase);
+			PlayEnemySound(EnemyFollowingSound);
 			GetWorldTimerManager().ClearTimer(EndOverlapTimer);
 		}
 	}
 	else if (IsValid(Car))
 	{
-		if (Car->IsPawnControlled() == false) 
+		if (Car->IsPawnControlled() == false)
 		{
 			return;
 		}
@@ -135,6 +150,7 @@ void AMyAICharacter::OnVisionMeshBeginOverlap(
 		{
 			TargetActor = Car;
 			StateTreeComponent->SendStateTreeEvent(ToChase);
+			PlayEnemySound(EnemyFollowingSound);
 			GetWorldTimerManager().ClearTimer(EndOverlapTimer);
 		}
 	}
@@ -155,27 +171,30 @@ void AMyAICharacter::OnVisionMeshEndOverlap(
 		return;
 	}
 
+
 	AMyCharacter* Player = Cast<AMyCharacter>(OtherActor);
 	ATCCarBase* Car = Cast<ATCCarBase>(OtherActor);
 	if (IsValid(Player))
 	{
-		if (Player->IsPlayerControlled() == false) 
+		if (Player->IsPlayerControlled() == false)
 		{
 			return;
 		}
 		if (OtherComp == Player->GetCapsuleComponent())
 		{
-			GetWorldTimerManager().SetTimer(EndOverlapTimer, this, &AMyAICharacter::ChaseToPatrol, 1.0f, false);			
+			PlayEnemySound(EnemyIdleSound);
+			GetWorldTimerManager().SetTimer(EndOverlapTimer, this, &AMyAICharacter::ChaseToPatrol, 1.0f, false);
 		}
 	}
 	else if (IsValid(Car))
 	{
-		if (Car->IsPawnControlled() == false) 
+		if (Car->IsPawnControlled() == false)
 		{
 			return;
 		}
 		if (OtherComp == Car->GetMesh())
 		{
+			PlayEnemySound(EnemyIdleSound);
 			GetWorldTimerManager().SetTimer(EndOverlapTimer, this, &AMyAICharacter::ChaseToPatrol, 1.0f, false);
 		}
 	}
@@ -212,42 +231,47 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 		return;
 	}
 
-	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
-	if (AnimInst)
-	{
-		PlayAnimMontage(AM_Attack);
-		bIsAttack = true;
-		GetCharacterMovement()->DisableMovement();
-		FOnMontageEnded AttackMontageEnded;
-		AttackMontageEnded.BindUObject(this, &AMyAICharacter::OnAttackMontageEnded);
-		AnimInst->Montage_SetEndDelegate(AttackMontageEnded, AM_Attack);
-	}
-
 	FHitResult Hit;
-	FVector StartLocation = ContextActor->GetActorLocation() + FVector({ 0.f, 0.f, 80.f });
-	FVector EndLocation = DamagedActor->GetActorLocation() + FMath::FRandRange(0.f, 80.f);
+	FVector StartLocation = ContextActor->GetActorLocation() + FVector(0.f, 0.f, 60.f);
+	FVector EndLocation = DamagedActor->GetActorLocation() + FVector(0.f, 0.f, FMath::FRandRange(0.f, 60.f));
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
 	Params.bTraceComplex = true;
 	Params.bReturnPhysicalMaterial = true;
 
-	bool bIsWallHit = GetWorld()->LineTraceSingleByChannel(
+	bool bIsTargetHit = GetWorld()->LineTraceSingleByChannel(
 		Hit,
 		StartLocation,
 		EndLocation,
-		ECC_Visibility,
+		ECC_EnemyAttack,
 		Params
 	);
 
-	if (!bIsWallHit)
+	if (bIsTargetHit)
 	{
-		UGameplayStatics::ApplyPointDamage(DamagedActor,
-											AttackDamage + FMath::FRandRange(-10.f, 10.f),
-											EndLocation - StartLocation, 
-											Hit, 
-											GetController(), 
-											this, 
-											UDamageType::StaticClass());
+		APawn* HitActor = Cast<APawn>(Hit.GetActor());
+		if (IsValid(HitActor))
+		{
+			PlayEnemySound(EnemyBiteSound);
+			UGameplayStatics::ApplyPointDamage(HitActor,
+				AttackDamage + FMath::FRandRange(-10.f, 10.f),
+				EndLocation - StartLocation,
+				Hit,
+				GetController(),
+				this,
+				UDamageType::StaticClass());
+
+			UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
+			if (AnimInst)
+			{
+				PlayAnimMontage(AM_Attack);
+				bIsAttack = true;
+				/*GetCharacterMovement()->DisableMovement();*/
+				FOnMontageEnded AttackMontageEnded;
+				AttackMontageEnded.BindUObject(this, &AMyAICharacter::OnAttackMontageEnded);
+				AnimInst->Montage_SetEndDelegate(AttackMontageEnded, AM_Attack);
+			}
+		}
 	}
 }
 
@@ -257,12 +281,14 @@ float AMyAICharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, 
 
 	Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
+	PlayEnemySound(EnemyHitSound);
+
 	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
 	if (AnimInst)
 	{
 		PlayAnimMontage(AM_Hit);
 		bIsHit = true;
-		GetCharacterMovement()->DisableMovement();
+		/*GetCharacterMovement()->DisableMovement();*/
 		FOnMontageEnded HitMontageEnded;
 		HitMontageEnded.BindUObject(this, &AMyAICharacter::OnHitMontageEnded);
 		AnimInst->Montage_SetEndDelegate(HitMontageEnded, AM_Hit);
@@ -297,14 +323,38 @@ void AMyAICharacter::SetRagdolled()
 {
 	StateTreeComponent->StopLogic("Dead");
 	GetCharacterMovement()->DisableMovement();
+	USkeletalMeshComponent* SMComp = GetMesh();
+	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
+	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CapsuleComp->SetCollisionProfileName(TEXT("DeadEnemy"));
+	SMComp->SetAllBodiesSimulatePhysics(true);
+	SMComp->SetCollisionProfileName(TEXT("DeadEnemy"));
+
+	/*StateTreeComponent->StopLogic("Dead");
+	GetCharacterMovement()->DisableMovement();
 
 	USkeletalMeshComponent* SMComp = GetMesh();
 	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
 
-	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	SMComp->SetAllBodiesSimulatePhysics(true);
 	CapsuleComp->SetCollisionProfileName(TEXT("Ragdoll"));
 	SMComp->SetCollisionProfileName(TEXT("Ragdoll"));
+	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SMComp->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Ignore);*/
+
+	//if (UCapsuleComponent* CapsuleComp = GetCapsuleComponent())
+	//{
+	//	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	//	CapsuleComp->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+	//}
+	//if (USkeletalMeshComponent* MeshComp = GetMesh())
+	//{
+	//	MeshComp->SetAllBodiesSimulatePhysics(true);
+	//	MeshComp->SetCollisionProfileName(TEXT("Ragdoll"));  
+	//	MeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+	//	MeshComp->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+	//	MeshComp->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	//}
 }
 
 //void AMyAICharacter::PrintRag_Implementation()
@@ -314,8 +364,8 @@ void AMyAICharacter::SetRagdolled()
 
 void AMyAICharacter::MultiRPC_HandleDeath_Implementation()
 {
-	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
 	SetRagdolled();
+	bIsDead = true;
 	WorldContainerComponent->GetSenseBox()->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 }
 
@@ -349,4 +399,22 @@ void AMyAICharacter::ChaseToPatrol()
 {
 	TargetActor = nullptr;
 	StateTreeComponent->SendStateTreeEvent(ToPatrol);
+}
+
+void AMyAICharacter::OnRep_bIsDead()
+{
+	if (bIsDead)
+	{
+		EnemyAudioComp->Stop();
+	}
+}
+
+void AMyAICharacter::PlayEnemySound_Implementation(USoundBase* NewSound)
+{
+	if (bIsDead) return;
+	if (NewSound)
+	{
+		EnemyAudioComp->SetSound(NewSound);
+		EnemyAudioComp->Play();
+	}
 }

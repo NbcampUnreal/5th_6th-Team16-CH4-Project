@@ -16,12 +16,9 @@ void UDefaultItemComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase
 	FText TextItemName = OwnerItemData->TextName;
 
 	AItemWrapperActor* WrapperActor = this->GetTypedOuter<AItemWrapperActor>();
-	if (IsValid(WrapperActor) == false)
-	{
-		UDropCommand* DropCommand = NewObject<UDropCommand>(this);
-		DropCommand->OwnerItem = GetOwnerItem();
-		DropCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Drop {0}")), TextItemName);
-		DropCommand->bExecutable = true;
-		OutCommands.Add(DropCommand);
-	}
+	UDropCommand* DropCommand = NewObject<UDropCommand>(this);
+	DropCommand->OwnerItem = GetOwnerItem();
+	DropCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Drop {0}")), TextItemName);
+	DropCommand->bExecutable = IsValid(WrapperActor) == false;
+	OutCommands.Add(DropCommand);
 }

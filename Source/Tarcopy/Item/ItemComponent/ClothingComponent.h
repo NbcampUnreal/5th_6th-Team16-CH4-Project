@@ -19,7 +19,10 @@ protected:
 	virtual void OnRep_SetComponent() override;
 
 public:
-	FORCEINLINE const FClothData* GetData() { return Data; }
+	const FClothData* GetData();
+
+private:
+	void SetData();
 
 protected:
 	/*UPROPERTY()

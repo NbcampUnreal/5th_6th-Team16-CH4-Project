@@ -25,6 +25,7 @@ public class Tarcopy : ModuleRules
             "AudioCaptureWASAPI",
             "AudioMixer",
             "SignalProcessing"
+            "Niagara",
         });
 
         PublicIncludePaths.AddRange(new[]

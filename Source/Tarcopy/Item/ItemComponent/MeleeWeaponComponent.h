@@ -25,9 +25,14 @@ public:
 protected:
 	virtual void OnRep_SetComponent() override;
 
+public:
+	const FMeleeWeaponData* GetData();
+
 private:
 	void CheckHit();
 	bool CheckIsAttackableTarget(AActor* TargetActor);
+
+	void SetData();
 
 	UFUNCTION(NetMulticast, Reliable)
 	void NetMulticast_PlayAttackMontage();

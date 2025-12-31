@@ -12,6 +12,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
 #include "Item/ItemComponent/ItemComponentBase.h"
+#include "Item/ItemSpawnSubsystem.h"
 
 // Sets default values for this component's properties
 UPlayerInventoryComponent::UPlayerInventoryComponent()
@@ -160,38 +161,16 @@ void UPlayerInventoryComponent::DropItemToWorld_Internal(UInventoryData* SourceI
         return;
     }
 
-	SourceInventory->RemoveItem(Item);
-
-	if (!WorldItemClass)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("DropItemToWorld_Internal: WorldItemClass is null"));
-		return;
-	}
-
-	ACharacter* OwnerChar = Cast<ACharacter>(GetOwner());
-	const FVector BaseLoc = OwnerChar ? OwnerChar->GetActorLocation() : GetOwner()->GetActorLocation();
-	const FVector Forward = OwnerChar ? OwnerChar->GetActorForwardVector() : GetOwner()->GetActorForwardVector();
-
-	const FVector SpawnLoc = BaseLoc + Forward * DropForwardOffset + FVector(0.f, 0.f, DropUpOffset);
-	const FRotator SpawnRot = FRotator::ZeroRotator;
-
-	FTransform SpawnTM(SpawnRot, SpawnLoc);
-
-	AItemWrapperActor* Spawned = GetWorld()->SpawnActorDeferred<AItemWrapperActor>(
-		WorldItemClass,
-		SpawnTM,
-		GetOwner(),
-		nullptr,
-		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn
-	);
-
-	if (!IsValid(Spawned))
+	if (!SourceInventory->RemoveItem(Item))
 	{
 		return;
 	}
 
-	Spawned->SetItemInstance(Item);
-	UGameplayStatics::FinishSpawningActor(Spawned, SpawnTM);
+	UItemSpawnSubsystem* ItemSpawnSubsystem = GetWorld()->GetSubsystem<UItemSpawnSubsystem>();
+	if (IsValid(ItemSpawnSubsystem) == false)
+		return;
+
+	ItemSpawnSubsystem->SpawnItemAtGround(GetOwner(), Item);
 
 	if (ULootScannerComponent* Scanner = FindLootScanner())
 	{
@@ -270,7 +249,7 @@ void UPlayerInventoryComponent::Server_RequestLootFromWorld_Implementation(AItem
 	{
 		OwnerActor->ForceNetUpdate();
 	}
-	Client_ForceRefreshInventoryUI();
+	//Client_ForceRefreshInventoryUI();
 }
 
 ULootScannerComponent* UPlayerInventoryComponent::FindLootScanner() const
@@ -296,16 +275,16 @@ void UPlayerInventoryComponent::OnRep_PlayerInventoryData()
 	OnInventoryReady.Broadcast();
 }
 
-void UPlayerInventoryComponent::Client_ForceRefreshInventoryUI_Implementation()
-{
-	if (PlayerInventoryData)
-	{
-		PlayerInventoryData->FixupAfterReplication();
-		PlayerInventoryData->OnInventoryChanged.Broadcast();
-	}
-
-	OnInventoryReady.Broadcast();
-}
+//void UPlayerInventoryComponent::Client_ForceRefreshInventoryUI_Implementation()
+//{
+//	if (PlayerInventoryData)
+//	{
+//		PlayerInventoryData->FixupAfterReplication();
+//		PlayerInventoryData->OnInventoryChanged.Broadcast();
+//	}
+//
+//	OnInventoryReady.Broadcast();
+//}
 
 void UPlayerInventoryComponent::Server_ConsumeGroundWorldItem_Implementation(UItemInstance* Item)
 {

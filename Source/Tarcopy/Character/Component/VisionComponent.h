@@ -17,6 +17,7 @@ class TARCOPY_API UVisionComponent : public USceneComponent
 
 public:
 	UVisionComponent();
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -43,6 +44,9 @@ protected:
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UStaticMeshComponent> VisionMesh;
+
+	void ActivateVisionComponent();
+	void InActivateVisionComponent();
 
 protected:
 	void InitSetting();

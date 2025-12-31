@@ -4,35 +4,36 @@
 #include "Item/ItemInstance.h"
 #include "Item/Data/ItemData.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "Item/ItemCommand/RepairCommand.h"
+#include "Item/ItemCommand/ItemNetworkCommand.h"
 #include "Net/UnrealNetwork.h"
+#include "Item/ItemNetworkContext.h"
 
 void UDurabilityComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
 
-	if (Data == nullptr)
-		return;
-
-	if (HasAuthority() == false)
+	if (GetData() == nullptr)
 		return;
 
 	Condition = Data->MaxCondition;
+	OnRep_PrintCondition();
 }
 
 void UDurabilityComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
 {
 	const FItemData* OwnerItemData = GetOwnerItemData();
 	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
-	FText TextItemName = OwnerItemData->TextName;
 
-	ensureMsgf(Data != nullptr, TEXT("No DurabilityData"));
+	ensureMsgf(GetData() != nullptr, TEXT("No DurabilityData"));
 
-	URepairCommand* RepairCommand = NewObject<URepairCommand>(this);
-	RepairCommand->OwnerComponent = this;
-	RepairCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Repair {0}")), TextItemName);
+	UItemNetworkCommand* RepairCommand = NewObject<UItemNetworkCommand>(this);
+	FItemNetworkContext IngestAllActionContext;
+	IngestAllActionContext.TargetItemComponent = this;
+	IngestAllActionContext.ActionTag = TEXT("RestoreDurability");
+	IngestAllActionContext.FloatParams.Add(1.0f);
+	RepairCommand->ActionContext = IngestAllActionContext;
+	RepairCommand->TextDisplay = FText::FromString(FString::Printf(TEXT("Repair %.1f"), 1.0f));
 	RepairCommand->bExecutable = true;
-	RepairCommand->Amount = 1.0f;
 	OutCommands.Add(RepairCommand);
 }
 
@@ -45,6 +46,62 @@ void UDurabilityComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 
 void UDurabilityComponent::OnRep_SetComponent()
 {
+	Super::OnRep_SetComponent();
+
+	SetData();
+}
+
+void UDurabilityComponent::OnExecuteAction(AActor* InInstigator, const FItemNetworkContext& NetworkContext)
+{
+	Super::OnExecuteAction(InInstigator, NetworkContext);
+
+	if (NetworkContext.ActionTag == TEXT("RestoreDurability"))
+	{
+		RestoreDurability(NetworkContext.FloatParams[0]);
+	}
+}
+
+void UDurabilityComponent::LoseDurability(float Amount)
+{
+	Condition -= Amount;
+	Condition = FMath::Max(Condition, 0.0f);
+
+	if (Condition <= 0.0f)
+	{
+		if (OwnerItem.IsValid() == true)
+		{
+			OwnerItem->RemoveFromSource();
+		}
+	}
+
+	OnRep_PrintCondition();
+}
+
+void UDurabilityComponent::RestoreDurability(float Amount)
+{
+	if (GetData() == nullptr)
+	{
+		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("No Durability data"));
+		return;
+	}
+
+	Condition += Amount;
+	Condition = FMath::Min(Condition, Data->MaxCondition);
+
+	OnRep_PrintCondition();
+}
+
+void UDurabilityComponent::OnRep_PrintCondition()
+{
+	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("Condition = %f"), Condition));
+	if (OnUpdatedItemComponent.IsBound())
+	{
+		OnUpdatedItemComponent.Broadcast();
+	}
+}
+
+void UDurabilityComponent::SetData()
+{
 	const FItemData* ItemData = GetOwnerItemData();
 	if (ItemData == nullptr)
 		return;
@@ -56,39 +113,11 @@ void UDurabilityComponent::OnRep_SetComponent()
 	Data = DataTableSubsystem->GetTable(EDataTableType::DurabilityTable)->FindRow<FDurabilityData>(ItemData->ItemId, FString(""));
 }
 
-void UDurabilityComponent::LoseDurability(float Amount)
+const FDurabilityData* UDurabilityComponent::GetData()
 {
-	if (HasAuthority() == false)
-		return;
-
-	Condition -= Amount;
-	Condition = FMath::Max(Condition, 0.0f);
-
-	OnRep_PrintCondition();
-}
-
-void UDurabilityComponent::ServerRPC_RestoreDurability_Implementation(float Amount)
-{
-	if (HasAuthority() == false)
-		return;
-
 	if (Data == nullptr)
 	{
-		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("No Durability data"));
-		return;
+		SetData();
 	}
-
-	Condition += Amount;
-	Condition = FMath::Min(Condition, Data->MaxCondition);
-	
-	OnRep_PrintCondition();
-}
-
-void UDurabilityComponent::OnRep_PrintCondition()
-{
-	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("Condition = %f"), Condition));
-	if (OnUpdatedItemComponent.IsBound())
-	{
-		OnUpdatedItemComponent.Broadcast();
-	}
+	return Data;
 }

@@ -13,6 +13,7 @@
 #include "Item/ItemComponent/ClothingComponent.h"
 #include "Item/Data/ClothDefensePreset.h"
 #include "Inventory/PlayerInventoryComponent.h"
+#include "Item/ItemSpawnSubsystem.h"
 
 const float UEquipComponent::WeightMultiplier = 0.3f;
 
@@ -41,7 +42,7 @@ void UEquipComponent::BeginPlay()
 	NewItem->SetItemId(TestEquippedItem);
 	EquipItem(EBodyLocation::RightHand, NewItem, true);
 
-	TArray<FName> Clothes = { FName(TEXT("TShirts0")), FName(TEXT("Shirt0")), FName(TEXT("Sweater0")), FName(TEXT("Bottoms0")), FName(TEXT("Back0")) };
+	TArray<FName> Clothes = { FName(TEXT("TShirts0")), FName(TEXT("Shirt0")), FName(TEXT("Sweater0")), FName(TEXT("Bottoms0")), FName(TEXT("Back0")), FName(TEXT("Shoes0")), FName(TEXT("Face0")), FName(TEXT("Eyes0")), FName(TEXT("Head0")) };
 	for (const auto& Cloth : Clothes)
 	{
 		NewItem = NewObject<UItemInstance>(this);
@@ -152,12 +153,12 @@ void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item,
 		*Item->GetOwnerCharacter()->GetName() : TEXT("Item No Owner"));*/
 }
 
-void UEquipComponent::ServerRPC_UnequipItem_Implementation(UItemInstance* Item, bool bDrop)
+void UEquipComponent::ServerRPC_UnequipItem_Implementation(UItemInstance* Item, EUnequipType Type)
 {
-	UnequipItem(Item, bDrop);
+	UnequipItem(Item, Type);
 }
 
-void UEquipComponent::UnequipItem(UItemInstance* Item, bool bDrop)
+void UEquipComponent::UnequipItem(UItemInstance* Item, EUnequipType Type)
 {
 	AMyCharacter* OwnerCharacter = Cast<AMyCharacter>(GetOwner());
 	if (IsValid(OwnerCharacter) == false || OwnerCharacter->HasAuthority() == false)
@@ -187,6 +188,7 @@ void UEquipComponent::UnequipItem(UItemInstance* Item, bool bDrop)
 	if (bEquipped == false)
 		return;
 
+	Item->CancelAllComponentActions();
 	Item->SetOwnerCharacter(nullptr);
 
 	UClothingComponent* ClothComponent = Item->GetItemComponent<UClothingComponent>();
@@ -204,7 +206,10 @@ void UEquipComponent::UnequipItem(UItemInstance* Item, bool bDrop)
 		NetMulticast_SetOwnerHoldingItemEmpty();
 	}
 
-	if (bDrop == false)
+	if (Type == EUnequipType::Destroy)
+		return;
+
+	if (Type == EUnequipType::ReturnInventory)
 	{
 		UPlayerInventoryComponent* InventoryComponent = GetOwner()->FindComponentByClass<UPlayerInventoryComponent>();
 		if (IsValid(InventoryComponent) == true)
@@ -221,16 +226,11 @@ void UEquipComponent::UnequipItem(UItemInstance* Item, bool bDrop)
 		}
 	}
 
-	FVector SpawnLocation = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 40.0f;
-	AItemWrapperActor* ItemWrapperActor = GetWorld()->SpawnActor<AItemWrapperActor>(
-		AItemWrapperActor::StaticClass(),
-		SpawnLocation,
-		FRotator::ZeroRotator);
+	UItemSpawnSubsystem* ItemSpawnSubsystem = GetWorld()->GetSubsystem<UItemSpawnSubsystem>();
+	if (IsValid(ItemSpawnSubsystem) == false)
+		return;
 
-	if (IsValid(ItemWrapperActor) == true)
-	{
-		ItemWrapperActor->SetItemInstance(Item);
-	}
+	ItemSpawnSubsystem->SpawnItemAtGround(GetOwner(), Item);
 }
 
 bool UEquipComponent::RemoveItemFromInventory(UItemInstance* Item)
@@ -239,31 +239,10 @@ bool UEquipComponent::RemoveItemFromInventory(UItemInstance* Item)
 	if (IsValid(OwnerCharacter) == false || OwnerCharacter->HasAuthority() == false)
 		return false;
 
-	if (OwnerCharacter->HasAuthority() == false)
-		return false;
-
 	if (IsValid(Item) == false)
 		return false;
 
-	const FItemData* ItemData = Item->GetData();
-	if (ItemData == nullptr)
-		return false;
-
-	bool bIsExist = false;
-	if (AItemWrapperActor* ActorItem = Item->GetTypedOuter<AItemWrapperActor>())
-	{
-		bIsExist = true;
-		ActorItem->Destroy();
-	}
-	else
-	{
-		UInventoryData* InventoryData = Item->GetOwnerInventory();
-		if (IsValid(InventoryData) == true)
-		{
-			bIsExist = InventoryData->RemoveItem(Item);
-		}
-	}
-	return bIsExist;
+	return Item->RemoveFromSource();
 }
 
 void UEquipComponent::CalculateFinalDamageTakenMultiplier()

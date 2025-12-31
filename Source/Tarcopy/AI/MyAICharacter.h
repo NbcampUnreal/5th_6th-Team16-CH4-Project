@@ -132,4 +132,29 @@ protected:
 	TObjectPtr<UWorldContainerComponent> WorldContainerComponent;
 
 #pragma endregion
+
+#pragma region Sound
+	UPROPERTY(EditDefaultsOnly)
+	UAudioComponent* EnemyAudioComp;
+	
+	UPROPERTY(EditDefaultsOnly)
+	USoundBase* EnemyIdleSound;
+	UPROPERTY(EditDefaultsOnly)
+	USoundBase* EnemyFollowingSound;
+
+	UPROPERTY(EditDefaultsOnly)
+	USoundBase* EnemyBiteSound;
+
+	UPROPERTY(EditDefaultsOnly)
+	USoundBase* EnemyHitSound;
+
+	UFUNCTION(NetMulticast,Unreliable)
+	void PlayEnemySound(USoundBase* NewSound);
+
+	UPROPERTY(ReplicatedUsing = OnRep_bIsDead)
+	uint8 bIsDead : 1 = false;
+
+	UFUNCTION()
+	void OnRep_bIsDead();
+	
 };

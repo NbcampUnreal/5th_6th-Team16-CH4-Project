@@ -21,7 +21,7 @@ AItemWrapperActor::AItemWrapperActor()
 	LootSphere->SetCollisionObjectType(ECC_WorldDynamic);
 	LootSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	LootSphere->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
-	LootSphere->SetGenerateOverlapEvents(true);
+	LootSphere->SetGenerateOverlapEvents(false);
 
 	DefaultMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DefaultMesh"));
 	DefaultMesh->SetupAttachment(SceneRoot);
@@ -39,6 +39,7 @@ void AItemWrapperActor::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME(ThisClass, CurrentMeshAsset);
 	DOREPLIFETIME(ThisClass, ItemInstance);
 }
 
@@ -47,16 +48,7 @@ bool AItemWrapperActor::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* B
 	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 	if (IsValid(ItemInstance) == true)
 	{
-		bWroteSomething |= Channel->ReplicateSubobject(ItemInstance, *Bunch, *RepFlags);
-
-		const auto& ItemComponents = ItemInstance->GetItemComponents();
-		for (const auto& ItemComponent : ItemComponents)
-		{
-			if (IsValid(ItemComponent) == false)
-				continue;
-
-			bWroteSomething |= Channel->ReplicateSubobject(ItemComponent, *Bunch, *RepFlags);
-		}
+		bWroteSomething |= ItemInstance->ReplicateSubobjects(Channel, Bunch, RepFlags);
 	}
 	return bWroteSomething;
 }
@@ -71,6 +63,8 @@ void AItemWrapperActor::SetItemInstance(UItemInstance* InItemInstance)
 
 	ItemInstance = InItemInstance;
 	ItemInstance->SetOwnerObject(this);
+
+	OnRep_SetItem();
 
 	const FItemData* ItemData = ItemInstance->GetData();
 	if (ItemData == nullptr)
@@ -90,4 +84,10 @@ void AItemWrapperActor::OnRep_SetMesh()
 	{
 		DefaultMesh->SetStaticMesh(CurrentMeshAsset);
 	}
+}
+
+void AItemWrapperActor::OnRep_SetItem()
+{
+	LootSphere->SetGenerateOverlapEvents(true);
+	UpdateOverlaps();
 }

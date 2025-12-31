@@ -55,7 +55,6 @@ protected:
 	TObjectPtr<USpringArmComponent> SpringArm;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
-	/*TObjectPtr<UStaticMeshComponent> VisionMesh;*/
 	TObjectPtr<UVisionComponent> VisionComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Interaction", meta = (AllowPrivateAccess = "true"))
@@ -66,6 +65,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Equip", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UHealthComponent> HealthComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Equip", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UItemNetworkComponent> ItemNetworkComponent;
 
 	UFUNCTION()
 	virtual void OnInteractionSphereBeginOverlap(
@@ -81,21 +83,6 @@ protected:
 		AActor* OtherActor,
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
-
-	//UFUNCTION()
-	//virtual void OnVisionMeshBeginOverlap(
-	//	UPrimitiveComponent* OverlappedComp,
-	//	AActor* OtherActor,
-	//	UPrimitiveComponent* OtherComp,
-	//	int32 OtherBodyIndex,
-	//	bool bFromSweep,
-	//	const FHitResult& SweepResult);
-	//UFUNCTION()
-	//virtual void OnVisionMeshEndOverlap(
-	//	UPrimitiveComponent* OverlappedComp,
-	//	AActor* OtherActor,
-	//	UPrimitiveComponent* OtherComp,
-	//	int32 OtherBodyIndex);
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components|Viewport", meta = (AllowPrivateAccess = "true"))
@@ -113,7 +100,9 @@ protected:
 #pragma region Vision Component
 
 public:
-	void SetPlayerVisible();
+	void SetPlayerVisiblityInClient(bool bShouldVisible);
+	void ActivateVisionComponent();
+	void InActivateVisionComponent();
 
 #pragma endregion
 
@@ -165,6 +154,8 @@ protected:
 
 public:
 	bool IsAiming() { return bIsAttackMode; }
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_SetAiming(bool bInIsAttackMode);
 
 protected:
 	UFUNCTION()
@@ -244,6 +235,9 @@ public:
 
 	void SetHoldingItemMesh(UStaticMesh* ItemMeshAsset, const FName& SocketName = NAME_None);
 	void SetAnimPreset(EHoldableType Type);
+
+	FVector GetAttackStartLocation() const;
+	UStaticMeshComponent* GetHoldingItemMesh() const { return HoldingItemMeshComponent; }
 
 	void GetNearbyInventoryDatas(TArray<class UInventoryData*>& InventoryDatas);
 

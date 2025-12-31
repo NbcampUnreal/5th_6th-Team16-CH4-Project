@@ -19,13 +19,7 @@ class UUISubsystem;
 class UTCCarActivate;
 class USceneComponent;
 struct FInputActionValue;
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
-	FOnCarRideStateChanged,
-	APawn*, OldPawn,
-	APawn*, NewPawn
-
-);
+class UVisionComponent;
 
 UCLASS(abstract)
 class ATCCarBase : public AWheeledVehiclePawn, public IActivateInterface
@@ -53,6 +47,12 @@ class ATCCarBase : public AWheeledVehiclePawn, public IActivateInterface
 	UPROPERTY(EditDefaultsOnly)
 	USpotLightComponent* HeadLight_L;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UVisionComponent> VisionComponent;
+
+	UPROPERTY(EditDefaultsOnly)
+	UAudioComponent* EngineAudioComp;
+
 	
  
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> ChaosVehicleMovement;
@@ -76,6 +76,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* InterAction;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* WheelAction;
 
 public:
 	ATCCarBase();
@@ -112,6 +115,8 @@ protected:
 	void StopHandbrake(const FInputActionValue& Value);
 
 	void ToggleLight(const FInputActionValue& Value);
+
+	void StartWheel(const FInputActionValue& Value);
 
 	void StartInterAction(const FInputActionValue& Value);
 
@@ -163,7 +168,7 @@ public:
 	float MaxFuel;
 
 	UPROPERTY(ReplicatedUsing = OnRep_bLightOn)
-	bool bLightOn;
+	uint8 bLightOn : 1;
 
 	FTimerHandle GasHandler;
 
@@ -171,7 +176,7 @@ public:
 	float MoveFactor;
 
 	UPROPERTY(Replicated)
-	bool bCanMove;
+	uint8 bCanMove : 1;
 
 public:
 	FORCEINLINE USpringArmComponent* GetFrontSpringArm() const { return SpringArm; }
@@ -196,10 +201,12 @@ public:
 	UFUNCTION()
 	void ShowCharacter(APawn* InPawn, APlayerController* InPC);
 
-	UFUNCTION(NetMulticast,Reliable)
+	UFUNCTION(NetMulticast, Reliable)
 
 	void MulticastShowCharacter(APawn* InPawn, const FVector& OutLocation,const FRotator& OutRotation);
 
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastHideCharacter(APawn* InPawn);
 	UFUNCTION()
 	bool FindDismountLocation(APawn* InPawn, FVector& OutLocation) const;
 
@@ -222,7 +229,7 @@ public:
 	void ExecuteCommand(ECarCommand Command, APawn* InPawn, APlayerController* InPC);
 
 	UFUNCTION(BlueprintCallable)
-	TArray<ECarCommand> GetAvailableCommands() const;
+	TArray<ECarCommand> GetAvailableCommands();
 
 	UFUNCTION()
 	void ShowInterActionUI(APlayerController* InPC);
@@ -235,9 +242,6 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<UTCCarActivate> UI;
-
-	UPROPERTY(BlueprintAssignable)
-	FOnCarRideStateChanged OnCarRideChanged;
 
 	UPROPERTY(ReplicatedUsing = OnRep_Passengers)
 	TArray<APawn*> Passengers;
@@ -255,8 +259,21 @@ public:
 	void SitByDriver(APawn* InPawn, APlayerController* InPC);
 
 	UPROPERTY(Replicated)
-	APawn* DriverPawn;
+	TObjectPtr<APawn> DriverPawn;
 
+	UPROPERTY(Replicated)
+	uint8 IsDriverPawn : 1;
 #pragma region endregion
+
+#pragma region Audio
+
+	FTimerHandle SoundHandler;
+
+	UPROPERTY(ReplicatedUsing = OnRep_bEngineOn)
+	uint8 bEngineOn : 1;
+
+	UFUNCTION()
+	void OnRep_bEngineOn();
+
 	
 };

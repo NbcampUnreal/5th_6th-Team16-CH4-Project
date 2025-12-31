@@ -23,6 +23,8 @@ enum class EUIType : uint8
     ItemCommandMenu,
     Car,
     CarInteraction,
+    MoodleList,
+    Health,
     Test
 };
 
