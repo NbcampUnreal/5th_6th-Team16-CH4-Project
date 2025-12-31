@@ -17,6 +17,8 @@
 #include "Inventory/InventoryData.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
+#include "Sound/SoundBase.h"
+#include "Item/Data/ItemSoundData.h"
 
 const float UFirearmComponent::PerfectShotMultiplier = 1.5f;
 
@@ -174,6 +176,7 @@ void UFirearmComponent::CheckHit(const FVector& StartLocation, const FVector& En
 
 	// 나이아가라 트레일 연출
 	NetMulticast_ShowFireEffect(ActualEndLocation);
+	NetMulticast_SoundFireEffect();
 
 	float MinRangeSquared = FMath::Square(Data->MinRange);
 	float MaxRangeSquared = FMath::Square(Data->MaxRange);
@@ -272,6 +275,27 @@ void UFirearmComponent::NetMulticast_ShowFireEffect_Implementation(const FVector
 
 		NiagaraComponent->SetAutoDestroy(true);
 	}
+}
+
+void UFirearmComponent::NetMulticast_SoundFireEffect_Implementation()
+{
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(GetOwnerCharacter());
+	if (IsValid(MyCharacter) == false)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	FItemSoundData* SoundData = DataTableSubsystem->GetTable(EDataTableType::ItemSoundTable)->FindRow<FItemSoundData>(TEXT("SFXPistol"), FString(""));
+	if (SoundData == nullptr)
+		return;
+
+	FVector Location = MyCharacter->GetAttackStartLocation();
+	UGameplayStatics::PlaySoundAtLocation(
+		this,
+		SoundData->Sound,
+		Location);
 }
 
 void UFirearmComponent::SetData()
