@@ -22,6 +22,7 @@ protected:
 	virtual void OnExecuteAction(AActor* InInstigator, const struct FItemNetworkContext& NetworkContext) override;
 
 public:
+	FORCEINLINE float GetRemainAmount() { return Amount / TotalAmount; }
 	const FFoodData* GetData();
 
 private:

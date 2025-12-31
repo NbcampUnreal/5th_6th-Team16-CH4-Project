@@ -10,9 +10,13 @@
 
 void UUW_FoodInfo::BindItem(UItemInstance* InItem)
 {
-	auto Data = InItem->GetItemComponent<UFoodComponent>()->GetData();
+	CachedComponent = InItem->GetItemComponent<UFoodComponent>();
+	auto Data = CachedComponent->GetData();
+
 
 	HungerTxt->SetText(FText::FromString(FString::Printf(TEXT("%.1f"), Data->Hunger)));
 
 	ThirstTxt->SetText(FText::FromString(FString::Printf(TEXT("%.1f"), Data->Thirst)));
+
+	RemainAmountTxt->SetText(FText::FromString(FString::Printf(TEXT("%.0f%%"), CachedComponent->GetRemainAmount() * 100.0f)));
 }

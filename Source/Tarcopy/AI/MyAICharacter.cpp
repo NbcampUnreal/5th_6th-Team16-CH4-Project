@@ -48,6 +48,7 @@ AMyAICharacter::AMyAICharacter() :
 	StateTreeComponent->SetStartLogicAutomatically(false);
 
 	WorldContainerComponent = CreateDefaultSubobject<UWorldContainerComponent>(TEXT("WorldContainerComponent"));
+	WorldContainerComponent->SetContainerType(TEXT("Zombie"));
 	WorldContainerComponent->SetupAttachment(RootComponent);
 
 	EnemyAudioComp = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudioComp"));

@@ -69,7 +69,7 @@ void UUW_NearbyPanel::RefreshContainerList()
 		return;
 	}
 
-	TSet<UInventoryData*> AvailableInv;
+	TMap<UInventoryData*, FName> AvailableInv;
 
 	for (const TWeakObjectPtr<UWorldContainerComponent>& C : BoundScanner->OverlappedContainers)
 	{
@@ -79,7 +79,7 @@ void UUW_NearbyPanel::RefreshContainerList()
 		}
 		if (UInventoryData* Inv = C->GetInventoryData())
 		{
-			AvailableInv.Add(Inv);
+			AvailableInv.Add(Inv, C->GetContainerType());
 		}
 	}
 
@@ -102,7 +102,7 @@ void UUW_NearbyPanel::RefreshContainerList()
 		{
 			if (UInventoryData* Inv = ContainerComp->GetInventoryData())
 			{
-				AvailableInv.Add(Inv);
+				AvailableInv.Add(Inv, "Bag");
 			}
 		}
 	}
@@ -119,17 +119,18 @@ void UUW_NearbyPanel::RefreshContainerList()
 
 	ContainerScrollBox->ClearChildren();
 
-	for (UInventoryData* Inv : AvailableInv)
+	for (const auto& Pair : AvailableInv)
 	{
+		UInventoryData* Inv = Pair.Key;
 		UUW_ContainerBtn* Button = CreateWidget<UUW_ContainerBtn>(GetOwningPlayer(), ContainerBtnClass);
-		FText NameText = FText::FromString("  ");
-		Button->BindInventory(Inv, NameText);
+		Button->BindInventory(Inv, Pair.Value);
 		Button->OnClickedWithInventory.AddUObject(this, &UUW_NearbyPanel::HandleContainerSelected);
 		ContainerScrollBox->AddChild(Button);
 	}
 
-	UButton* GroundBtn = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-	GroundBtn->OnClicked.AddDynamic(this, &UUW_NearbyPanel::HandleGroundSelected);
+	UUW_ContainerBtn* GroundBtn = CreateWidget<UUW_ContainerBtn>(GetOwningPlayer(), ContainerBtnClass);
+	GroundBtn->ContainerBtn->OnClicked.AddDynamic(this, &UUW_NearbyPanel::HandleGroundSelected);
+	GroundBtn->RefreshVisual("Ground");
 	ContainerScrollBox->AddChild(GroundBtn);
 }
 

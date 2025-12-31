@@ -7,6 +7,7 @@
 #include "UW_FoodInfo.generated.h"
 
 class UTextBlock;
+class UFoodComponent;
 
 /**
  * 
@@ -25,4 +26,10 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> ThirstTxt;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> RemainAmountTxt;
+
+	UPROPERTY()
+	TWeakObjectPtr<UFoodComponent> CachedComponent;
 };
