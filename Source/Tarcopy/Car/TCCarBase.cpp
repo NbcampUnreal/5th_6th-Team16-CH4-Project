@@ -152,8 +152,6 @@ void ATCCarBase::SetupPlayerInputComponent(class UInputComponent* PlayerInputCom
 void ATCCarBase::BeginPlay()
 {
 	Super::BeginPlay();
-
-
 }
 
 void ATCCarBase::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -455,7 +453,7 @@ void ATCCarBase::SitByDriver(APawn* InPawn, APlayerController* InPC)
 {
 	if (!(InPawn->IsLocallyControlled())) return;
 
-	
+
 	AMyPlayerController* PC = Cast<AMyPlayerController>(InPC);
 	if (!PC) return;
 
@@ -486,8 +484,6 @@ void ATCCarBase::SitByDriver(APawn* InPawn, APlayerController* InPC)
 		VisionComponent->ActivateVisionComponent();
 	}
 }
-
-
 
 void ATCCarBase::OnRep_bEngineOn()
 {

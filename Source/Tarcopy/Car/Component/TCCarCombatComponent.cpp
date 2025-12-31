@@ -13,6 +13,7 @@
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 UTCCarCombatComponent::UTCCarCombatComponent() :
 	DamageFactor(0.00001),
@@ -170,19 +171,40 @@ void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* O
 	if (!GetOwner()) return;
 	if (OtherActor == GetOwner()) return;
 
+	const float Now = GetWorld()->GetTimeSeconds();
+
+	if (Now - LastHitTime < 0.5f) return;
+
+	LastHitTime = Now;
+
 	float Damage = 0.f;
 	if (ACharacter* HitActor = Cast<ACharacter>(OtherActor))
 	{
-		FVector Velocity = GetOwner()->GetVelocity();
+		ATCCarBase* Car = Cast<ATCCarBase>(GetOwner());
+		if (!Car) return;
+		
+		float Speed = Car->GetChaosVehicleMovement()->GetForwardSpeed();
+		float SpeedKmh = Speed * 0.036f;
 		FVector Dir = (HitActor->GetActorLocation() - GetOwner()->GetActorLocation());
 		Dir.Z += 100.f;
 		Dir = Dir.GetSafeNormal();
-		float Speed = Velocity.Size();
 
-		if (Speed <= 200.f) return;
+		if (SpeedKmh <= 15.f) return;
 
-		HitActor->LaunchCharacter(Dir * Speed * 1.5, true, true);
+		HitActor->LaunchCharacter(Dir * SpeedKmh * 40, true, true);
 		Damage = 5.f;
+
+		UGameplayStatics::ApplyPointDamage(
+			HitActor,
+			SpeedKmh,
+			GetOwner()->GetVelocity().GetSafeNormal(),
+			Hit,
+			GetOwner()->GetInstigatorController(),
+			GetOwner(),
+			UDamageType::StaticClass()
+		);
+
+		MulticastCarPlayHitSound();
 	}
 	else
 	{
@@ -190,12 +212,6 @@ void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* O
 
 		if (ImpulseSize < MinDamageImpulse)
 			return;
-
-		const float Now = GetWorld()->GetTimeSeconds();
-
-		if (Now - LastHitTime < 0.5f) return;
-
-		LastHitTime = Now;
 
 		Damage = ImpulseSize * DamageFactor;
 	}
@@ -209,7 +225,7 @@ void UTCCarCombatComponent::OnVehicleHit(UPrimitiveComponent* HitComp, AActor* O
 		{
 			ApplyDamage(Zone, Damage, WorldPoint);
 		}
-	}
+	}	
 }
 
 void UTCCarCombatComponent::ApplyDamage(UBoxComponent* InBox, float Damage,const FVector& WorldPoint)
@@ -268,5 +284,15 @@ UPrimitiveComponent* UTCCarCombatComponent::GetTestMesh()
 	UE_LOG(LogTemp, Error, TEXT("%d"), Meshes.Num());
 	TestMesh = Meshes[RandIndex];
 	return TestMesh;
+}
+
+void UTCCarCombatComponent::MulticastCarPlayHitSound_Implementation()
+{
+	if (!HitSound || !GetOwner()) return;
+	UGameplayStatics::PlaySoundAtLocation(
+		GetOwner(),
+		HitSound,
+		GetOwner()->GetActorLocation()
+	);
 }
 

@@ -259,7 +259,7 @@ public:
 	void SitByDriver(APawn* InPawn, APlayerController* InPC);
 
 	UPROPERTY(Replicated)
-	APawn* DriverPawn;
+	TObjectPtr<APawn> DriverPawn;
 
 	UPROPERTY(Replicated)
 	uint8 IsDriverPawn : 1;
@@ -274,5 +274,6 @@ public:
 
 	UFUNCTION()
 	void OnRep_bEngineOn();
+
 	
 };

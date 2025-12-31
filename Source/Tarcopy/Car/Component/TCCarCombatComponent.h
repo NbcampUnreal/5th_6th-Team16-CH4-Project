@@ -112,5 +112,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TArray<UStaticMeshComponent*> Meshes;
 
+	UPROPERTY(EditDefaultsOnly)
+	USoundBase* HitSound;
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastCarPlayHitSound();
+
 	
 };
