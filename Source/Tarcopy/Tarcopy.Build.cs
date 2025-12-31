@@ -20,6 +20,11 @@ public class Tarcopy : ModuleRules
             "AIModule",
             "StateTreeModule",
             "GameplayStateTreeModule",
+            "AudioCapture",
+            "AudioCaptureCore",
+            "AudioCaptureWASAPI",
+            "AudioMixer",
+            "SignalProcessing"
             "Niagara",
         });
 
