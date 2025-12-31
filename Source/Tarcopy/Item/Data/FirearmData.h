@@ -19,6 +19,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<class UAnimMontage> Montage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<class UNiagaraSystem> TrailEffect;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName AmmunitionId;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName MagazineId;

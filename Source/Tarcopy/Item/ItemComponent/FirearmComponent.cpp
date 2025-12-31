@@ -15,6 +15,8 @@
 #include "Item/EquipComponent.h"
 #include "Inventory/PlayerInventoryComponent.h"
 #include "Inventory/InventoryData.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 const float UFirearmComponent::PerfectShotMultiplier = 1.5f;
 
@@ -167,6 +169,7 @@ void UFirearmComponent::CheckHit(const FVector& StartLocation, const FVector& En
 	FVector ActualEndLocation = bHit == true ? HitResult.ImpactPoint : EndLocation;
 
 	// 나이아가라 트레일 연출
+	NetMulticast_ShowFireEffect(ActualEndLocation);
 
 	float MinRangeSquared = FMath::Square(Data->MinRange);
 	float MaxRangeSquared = FMath::Square(Data->MaxRange);
@@ -244,6 +247,27 @@ void UFirearmComponent::NetMulticast_StopAttackMontage_Implementation()
 		return;
 
 	OwnerCharacter->StopAnimMontage(Data->Montage);
+}
+
+void UFirearmComponent::NetMulticast_ShowFireEffect_Implementation(const FVector& EndLocation)
+{
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(GetOwnerCharacter());
+	if (IsValid(MyCharacter) == false)
+		return;
+
+	FVector StartLocation = MyCharacter->GetAttackStartLocation();
+	UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		Data->TrailEffect,
+		StartLocation);
+
+	if (IsValid(NiagaraComponent) == true)
+	{
+		NiagaraComponent->SetVariableVec3(TEXT("StartLocation"), StartLocation);
+		NiagaraComponent->SetVariableVec3(TEXT("EndLocation"), EndLocation);
+
+		NiagaraComponent->SetAutoDestroy(true);
+	}
 }
 
 void UFirearmComponent::SetData()

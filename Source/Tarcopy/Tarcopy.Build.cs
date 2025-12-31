@@ -19,7 +19,8 @@ public class Tarcopy : ModuleRules
             "PhysicsCore",
             "AIModule",
             "StateTreeModule",
-            "GameplayStateTreeModule"
+            "GameplayStateTreeModule",
+            "Niagara",
         });
 
         PublicIncludePaths.AddRange(new[]

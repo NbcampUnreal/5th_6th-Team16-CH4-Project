@@ -35,6 +35,8 @@ private:
 	void NetMulticast_PlayAttackMontage();
 	UFUNCTION(NetMulticast, Reliable)
 	void NetMulticast_StopAttackMontage();
+	UFUNCTION(NetMulticast, Reliable)
+	void NetMulticast_ShowFireEffect(const FVector& EndLocation);
 
 	void SetData();
 

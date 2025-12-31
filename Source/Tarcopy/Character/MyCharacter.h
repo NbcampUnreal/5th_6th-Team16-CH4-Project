@@ -234,6 +234,9 @@ public:
 	void SetHoldingItemMesh(UStaticMesh* ItemMeshAsset, const FName& SocketName = NAME_None);
 	void SetAnimPreset(EHoldableType Type);
 
+	FVector GetAttackStartLocation() const;
+	UStaticMeshComponent* GetHoldingItemMesh() const { return HoldingItemMeshComponent; }
+
 	void GetNearbyInventoryDatas(TArray<class UInventoryData*>& InventoryDatas);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
