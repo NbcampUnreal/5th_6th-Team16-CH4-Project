@@ -241,7 +241,7 @@ void ATCCarBase::PossessedBy(AController* NewController)
 					float ClampedRate = FMath::Clamp(CurrentRPM / 6000.f, 0.f, 1.f);
 					Consumption += ClampedRate * WeakThis->MoveFactor;
 
-					WeakThis->ServerRPCUpdateFuel(-Consumption * 10);
+					WeakThis->ServerRPCUpdateFuel(-Consumption);
 				}),
 			1.f,
 			true,
