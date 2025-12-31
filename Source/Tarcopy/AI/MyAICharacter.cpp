@@ -247,7 +247,7 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 			{
 				PlayAnimMontage(AM_Attack);
 				bIsAttack = true;
-				GetCharacterMovement()->DisableMovement();
+				/*GetCharacterMovement()->DisableMovement();*/
 				FOnMontageEnded AttackMontageEnded;
 				AttackMontageEnded.BindUObject(this, &AMyAICharacter::OnAttackMontageEnded);
 				AnimInst->Montage_SetEndDelegate(AttackMontageEnded, AM_Attack);
@@ -267,7 +267,7 @@ float AMyAICharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, 
 	{
 		PlayAnimMontage(AM_Hit);
 		bIsHit = true;
-		GetCharacterMovement()->DisableMovement();
+		/*GetCharacterMovement()->DisableMovement();*/
 		FOnMontageEnded HitMontageEnded;
 		HitMontageEnded.BindUObject(this, &AMyAICharacter::OnHitMontageEnded);
 		AnimInst->Montage_SetEndDelegate(HitMontageEnded, AM_Hit);
@@ -302,14 +302,38 @@ void AMyAICharacter::SetRagdolled()
 {
 	StateTreeComponent->StopLogic("Dead");
 	GetCharacterMovement()->DisableMovement();
+	USkeletalMeshComponent* SMComp = GetMesh();
+	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
+	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CapsuleComp->SetCollisionProfileName(TEXT("DeadEnemy"));
+	SMComp->SetAllBodiesSimulatePhysics(true);
+	SMComp->SetCollisionProfileName(TEXT("DeadEnemy"));
+
+	/*StateTreeComponent->StopLogic("Dead");
+	GetCharacterMovement()->DisableMovement();
 
 	USkeletalMeshComponent* SMComp = GetMesh();
 	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
 
-	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	SMComp->SetAllBodiesSimulatePhysics(true);
 	CapsuleComp->SetCollisionProfileName(TEXT("Ragdoll"));
 	SMComp->SetCollisionProfileName(TEXT("Ragdoll"));
+	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SMComp->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Ignore);*/
+
+	//if (UCapsuleComponent* CapsuleComp = GetCapsuleComponent())
+	//{
+	//	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	//	CapsuleComp->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+	//}
+	//if (USkeletalMeshComponent* MeshComp = GetMesh())
+	//{
+	//	MeshComp->SetAllBodiesSimulatePhysics(true);
+	//	MeshComp->SetCollisionProfileName(TEXT("Ragdoll"));  
+	//	MeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+	//	MeshComp->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+	//	MeshComp->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	//}
 }
 
 //void AMyAICharacter::PrintRag_Implementation()
@@ -319,7 +343,6 @@ void AMyAICharacter::SetRagdolled()
 
 void AMyAICharacter::MultiRPC_HandleDeath_Implementation()
 {
-	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
 	SetRagdolled();
 	WorldContainerComponent->GetSenseBox()->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 }
