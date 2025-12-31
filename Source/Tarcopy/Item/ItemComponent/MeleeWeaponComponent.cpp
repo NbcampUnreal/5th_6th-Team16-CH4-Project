@@ -18,6 +18,7 @@
 #include "Item/EquipComponent.h"
 #include "Inventory/PlayerInventoryComponent.h"
 #include "Inventory/InventoryData.h"
+#include "Item/Data/ItemSoundData.h"
 
 const float UMeleeWeaponComponent::CheckHitDelay = 0.5f;
 
@@ -35,6 +36,9 @@ void UMeleeWeaponComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase
 	FText TextItemName = OwnerItemData->TextName;
 
 	if (Context.Instigator.IsValid() == false)
+		return;
+
+	if (GetData() == nullptr)
 		return;
 
 	UEquipComponent* EquipComponent = Context.Instigator->FindComponentByClass<UEquipComponent>();
@@ -76,7 +80,7 @@ void UMeleeWeaponComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase
 
 void UMeleeWeaponComponent::SetOwnerHoldingItemMesh()
 {
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 		return;
 
 	SetOwnerHoldingItemMeshAtSocket(Data->Socket);
@@ -84,7 +88,7 @@ void UMeleeWeaponComponent::SetOwnerHoldingItemMesh()
 
 void UMeleeWeaponComponent::SetOwnerAnimPreset()
 {
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 		return;
 
 	SetOwnerAnimPresetByHoldableType(Data->HoldableType);
@@ -92,7 +96,7 @@ void UMeleeWeaponComponent::SetOwnerAnimPreset()
 
 void UMeleeWeaponComponent::OnExecuteAttack(const FVector& TargetLocation)
 {
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 		return;
 
 	ACharacter* OwnerCharacter = GetOwnerCharacter();
@@ -141,25 +145,19 @@ void UMeleeWeaponComponent::OnRep_SetComponent()
 {
 	Super::OnRep_SetComponent();
 
-	const FItemData* ItemData = GetOwnerItemData();
-	if (ItemData == nullptr)
-		return;
-
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return;
-
-	Data = DataTableSubsystem->GetTable(EDataTableType::MeleeWeaponTable)->FindRow<FMeleeWeaponData>(ItemData->ItemId, FString(""));
+	SetData();
 }
 
 void UMeleeWeaponComponent::CheckHit()
 {
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 		return;
 
 	ACharacter* OwnerCharacter = GetOwnerCharacter();
 	if (IsValid(OwnerCharacter) == false)
 		return;
+
+	NetMulticast_SoundAttack();
 
 	HitActors.Empty();
 
@@ -255,6 +253,9 @@ bool UMeleeWeaponComponent::CheckIsAttackableTarget(AActor* TargetActor)
 
 void UMeleeWeaponComponent::NetMulticast_PlayAttackMontage_Implementation()
 {
+	if (GetData() == nullptr)
+		return;
+
 	ACharacter* OwnerCharacter = GetOwnerCharacter();
 	if (IsValid(OwnerCharacter) == false)
 		return;
@@ -267,6 +268,9 @@ void UMeleeWeaponComponent::NetMulticast_PlayAttackMontage_Implementation()
 
 void UMeleeWeaponComponent::NetMulticast_StopAttackMontage_Implementation()
 {
+	if (GetData() == nullptr)
+		return;
+
 	ACharacter* OwnerCharacter = GetOwnerCharacter();
 	if (IsValid(OwnerCharacter) == false)
 		return;
@@ -275,4 +279,47 @@ void UMeleeWeaponComponent::NetMulticast_StopAttackMontage_Implementation()
 		return;
 
 	OwnerCharacter->StopAnimMontage(Data->Montage);
+}
+
+void UMeleeWeaponComponent::SetData()
+{
+	const FItemData* ItemData = GetOwnerItemData();
+	if (ItemData == nullptr)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	Data = DataTableSubsystem->GetTable(EDataTableType::MeleeWeaponTable)->FindRow<FMeleeWeaponData>(ItemData->ItemId, FString(""));
+}
+
+void UMeleeWeaponComponent::NetMulticast_SoundAttack_Implementation()
+{
+	AMyCharacter* MyCharacter = Cast<AMyCharacter>(GetOwnerCharacter());
+	if (IsValid(MyCharacter) == false)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	FItemSoundData* SoundData = DataTableSubsystem->GetTable(EDataTableType::ItemSoundTable)->FindRow<FItemSoundData>(TEXT("SFXMeleeWeaponR"), FString(""));
+	if (SoundData == nullptr)
+		return;
+
+	FVector Location = MyCharacter->GetActorLocation();
+	UGameplayStatics::PlaySoundAtLocation(
+		this,
+		SoundData->Sound,
+		Location);
+}
+
+const FMeleeWeaponData* UMeleeWeaponComponent::GetData()
+{
+	if (Data == nullptr)
+	{
+		SetData();
+	}
+	return Data;
 }

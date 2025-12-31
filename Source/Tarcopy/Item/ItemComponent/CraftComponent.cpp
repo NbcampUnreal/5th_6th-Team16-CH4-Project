@@ -50,17 +50,21 @@ void UCraftComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& Ou
 		FCraftData* CraftData = CraftDataHandle.DataTable->FindRow<FCraftData>(CraftDataHandle.RowName, FString(""));
 		if (CraftData != nullptr)
 		{
-			TArray<FString> GainedItemNames;
+			TArray<FString> GainedItemStrings;
 			for (const auto& GainedItem : CraftData->GainedItems)
 			{
 				const FItemData* GainedItemData = ItemTable->FindRow<FItemData>(GainedItem.Key, FString(""));
 				if (GainedItemData != nullptr)
 				{
-					GainedItemNames.Add(GainedItemData->TextName.ToString());
+					FString GainedItemString = 
+						FString::FromInt(GainedItem.Value) +
+						TEXT(" ") +
+						GainedItemData->TextName.ToString();
+					GainedItemStrings.Add(GainedItemString);
 				}
 			}
 
-			FString JoinedString = FString::Join(GainedItemNames, TEXT(", "));
+			FString JoinedString = FString::Join(GainedItemStrings, TEXT(", "));
 
 			UCraftCommand* CraftCommand = NewObject<UCraftCommand>(this);
 			CraftCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Craft {0}")), FText::FromString(JoinedString));

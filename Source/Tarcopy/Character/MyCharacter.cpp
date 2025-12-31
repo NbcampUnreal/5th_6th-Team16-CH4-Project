@@ -65,6 +65,14 @@ AMyCharacter::AMyCharacter() :
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
+	if (GetMesh())
+	{
+		GetMesh()->bEnableUpdateRateOptimizations = false;
+		GetMesh()->bNoSkeletonUpdate = false;
+		GetMesh()->bPauseAnims = false;
+		GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+	}
+
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
@@ -210,6 +218,10 @@ void AMyCharacter::MoveAction(const FInputActionValue& Value)
 		UE_LOG(LogTemp, Error, TEXT("Controller is Invalid."));
 		return;
 	}
+	if (bIsHit)
+	{
+		return;
+	}
 
 	const FVector2D InMovementVector = Value.Get<FVector2D>();
 
@@ -299,6 +311,11 @@ void AMyCharacter::MulticastRPC_Crouch_Implementation()
 	}
 }
 
+void AMyCharacter::ServerRPC_SetAiming_Implementation(bool bInIsAttackMode)
+{
+	bIsAttackMode = bInIsAttackMode;
+}
+
 void AMyCharacter::Wheel(const FInputActionValue& Value)
 {
 	if (!IsLocallyControlled())
@@ -311,6 +328,7 @@ void AMyCharacter::Wheel(const FInputActionValue& Value)
 void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
 {
 	bIsAttackMode = false;
+	ServerRPC_SetAiming(false);
 
 	AMyPlayerController* MyPC = GetOwner<AMyPlayerController>();
 	if (!IsValid(MyPC))
@@ -358,6 +376,11 @@ void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
 
 void AMyCharacter::TriggeredRightClick(const FInputActionValue& Value)
 {
+	if (bIsHit)
+	{
+		return;
+	}
+
 	TurnToMouse();
 	SpringArm->TargetOffset.Z = 0.f;
 
@@ -365,6 +388,7 @@ void AMyCharacter::TriggeredRightClick(const FInputActionValue& Value)
 		return;
 
 	bIsAttackMode = true;
+	ServerRPC_SetAiming(true);
 	ServerRPC_SetSpeed(BaseWalkSpeed * CrouchSpeedMultiplier);
 }
 
@@ -376,6 +400,7 @@ void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
 		ServerRPC_StopTurnToMouse();
 		ServerRPC_SetSpeed(BaseWalkSpeed);
 		bIsAttackMode = false;
+		ServerRPC_SetAiming(false);
 	}
 }
 
@@ -556,13 +581,13 @@ void AMyCharacter::OnRep_bIsHit()
 {
 	if (bIsHit)
 	{
-		DisableInput(Cast<AMyPlayerController>(Controller));
+		/*DisableInput(Cast<AMyPlayerController>(Controller));*/
 		EquipComponent->CancelActions();
 		PlayAnimMontage(AM_Hit);
 	}
 	else
 	{
-		EnableInput(Cast<AMyPlayerController>(Controller));
+		//EnableInput(Cast<AMyPlayerController>(Controller));
 		StopAnimMontage(AM_Hit);
 	}
 }
@@ -728,6 +753,14 @@ void AMyCharacter::SetAnimPreset(EHoldableType Type)
 		return;
 
 	AnimInstance->SetAnimDataAsset(*Preset);
+}
+
+FVector AMyCharacter::GetAttackStartLocation() const
+{
+	if (IsValid(HoldingItemMeshComponent) == false)
+		return GetActorLocation();
+	
+	return HoldingItemMeshComponent->GetSocketLocation(TEXT("Muzzle"));
 }
 
 void AMyCharacter::GetNearbyInventoryDatas(TArray<class UInventoryData*>& InventoryDatas)
