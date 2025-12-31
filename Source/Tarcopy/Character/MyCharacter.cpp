@@ -65,6 +65,14 @@ AMyCharacter::AMyCharacter() :
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
+	if (GetMesh())
+	{
+		GetMesh()->bEnableUpdateRateOptimizations = false;
+		GetMesh()->bNoSkeletonUpdate = false;
+		GetMesh()->bPauseAnims = false;
+		GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+	}
+
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
@@ -303,6 +311,11 @@ void AMyCharacter::MulticastRPC_Crouch_Implementation()
 	}
 }
 
+void AMyCharacter::ServerRPC_SetAiming_Implementation(bool bInIsAttackMode)
+{
+	bIsAttackMode = bInIsAttackMode;
+}
+
 void AMyCharacter::Wheel(const FInputActionValue& Value)
 {
 	if (!IsLocallyControlled())
@@ -315,6 +328,7 @@ void AMyCharacter::Wheel(const FInputActionValue& Value)
 void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
 {
 	bIsAttackMode = false;
+	ServerRPC_SetAiming(false);
 
 	AMyPlayerController* MyPC = GetOwner<AMyPlayerController>();
 	if (!IsValid(MyPC))
@@ -374,6 +388,7 @@ void AMyCharacter::TriggeredRightClick(const FInputActionValue& Value)
 		return;
 
 	bIsAttackMode = true;
+	ServerRPC_SetAiming(true);
 	ServerRPC_SetSpeed(BaseWalkSpeed * CrouchSpeedMultiplier);
 }
 
@@ -385,6 +400,7 @@ void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
 		ServerRPC_StopTurnToMouse();
 		ServerRPC_SetSpeed(BaseWalkSpeed);
 		bIsAttackMode = false;
+		ServerRPC_SetAiming(false);
 	}
 }
 
@@ -737,6 +753,14 @@ void AMyCharacter::SetAnimPreset(EHoldableType Type)
 		return;
 
 	AnimInstance->SetAnimDataAsset(*Preset);
+}
+
+FVector AMyCharacter::GetAttackStartLocation() const
+{
+	if (IsValid(HoldingItemMeshComponent) == false)
+		return GetActorLocation();
+	
+	return HoldingItemMeshComponent->GetSocketLocation(TEXT("Muzzle"));
 }
 
 void AMyCharacter::GetNearbyInventoryDatas(TArray<class UInventoryData*>& InventoryDatas)

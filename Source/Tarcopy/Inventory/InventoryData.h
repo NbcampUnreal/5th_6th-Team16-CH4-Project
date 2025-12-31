@@ -111,6 +111,10 @@ public:
 
 	bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags);
 
+	AActor* GetOwnerActor() const;
+
+	FVector GetOwnerLocation() const;
+
 private:
 	bool CheckCanPlace(const UItemInstance* InItem, const FIntPoint& Origin, bool bRotated, const UItemInstance* IgnoreItem = nullptr) const;
 

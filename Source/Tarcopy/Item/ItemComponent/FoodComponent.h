@@ -22,12 +22,15 @@ protected:
 	virtual void OnExecuteAction(AActor* InInstigator, const struct FItemNetworkContext& NetworkContext) override;
 
 public:
-	FORCEINLINE const FFoodData* GetData() { return Data; }
+	FORCEINLINE float GetRemainAmount() { return Amount / TotalAmount; }
+	const FFoodData* GetData();
 
 private:
 	void Ingest(AActor* InInstigator, int32 ConsumeAmount);
 	UFUNCTION()
 	void OnRep_PrintAmount();
+
+	void SetData();
 
 private:
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_PrintAmount)

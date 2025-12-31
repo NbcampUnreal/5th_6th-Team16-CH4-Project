@@ -149,10 +149,18 @@ bool UWorldContainerComponent::ReplicateSubobjects(UActorChannel* Channel, FOutB
     return bWrote;
 }
 
+void UWorldContainerComponent::SetContainerType(FName InType)
+{
+    ContainerType = InType;
+}
+
 void UWorldContainerComponent::OnRep_InventoryData()
 {
     if (InventoryData)
     {
         InventoryData->FixupAfterReplication();
     }
+    SenseBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    SenseBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+    SenseBox->UpdateOverlaps();
 }

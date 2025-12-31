@@ -25,12 +25,14 @@ public:
 	void LoseDurability(float Amount);
 	void RestoreDurability(float Amount);
 
-	FORCEINLINE const FDurabilityData* GetData() { return Data; }
-	FORCEINLINE const float GetCondition() { return Condition; }
+	const FDurabilityData* GetData();
+	FORCEINLINE float GetCondition() const { return Condition; }
 
 protected:
 	UFUNCTION()
 	virtual void OnRep_PrintCondition();
+
+	void SetData();
 
 protected:
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_PrintCondition)

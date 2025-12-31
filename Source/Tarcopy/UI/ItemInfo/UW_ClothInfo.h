@@ -22,4 +22,7 @@ public:
 private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> BodyLocationTxt;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> DamageReduceTxt;
 };

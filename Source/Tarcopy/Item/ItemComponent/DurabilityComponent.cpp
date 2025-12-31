@@ -12,7 +12,7 @@ void UDurabilityComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
 
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 		return;
 
 	Condition = Data->MaxCondition;
@@ -23,17 +23,16 @@ void UDurabilityComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>
 {
 	const FItemData* OwnerItemData = GetOwnerItemData();
 	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
-	FText TextItemName = OwnerItemData->TextName;
 
-	ensureMsgf(Data != nullptr, TEXT("No DurabilityData"));
+	ensureMsgf(GetData() != nullptr, TEXT("No DurabilityData"));
 
 	UItemNetworkCommand* RepairCommand = NewObject<UItemNetworkCommand>(this);
 	FItemNetworkContext IngestAllActionContext;
 	IngestAllActionContext.TargetItemComponent = this;
 	IngestAllActionContext.ActionTag = TEXT("RestoreDurability");
-	IngestAllActionContext.FloatParams.Add(1);
+	IngestAllActionContext.FloatParams.Add(1.0f);
 	RepairCommand->ActionContext = IngestAllActionContext;
-	RepairCommand->TextDisplay = FText::Format(FText::FromString(TEXT("Repair {0}")), TextItemName);
+	RepairCommand->TextDisplay = FText::FromString(FString::Printf(TEXT("Repair %.1f"), 1.0f));
 	RepairCommand->bExecutable = true;
 	OutCommands.Add(RepairCommand);
 }
@@ -47,15 +46,9 @@ void UDurabilityComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 
 void UDurabilityComponent::OnRep_SetComponent()
 {
-	const FItemData* ItemData = GetOwnerItemData();
-	if (ItemData == nullptr)
-		return;
+	Super::OnRep_SetComponent();
 
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return;
-
-	Data = DataTableSubsystem->GetTable(EDataTableType::DurabilityTable)->FindRow<FDurabilityData>(ItemData->ItemId, FString(""));
+	SetData();
 }
 
 void UDurabilityComponent::OnExecuteAction(AActor* InInstigator, const FItemNetworkContext& NetworkContext)
@@ -86,7 +79,7 @@ void UDurabilityComponent::LoseDurability(float Amount)
 
 void UDurabilityComponent::RestoreDurability(float Amount)
 {
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 	{
 		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("No Durability data"));
 		return;
@@ -105,4 +98,26 @@ void UDurabilityComponent::OnRep_PrintCondition()
 	{
 		OnUpdatedItemComponent.Broadcast();
 	}
+}
+
+void UDurabilityComponent::SetData()
+{
+	const FItemData* ItemData = GetOwnerItemData();
+	if (ItemData == nullptr)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	Data = DataTableSubsystem->GetTable(EDataTableType::DurabilityTable)->FindRow<FDurabilityData>(ItemData->ItemId, FString(""));
+}
+
+const FDurabilityData* UDurabilityComponent::GetData()
+{
+	if (Data == nullptr)
+	{
+		SetData();
+	}
+	return Data;
 }

@@ -42,7 +42,7 @@ void UEquipComponent::BeginPlay()
 	NewItem->SetItemId(TestEquippedItem);
 	EquipItem(EBodyLocation::RightHand, NewItem, true);
 
-	TArray<FName> Clothes = { FName(TEXT("TShirts0")), FName(TEXT("Shirt0")), FName(TEXT("Sweater0")), FName(TEXT("Bottoms0")), FName(TEXT("Back0")) };
+	TArray<FName> Clothes = { FName(TEXT("TShirts0")), FName(TEXT("Shirt0")), FName(TEXT("Sweater0")), FName(TEXT("Bottoms0")), FName(TEXT("Back0")), FName(TEXT("Shoes0")), FName(TEXT("Face0")), FName(TEXT("Eyes0")), FName(TEXT("Head0")) };
 	for (const auto& Cloth : Clothes)
 	{
 		NewItem = NewObject<UItemInstance>(this);

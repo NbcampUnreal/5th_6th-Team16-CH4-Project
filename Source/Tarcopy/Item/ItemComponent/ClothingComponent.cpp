@@ -19,7 +19,7 @@ void UClothingComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>&
 	const FItemData* OwnerItemData = GetOwnerItemData();
 	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
 	FText TextItemName = OwnerItemData->TextName;
-	ensureMsgf(Data != nullptr, TEXT("No ClothData"));
+	ensureMsgf(GetData() != nullptr, TEXT("No ClothData"));
 
 	if (Context.Instigator.IsValid() == false)
 		return;
@@ -63,6 +63,13 @@ void UClothingComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>&
 
 void UClothingComponent::OnRep_SetComponent()
 {
+	Super::OnRep_SetComponent();
+
+	SetData();
+}
+
+void UClothingComponent::SetData()
+{
 	const FItemData* ItemData = GetOwnerItemData();
 	if (ItemData == nullptr)
 		return;
@@ -72,4 +79,13 @@ void UClothingComponent::OnRep_SetComponent()
 		return;
 
 	Data = DataTableSubsystem->GetTable(EDataTableType::ClothTable)->FindRow<FClothData>(ItemData->ItemId, FString(""));
+}
+
+const FClothData* UClothingComponent::GetData()
+{
+	if (Data == nullptr)
+	{
+		SetData();
+	}
+	return Data;
 }

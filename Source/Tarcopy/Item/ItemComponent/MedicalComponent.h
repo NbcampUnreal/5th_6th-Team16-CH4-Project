@@ -23,7 +23,10 @@ protected:
 public:
 	void RestoreHealth(AActor* InInstigator);
 
-	FORCEINLINE const FMedicalData* GetData() { return Data; }
+	const FMedicalData* GetData();
+
+private:
+	void SetData();
 
 protected:
 	const FMedicalData* Data;

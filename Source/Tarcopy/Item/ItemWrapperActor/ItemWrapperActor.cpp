@@ -39,6 +39,7 @@ void AItemWrapperActor::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME(ThisClass, CurrentMeshAsset);
 	DOREPLIFETIME(ThisClass, ItemInstance);
 }
 
@@ -88,4 +89,5 @@ void AItemWrapperActor::OnRep_SetMesh()
 void AItemWrapperActor::OnRep_SetItem()
 {
 	LootSphere->SetGenerateOverlapEvents(true);
+	UpdateOverlaps();
 }

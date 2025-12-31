@@ -15,11 +15,11 @@ FLinearColor UUW_MoodleIcon::GetMoodColor(float Ratio)
 {
 	if (Ratio > 0.66f) 
 	{
-		return FLinearColor::Green;
+		return FLinearColor(0.26f, 0.74f, 0.45f, 0.90f);
 	}
 	if (Ratio > 0.33f)
 	{
-		return FLinearColor::Yellow;
+		return FLinearColor(0.96f, 0.74f, 0.22f, 0.90f);
 	}
-	return FLinearColor::Red;
+	return FLinearColor(0.90f, 0.36f, 0.36f, 0.90f);
 }
