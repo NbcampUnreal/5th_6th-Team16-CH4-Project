@@ -17,7 +17,6 @@ class TARCOPY_API UWorldContainerComponent : public USceneComponent
 public:
 	UWorldContainerComponent();
 
-	FGuid GetContainerId() const { return ContainerId; }
 	FText GetDisplayName() const { return DisplayName; }
 	FIntPoint GetGridSize() const { return GridSize; }
 	UInventoryData* GetInventoryData() const { return InventoryData; }
@@ -34,13 +33,13 @@ private:
 	void OnRep_InventoryData();
 
 	UPROPERTY(EditAnywhere, Category = "Container")
-	FText DisplayName = FText::FromString(TEXT("Container"));
+	FText DisplayName = FText::FromString(TEXT("Box"));
+
+	UPROPERTY(EditAnywhere, Category = "Container")
+	FName ContainerType = TEXT("Box");
 
 	UPROPERTY(EditAnywhere, Category = "Container")
 	FIntPoint GridSize = FIntPoint(5, 6);
-
-	UPROPERTY(EditAnywhere, Category = "Container")
-	FGuid ContainerId;
 
 	UPROPERTY(ReplicatedUsing = OnRep_InventoryData)
 	TObjectPtr<UInventoryData> InventoryData;

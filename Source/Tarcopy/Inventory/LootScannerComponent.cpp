@@ -58,7 +58,14 @@ void ULootScannerComponent::BeginPlay()
 	GroundInventoryData->Init(GroundGridSize);
 
 	ContainerSense->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
+	ContainerSense->SetActive(true);
+	ContainerSense->SetComponentTickEnabled(false);
+	ContainerSense->UpdateOverlaps();
+
 	GroundSense->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	GroundSense->SetActive(true);
+	GroundSense->SetComponentTickEnabled(false);
+	GroundSense->UpdateOverlaps();
 }
 
 void ULootScannerComponent::RebuildGroundInventory()
