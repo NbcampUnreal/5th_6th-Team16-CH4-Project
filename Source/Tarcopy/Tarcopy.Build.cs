@@ -24,7 +24,7 @@ public class Tarcopy : ModuleRules
             "AudioCaptureCore",
             "AudioCaptureWASAPI",
             "AudioMixer",
-            "SignalProcessing"
+            "SignalProcessing",
             "Niagara",
         });
 
