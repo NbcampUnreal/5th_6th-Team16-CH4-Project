@@ -210,6 +210,10 @@ void AMyCharacter::MoveAction(const FInputActionValue& Value)
 		UE_LOG(LogTemp, Error, TEXT("Controller is Invalid."));
 		return;
 	}
+	if (bIsHit)
+	{
+		return;
+	}
 
 	const FVector2D InMovementVector = Value.Get<FVector2D>();
 
@@ -358,6 +362,11 @@ void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
 
 void AMyCharacter::TriggeredRightClick(const FInputActionValue& Value)
 {
+	if (bIsHit)
+	{
+		return;
+	}
+
 	TurnToMouse();
 	SpringArm->TargetOffset.Z = 0.f;
 
@@ -556,13 +565,13 @@ void AMyCharacter::OnRep_bIsHit()
 {
 	if (bIsHit)
 	{
-		DisableInput(Cast<AMyPlayerController>(Controller));
+		/*DisableInput(Cast<AMyPlayerController>(Controller));*/
 		EquipComponent->CancelActions();
 		PlayAnimMontage(AM_Hit);
 	}
 	else
 	{
-		EnableInput(Cast<AMyPlayerController>(Controller));
+		//EnableInput(Cast<AMyPlayerController>(Controller));
 		StopAnimMontage(AM_Hit);
 	}
 }
