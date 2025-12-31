@@ -89,4 +89,5 @@ void AItemWrapperActor::OnRep_SetMesh()
 void AItemWrapperActor::OnRep_SetItem()
 {
 	LootSphere->SetGenerateOverlapEvents(true);
+	UpdateOverlaps();
 }
