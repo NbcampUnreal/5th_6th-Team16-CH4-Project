@@ -118,8 +118,14 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	USoundBase* HitSound;
 
+	UPROPERTY(EditDefaultsOnly)
+	USoundBase* ExplosionSound;
+
+	UPROPERTY(EditDefaultsOnly)
+	USoundBase* CrashSound;
+
 	UFUNCTION(NetMulticast, Unreliable)
-	void MulticastCarPlayHitSound();
+	void MulticastCarPlaySound(USoundBase* NewSound);
 
 	UFUNCTION(Client, Reliable)
 	void ClientRPCRequestExit(APawn* InCar, APawn* InPawn, APlayerController* InPC);
