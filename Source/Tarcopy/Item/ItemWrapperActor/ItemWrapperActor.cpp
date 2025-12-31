@@ -39,6 +39,7 @@ void AItemWrapperActor::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME(ThisClass, CurrentMeshAsset);
 	DOREPLIFETIME(ThisClass, ItemInstance);
 }
 

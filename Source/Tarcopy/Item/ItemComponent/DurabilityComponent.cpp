@@ -12,7 +12,7 @@ void UDurabilityComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
 
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 		return;
 
 	Condition = Data->MaxCondition;
@@ -25,7 +25,7 @@ void UDurabilityComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>
 	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
 	FText TextItemName = OwnerItemData->TextName;
 
-	ensureMsgf(Data != nullptr, TEXT("No DurabilityData"));
+	ensureMsgf(GetData() != nullptr, TEXT("No DurabilityData"));
 
 	UItemNetworkCommand* RepairCommand = NewObject<UItemNetworkCommand>(this);
 	FItemNetworkContext IngestAllActionContext;
@@ -47,15 +47,9 @@ void UDurabilityComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 
 void UDurabilityComponent::OnRep_SetComponent()
 {
-	const FItemData* ItemData = GetOwnerItemData();
-	if (ItemData == nullptr)
-		return;
+	Super::OnRep_SetComponent();
 
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return;
-
-	Data = DataTableSubsystem->GetTable(EDataTableType::DurabilityTable)->FindRow<FDurabilityData>(ItemData->ItemId, FString(""));
+	SetData();
 }
 
 void UDurabilityComponent::OnExecuteAction(AActor* InInstigator, const FItemNetworkContext& NetworkContext)
@@ -86,7 +80,7 @@ void UDurabilityComponent::LoseDurability(float Amount)
 
 void UDurabilityComponent::RestoreDurability(float Amount)
 {
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 	{
 		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("No Durability data"));
 		return;
@@ -105,4 +99,26 @@ void UDurabilityComponent::OnRep_PrintCondition()
 	{
 		OnUpdatedItemComponent.Broadcast();
 	}
+}
+
+void UDurabilityComponent::SetData()
+{
+	const FItemData* ItemData = GetOwnerItemData();
+	if (ItemData == nullptr)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	Data = DataTableSubsystem->GetTable(EDataTableType::DurabilityTable)->FindRow<FDurabilityData>(ItemData->ItemId, FString(""));
+}
+
+const FDurabilityData* UDurabilityComponent::GetData()
+{
+	if (Data == nullptr)
+	{
+		SetData();
+	}
+	return Data;
 }

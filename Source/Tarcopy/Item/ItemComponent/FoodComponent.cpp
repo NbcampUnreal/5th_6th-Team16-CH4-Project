@@ -23,7 +23,7 @@ void UFoodComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& Out
 	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
 	FText TextItemName = OwnerItemData->TextName;
 
-	ensureMsgf(Data != nullptr, TEXT("No FoodData"));
+	ensureMsgf(GetData() != nullptr, TEXT("No FoodData"));
 
 	UItemNetworkCommand* IngestQuarterCommand = NewObject<UItemNetworkCommand>(this);
 	FItemNetworkContext IngestQuarterActionContext;
@@ -75,19 +75,16 @@ void UFoodComponent::OnExecuteAction(AActor* InInstigator, const struct FItemNet
 
 void UFoodComponent::OnRep_SetComponent()
 {
-	const FItemData* ItemData = GetOwnerItemData();
-	if (ItemData == nullptr)
-		return;
+	Super::OnRep_SetComponent();
 
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return;
-
-	Data = DataTableSubsystem->GetTable(EDataTableType::FoodTable)->FindRow<FFoodData>(ItemData->ItemId, FString(""));
+	SetData();
 }
 
 void UFoodComponent::Ingest(AActor* InInstigator, int32 ConsumeAmount)
 {
+	if (GetData() == nullptr)
+		return;
+
 	if (ConsumeAmount > Amount)
 		return;
 
@@ -115,4 +112,26 @@ void UFoodComponent::OnRep_PrintAmount()
 	{
 		OnUpdatedItemComponent.Broadcast();
 	}
+}
+
+void UFoodComponent::SetData()
+{
+	const FItemData* ItemData = GetOwnerItemData();
+	if (ItemData == nullptr)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	Data = DataTableSubsystem->GetTable(EDataTableType::FoodTable)->FindRow<FFoodData>(ItemData->ItemId, FString(""));
+}
+
+const FFoodData* UFoodComponent::GetData()
+{
+	if (Data == nullptr)
+	{
+		SetData();
+	}
+	return Data;
 }

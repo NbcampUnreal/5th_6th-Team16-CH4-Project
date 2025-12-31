@@ -10,10 +10,6 @@
 void UFluidContainerComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
-
-	if (Data == nullptr)
-		return;
-
 }
 
 void UFluidContainerComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& OutCommands, const struct FItemCommandContext& Context)
@@ -31,15 +27,9 @@ void UFluidContainerComponent::GetLifetimeReplicatedProps(TArray<class FLifetime
 
 void UFluidContainerComponent::OnRep_SetComponent()
 {
-	const FItemData* ItemData = GetOwnerItemData();
-	if (ItemData == nullptr)
-		return;
+	Super::OnRep_SetComponent();
 
-	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
-	if (IsValid(DataTableSubsystem) == false)
-		return;
-
-	Data = DataTableSubsystem->GetTable(EDataTableType::FluidContainerTable)->FindRow<FFluidContainerData>(ItemData->ItemId, FString(""));
+	SetData();
 }
 
 void UFluidContainerComponent::OnExecuteAction(AActor* InInstigator, const struct FItemNetworkContext& NetworkContext)
@@ -59,4 +49,26 @@ void UFluidContainerComponent::Fill(float InAmount)
 void UFluidContainerComponent::OnRep_PrintFluid()
 {
 	//UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s: %d left"), Amount));
+}
+
+void UFluidContainerComponent::SetData()
+{
+	const FItemData* ItemData = GetOwnerItemData();
+	if (ItemData == nullptr)
+		return;
+
+	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
+	if (IsValid(DataTableSubsystem) == false)
+		return;
+
+	Data = DataTableSubsystem->GetTable(EDataTableType::FluidContainerTable)->FindRow<FFluidContainerData>(ItemData->ItemId, FString(""));
+}
+
+const FFluidContainerData* UFluidContainerComponent::GetData()
+{
+	if (Data == nullptr)
+	{
+		SetData();
+	}
+	return Data;
 }

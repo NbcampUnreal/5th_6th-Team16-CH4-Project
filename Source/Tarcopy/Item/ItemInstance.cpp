@@ -205,9 +205,6 @@ void UItemInstance::CancelAllComponentActions()
 
 bool UItemInstance::RemoveFromSource()
 {
-	if (HasAuthority() == false)
-		return false;
-
 	if (AItemWrapperActor* ItemActor = GetTypedOuter<AItemWrapperActor>())
 	{
 		ItemActor->Destroy();
@@ -226,6 +223,7 @@ bool UItemInstance::RemoveFromSource()
 		if (IsValid(EquipComponent) == true)
 		{
 			EquipComponent->ServerRPC_UnequipItem(this, EUnequipType::Destroy);
+			return true;
 		}
 	}
 

@@ -13,7 +13,7 @@ void UContainerComponent::SetOwnerItem(UItemInstance* InOwnerItem)
 {
 	Super::SetOwnerItem(InOwnerItem);
 
-	if (Data == nullptr)
+	if (GetData() == nullptr)
 		return;
 
 	InventoryData = NewObject<UInventoryData>(this);
@@ -40,7 +40,7 @@ void UContainerComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>
 	checkf(OwnerItemData != nullptr, TEXT("Owner Item has No Data"));
 	FText TextItemName = OwnerItemData->TextName;
 
-	ensureMsgf(Data != nullptr, TEXT("No FoodData"));
+	ensureMsgf(GetData() != nullptr, TEXT("No FoodData"));
 
 	UOpenContainerCommand* OpenContainerCommand = NewObject<UOpenContainerCommand>(this);
 	OpenContainerCommand->OwnerComponent = this;
@@ -53,7 +53,10 @@ bool UContainerComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch*
 {
 	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 
-	bWroteSomething |= InventoryData->ReplicateSubobjects(Channel, Bunch, RepFlags);
+	if (IsValid(InventoryData) == true)
+	{
+		bWroteSomething |= InventoryData->ReplicateSubobjects(Channel, Bunch, RepFlags);
+	}
 	return bWroteSomething;
 }
 
@@ -66,6 +69,13 @@ void UContainerComponent::GetLifetimeReplicatedProps(TArray<class FLifetimePrope
 
 void UContainerComponent::OnRep_SetComponent()
 {
+	Super::OnRep_SetComponent();
+
+	SetData();
+}
+
+void UContainerComponent::SetData()
+{
 	const FItemData* ItemData = GetOwnerItemData();
 	if (ItemData == nullptr)
 		return;
@@ -75,4 +85,13 @@ void UContainerComponent::OnRep_SetComponent()
 		return;
 
 	Data = DataTableSubsystem->GetTable(EDataTableType::ContainerTable)->FindRow<FContainerData>(ItemData->ItemId, FString(""));
+}
+
+const FContainerData* UContainerComponent::GetData()
+{
+	if (Data == nullptr)
+	{
+		SetData();
+	}
+	return Data;
 }
