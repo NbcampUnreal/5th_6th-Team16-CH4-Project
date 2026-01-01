@@ -195,6 +195,16 @@ void UEOSVoiceChatSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 					LeaveChannel();
 				}
 
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
+				LeaveVoiceLobby();
+				if (bVoiceLobbyInFlight)
+				{
+					bVoiceLobbyInFlight = false;
+					VoiceLobbyIdOverride.Reset();
+					ActiveLobbyId.Reset();
+				}
+#endif
+
 				// Reset voice transmission state when leaving the auto-join map.
 				bPTTEnabled = bEnablePTTByDefault;
 				bAlwaysTransmit = bAlwaysTransmitByDefault;
@@ -1815,6 +1825,9 @@ void UEOSVoiceChatSubsystem::LeaveVoiceLobby()
 {
 	if (!EOSLobbyHandle || !LocalProductUserId || ActiveLobbyId.IsEmpty())
 	{
+		ActiveLobbyId.Reset();
+		VoiceLobbyIdOverride.Reset();
+		bVoiceLobbyInFlight = false;
 		return;
 	}
 
