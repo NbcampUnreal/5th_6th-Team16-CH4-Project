@@ -141,6 +141,19 @@ void UTCCarCombatComponent::DestroyWheel(UPrimitiveComponent* DestroyComponent)
 void UTCCarCombatComponent::DestroyMain(UPrimitiveComponent* DestroyComponent)
 {
 	if (DestroyedMain) return;
+
+	if (AWheeledVehiclePawn* Vehicle = Cast<AWheeledVehiclePawn>(GetOwner()))
+	{
+		if (USkeletalMeshComponent* VehicleMesh = Vehicle->GetMesh())
+		{
+			VehicleMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			VehicleMesh->SetNotifyRigidBodyCollision(true);
+			if (GetOwner()->HasAuthority())
+			{
+				VehicleMesh->OnComponentHit.RemoveDynamic(this, &UTCCarCombatComponent::OnVehicleHit);
+			}
+		}
+	}
 	DestroyedMain = true;
 	for (auto &Mesh : Meshes)
 	{
