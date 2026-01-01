@@ -53,6 +53,7 @@ AMyCharacter::AMyCharacter() :
 	BaseWalkSpeed(400.f),
 	SprintSpeedMultiplier(1.5f),
 	CrouchSpeedMultiplier(0.8f),
+	AimSpeedMultiplier(0.6f),
 	bIsAttackMode(false)
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -215,7 +216,6 @@ void AMyCharacter::MoveAction(const FInputActionValue& Value)
 {
 	if (!IsValid(Controller))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Controller is Invalid."));
 		return;
 	}
 	if (bIsHit)
@@ -350,7 +350,6 @@ void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
 	if (GetWorld()->LineTraceSingleByChannel(
 		Hit, Start, End, ECC_Visibility, Params) == false)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Line Trace Error"));
 		return;
 	}
 
@@ -389,7 +388,7 @@ void AMyCharacter::TriggeredRightClick(const FInputActionValue& Value)
 
 	bIsAttackMode = true;
 	ServerRPC_SetAiming(true);
-	ServerRPC_SetSpeed(BaseWalkSpeed * CrouchSpeedMultiplier);
+	ServerRPC_SetSpeed(BaseWalkSpeed * AimSpeedMultiplier);
 }
 
 void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
@@ -427,7 +426,7 @@ FVector AMyCharacter::GetAttackTargetLocation() const
 	FName BoneName = NAME_None;
 	bool bHit = GetAimTarget(AimTarget, BoneName);
 	// default : 앞을 향한 충분한 먼 거리
-	FVector TargetLocation = GetActorForwardVector() * 10000.0f;
+	FVector TargetLocation = GetActorLocation() + GetActorForwardVector() * 10000.0f;
 	if (IsValid(AimTarget) == true)
 	{
 		// 적을 조준 중이라면, 조준 중인 적의 Bone을 향해 공격
@@ -473,7 +472,6 @@ void AMyCharacter::TurnToMouse()
 	if (GetWorld()->LineTraceSingleByChannel(
 		Hit, Start, End, ECC_Visibility, Params) == false)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Line Trace Error"));
 		return;
 	}
 	FVector TargetPoint = Hit.ImpactPoint;
@@ -573,6 +571,7 @@ void AMyCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, BaseWalkSpeed);
 	DOREPLIFETIME(ThisClass, SprintSpeedMultiplier);
 	DOREPLIFETIME(ThisClass, CrouchSpeedMultiplier);
+	DOREPLIFETIME(ThisClass, AimSpeedMultiplier);
 	DOREPLIFETIME(ThisClass, CurrentSpeed);
 	DOREPLIFETIME(ThisClass, bIsAttackMode);
 }
@@ -658,8 +657,6 @@ void AMyCharacter::OpenTitleLevel()
 
 void AMyCharacter::MultiRPC_HandleDeath_Implementation()
 {
-	//UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
-
 	if (IsLocallyControlled())
 	{
 		ClientHandleDeath();

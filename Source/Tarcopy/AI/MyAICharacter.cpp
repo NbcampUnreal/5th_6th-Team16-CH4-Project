@@ -21,7 +21,7 @@
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
-	AttackDamage(25),
+	AttackDamage(10),
 	bIsAttack(false),
 	bIsHit(false)
 {
@@ -34,7 +34,7 @@ AMyAICharacter::AMyAICharacter() :
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	Movement->bOrientRotationToMovement = true;
 	Movement->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
-	Movement->MaxWalkSpeed = 300.f;
+	Movement->MaxWalkSpeed = 280.f;
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
@@ -78,12 +78,6 @@ void AMyAICharacter::BeginPlay()
 	else
 	{
 		StateTreeComponent->StopLogic("");
-		//UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("bIsRagdolled : %d"), bIsRagdolled), true, true, FColor::Green, 10);
-		//if (bIsRagdolled)
-		//{
-		//	UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Ragdolled"), true, true, FColor::Green, 10);
-		//	SetRagdolled();
-		//}
 	}
 
 	if (IsValid(HealthComponent))
@@ -108,7 +102,6 @@ void AMyAICharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 
 	DOREPLIFETIME(ThisClass, bIsAttack);
 	DOREPLIFETIME(ThisClass, bIsHit);
-	//DOREPLIFETIME(ThisClass, bIsRagdolled);
 }
 
 void AMyAICharacter::OnVisionMeshBeginOverlap(
@@ -196,7 +189,7 @@ void AMyAICharacter::OnVisionMeshEndOverlap(
 		if (OtherComp == Car->GetMesh())
 		{
 			PlayEnemySound(EnemyIdleSound);
-			GetWorldTimerManager().SetTimer(EndOverlapTimer, this, &AMyAICharacter::ChaseToPatrol, 1.0f, false);
+			GetWorldTimerManager().SetTimer(EndOverlapTimer, this, &AMyAICharacter::ChaseToPatrol, 4.0f, false);
 		}
 	}
 }
@@ -255,7 +248,7 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 		{
 			PlayEnemySound(EnemyBiteSound);
 			UGameplayStatics::ApplyPointDamage(HitActor,
-				AttackDamage + FMath::FRandRange(-10.f, 10.f),
+				AttackDamage + FMath::FRandRange(-5.f, 5.f),
 				EndLocation - StartLocation,
 				Hit,
 				GetController(),
@@ -312,13 +305,7 @@ float AMyAICharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, 
 void AMyAICharacter::HandleDeath()
 {
 	MultiRPC_HandleDeath();
-
-	//if (HasAuthority())
-	//	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("In Server")), true, true, FColor::Green, 10);
-
-	//bIsRagdolled = true;
 	SetLifeSpan(60.f);
-	//PrintRag();
 }
 void AMyAICharacter::SetRagdolled()
 {
@@ -330,38 +317,8 @@ void AMyAICharacter::SetRagdolled()
 	CapsuleComp->SetCollisionProfileName(TEXT("DeadEnemy"));
 	SMComp->SetAllBodiesSimulatePhysics(true);
 	SMComp->SetCollisionProfileName(TEXT("DeadEnemy"));
-
-	/*StateTreeComponent->StopLogic("Dead");
-	GetCharacterMovement()->DisableMovement();
-
-	USkeletalMeshComponent* SMComp = GetMesh();
-	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
-
-	SMComp->SetAllBodiesSimulatePhysics(true);
-	CapsuleComp->SetCollisionProfileName(TEXT("Ragdoll"));
-	SMComp->SetCollisionProfileName(TEXT("Ragdoll"));
-	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	SMComp->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Ignore);*/
-
-	//if (UCapsuleComponent* CapsuleComp = GetCapsuleComponent())
-	//{
-	//	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	//	CapsuleComp->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
-	//}
-	//if (USkeletalMeshComponent* MeshComp = GetMesh())
-	//{
-	//	MeshComp->SetAllBodiesSimulatePhysics(true);
-	//	MeshComp->SetCollisionProfileName(TEXT("Ragdoll"));  
-	//	MeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
-	//	MeshComp->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
-	//	MeshComp->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
-	//}
+	//SMComp->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 }
-
-//void AMyAICharacter::PrintRag_Implementation()
-//{
-//	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("bIsRagdolled : %d"), bIsRagdolled), true, true, FColor::Green, 10);
-//}
 
 void AMyAICharacter::MultiRPC_HandleDeath_Implementation()
 {

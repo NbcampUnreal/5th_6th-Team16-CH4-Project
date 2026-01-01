@@ -174,9 +174,9 @@ void UMeleeWeaponComponent::CheckHit()
 	Params.AddIgnoredActor(OwnerCharacter);
 	Params.bTraceComplex = true;
 	Params.bReturnPhysicalMaterial = true;
-	FCollisionShape SphereCollision = FCollisionShape::MakeSphere(AttackRadius);
+	FCollisionShape CapsuleCollision = FCollisionShape::MakeCapsule(AttackRadius, 100.0f);
 
-	bool bHit = GetWorld()->SweepMultiByChannel(HitResults, AttackOrigin, AttackOrigin, FQuat::Identity, ECC_PlayerAttack, SphereCollision, Params);
+	bool bHit = GetWorld()->SweepMultiByChannel(HitResults, AttackOrigin, AttackOrigin, FQuat::Identity, ECC_PlayerAttack, CapsuleCollision, Params);
 	for (const auto& HitResult : HitResults)
 	{
 		if (HitResult.bBlockingHit == false)
@@ -187,6 +187,9 @@ void UMeleeWeaponComponent::CheckHit()
 			continue;
 
 		if (HitActors.Contains(HitActor) == true)
+			continue;
+
+		if (HitResult.Component.IsValid() == true && HitResult.Component->GetCollisionObjectType() == ECC_WorldStatic)
 			continue;
 
 		if (CheckIsAttackableTarget(HitActor) == false)
@@ -222,11 +225,12 @@ void UMeleeWeaponComponent::CheckHit()
 
 	// 충돌 검사 디버그
 	{
-		DrawDebugSphere(
+		DrawDebugCapsule(
 			GetWorld(),
 			AttackOrigin,
+			100.0f,
 			AttackRadius,
-			16,
+			FQuat::Identity,
 			FColor::Green,
 			false,
 			5.0f);

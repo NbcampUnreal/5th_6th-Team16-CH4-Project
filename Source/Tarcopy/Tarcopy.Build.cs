@@ -22,7 +22,7 @@ public class Tarcopy : ModuleRules
             "GameplayStateTreeModule",
             "AudioCapture",
             "AudioCaptureCore",
-            "AudioCaptureWASAPI",
+            "AudioCaptureWasapi",
             "AudioMixer",
             "SignalProcessing",
             "Niagara",

@@ -276,7 +276,6 @@ void UTCCarCombatComponent::ApplyDamage(UBoxComponent* InBox, float Damage, cons
 				/*FVector MeshLocation = MeshHP.Key->GetComponentLocation();
 				float MeshImpactDist = FVector::Dist(MeshLocation, WorldPoint);*/
 				Part.PartHP = FMath::Clamp(Part.PartHP - Damage, 0.f, PartDataMap[ComponentName[Part.PartName]].MaxHealth);
-				UE_LOG(LogTemp, Error, TEXT("Component Name %s , CurrentHP %.0f"), *Part.PartName.ToString(), Part.PartHP);
 
 
 				if (Part.PartHP <= 0)
@@ -317,8 +316,6 @@ bool UTCCarCombatComponent::IsPointInsideBox(UBoxComponent* InBox, const FVector
 UPrimitiveComponent* UTCCarCombatComponent::GetTestMesh()
 {
 	int32 RandIndex = FMath::RandRange(0, Meshes.Num() - 1);
-	UE_LOG(LogTemp, Error, TEXT("%d"), RandIndex);
-	UE_LOG(LogTemp, Error, TEXT("%d"), Meshes.Num());
 	TestMesh = Meshes[RandIndex];
 	return TestMesh;
 }

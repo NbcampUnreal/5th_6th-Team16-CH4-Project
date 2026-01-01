@@ -240,7 +240,7 @@ void ATCCarBase::PossessedBy(AController* NewController)
 					float ClampedRate = FMath::Clamp(CurrentRPM / 6000.f, 0.f, 1.f);
 					Consumption += ClampedRate * WeakThis->MoveFactor;
 
-					WeakThis->ServerRPCUpdateFuel(-Consumption * 10);
+					WeakThis->ServerRPCUpdateFuel(-Consumption);
 				}),
 			1.f,
 			true,
@@ -262,8 +262,6 @@ void ATCCarBase::OnRep_Controller()
 
 	PC->ChangeIMC(PC->IMC_Car);
 
-
-	UE_LOG(LogTemp, Error, TEXT("%.2f %.2f"), ChaosVehicleMovement->GetForwardSpeed() * 0.036f, ChaosVehicleMovement->GetMaxSpeed() * 0.036f);
 }
 
 
@@ -644,6 +642,7 @@ void ATCCarBase::Activate(AActor* InInstigator)
 
 void ATCCarBase::MulticastHideCharacter_Implementation(APawn* InPawn)
 {
+	if (!InPawn) return;
 	InPawn->SetActorHiddenInGame(true);
 }
 
