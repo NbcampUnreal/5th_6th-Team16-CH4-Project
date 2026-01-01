@@ -3,7 +3,6 @@
 #include "Item/Data/ContainerData.h"
 #include "Item/ItemInstance.h"
 #include "Item/Data/ItemData.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Inventory/InventoryData.h"
 #include "Item/ItemCommand/OpenContainerCommand.h"
 #include "Net/UnrealNetwork.h"

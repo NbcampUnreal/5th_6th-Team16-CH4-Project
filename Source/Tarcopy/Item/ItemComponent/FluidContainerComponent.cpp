@@ -3,7 +3,6 @@
 #include "Item/Data/FluidContainerData.h"
 #include "Item/ItemInstance.h"
 #include "Item/Data/ItemData.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Item/ItemNetworkContext.h"
 
@@ -49,6 +48,10 @@ void UFluidContainerComponent::Fill(float InAmount)
 void UFluidContainerComponent::OnRep_PrintFluid()
 {
 	//UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s: %d left"), Amount));
+	if (OnUpdatedItemComponent.IsBound())
+	{
+		OnUpdatedItemComponent.Broadcast();
+	}
 }
 
 void UFluidContainerComponent::SetData()

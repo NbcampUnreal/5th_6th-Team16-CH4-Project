@@ -3,7 +3,6 @@
 #include "Character/MyCharacter.h"
 #include "Controller/MyPlayerController.h"
 #include "GameFramework/GameStateBase.h"
-#include "Kismet/KismetSystemLibrary.h"
 
 UMoodleComponent::UMoodleComponent() :
 	HungerReduceDelay(2.0f),

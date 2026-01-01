@@ -3,7 +3,6 @@
 #include "Item/Data/DurabilityData.h"
 #include "Item/ItemInstance.h"
 #include "Item/Data/ItemData.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Item/ItemCommand/ItemNetworkCommand.h"
 #include "Net/UnrealNetwork.h"
 #include "Item/ItemNetworkContext.h"
@@ -80,10 +79,7 @@ void UDurabilityComponent::LoseDurability(float Amount)
 void UDurabilityComponent::RestoreDurability(float Amount)
 {
 	if (GetData() == nullptr)
-	{
-		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("No Durability data"));
 		return;
-	}
 
 	Condition += Amount;
 	Condition = FMath::Min(Condition, Data->MaxCondition);
@@ -93,7 +89,6 @@ void UDurabilityComponent::RestoreDurability(float Amount)
 
 void UDurabilityComponent::OnRep_PrintCondition()
 {
-	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("Condition = %f"), Condition));
 	if (OnUpdatedItemComponent.IsBound())
 	{
 		OnUpdatedItemComponent.Broadcast();

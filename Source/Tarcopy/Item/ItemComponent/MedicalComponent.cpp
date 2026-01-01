@@ -3,7 +3,6 @@
 #include "Item/Data/MedicalData.h"
 #include "Item/ItemInstance.h"
 #include "Item/Data/ItemData.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Item/ItemCommand/ItemNetworkCommand.h"
 #include "Net/UnrealNetwork.h"
 #include "Item/ItemNetworkContext.h"
@@ -28,10 +27,10 @@ void UMedicalComponent::GetCommands(TArray<TObjectPtr<class UItemCommandBase>>& 
 	ensureMsgf(GetData() != nullptr, TEXT("No MedicalData"));
 
 	UItemNetworkCommand* RepairCommand = NewObject<UItemNetworkCommand>(this);
-	FItemNetworkContext IngestAllActionContext;
-	IngestAllActionContext.TargetItemComponent = this;
-	IngestAllActionContext.ActionTag = TEXT("RestoreHealth");
-	RepairCommand->ActionContext = IngestAllActionContext;
+	FItemNetworkContext RepairContext;
+	RepairContext.TargetItemComponent = this;
+	RepairContext.ActionTag = TEXT("RestoreHealth");
+	RepairCommand->ActionContext = RepairContext;
 	RepairCommand->TextDisplay = FText::FromString(FString::Printf(TEXT("Restore HP %.1f"), Data->RestoreAmount));
 	RepairCommand->bExecutable = !FMath::IsNearlyEqual(HealthComponent->GetMaxHP(), HealthComponent->GetCurrentHP());
 	OutCommands.Add(RepairCommand);
