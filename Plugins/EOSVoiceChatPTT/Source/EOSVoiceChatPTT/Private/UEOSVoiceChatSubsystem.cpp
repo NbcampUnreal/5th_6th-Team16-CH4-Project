@@ -552,6 +552,11 @@ void UEOSVoiceChatSubsystem::EnsureConnectLogin()
 		return;
 	}
 
+	if (IsRunningDedicatedServer())
+	{
+		return;
+	}
+
 	EnsureVoiceChatUser();
 	if (VoiceChatUser && VoiceChatUser->IsLoggedIn())
 	{
