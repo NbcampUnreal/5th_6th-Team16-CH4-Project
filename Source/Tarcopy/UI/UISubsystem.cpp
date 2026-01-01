@@ -7,6 +7,7 @@
 #include "UI/UW_RootHUD.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "UEOSVoiceChatSubsystem.h"
 #include "Inventory/InventoryData.h"
 #include "Misc/Guid.h"
 #include "UI/Inventory/UW_Inventory.h"
@@ -35,7 +36,8 @@ void UUISubsystem::PlayerControllerChanged(APlayerController* NewPlayerControlle
 
     ResetAllUI();
     InitRootHUD();
- }
+    BindVoiceIndicator();
+}
 
 UUserWidget* UUISubsystem::ShowUI(EUIType Type)
 {
@@ -327,6 +329,57 @@ void UUISubsystem::CloseCarInteractionMenu()
         CarActiveCommand->RemoveFromParent();
     }
     CarActiveCommand = nullptr;
+}
+
+void UUISubsystem::BindVoiceIndicator()
+{
+    if (!UIConfigData)
+    {
+        return;
+    }
+
+    if (!VoiceSubsystem)
+    {
+        if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+        {
+            if (UGameInstance* GameInstance = LocalPlayer->GetGameInstance())
+            {
+                VoiceSubsystem = GameInstance->GetSubsystem<UEOSVoiceChatSubsystem>();
+            }
+        }
+    }
+
+    if (!VoiceSubsystem)
+    {
+        return;
+    }
+
+    VoiceSubsystem->OnVoiceTransmitStateChanged.RemoveDynamic(this, &ThisClass::HandleVoiceTransmitStateChanged);
+    VoiceSubsystem->OnVoiceTransmitStateChanged.AddDynamic(this, &ThisClass::HandleVoiceTransmitStateChanged);
+    UpdateVoiceIndicatorUI(VoiceSubsystem->IsVoiceIndicatorActive());
+}
+
+void UUISubsystem::UpdateVoiceIndicatorUI(bool bIsActive)
+{
+    FUIInfo VoiceInfo;
+    if (!UIConfigData || !UIConfigData->GetInfo(EUIType::VoiceIndicator, VoiceInfo))
+    {
+        return;
+    }
+
+    if (bIsActive)
+    {
+        ShowUI(EUIType::VoiceIndicator);
+    }
+    else
+    {
+        HideUI(EUIType::VoiceIndicator);
+    }
+}
+
+void UUISubsystem::HandleVoiceTransmitStateChanged(bool bIsActive)
+{
+    UpdateVoiceIndicatorUI(bIsActive);
 }
 
 void UUISubsystem::InitRootHUD()

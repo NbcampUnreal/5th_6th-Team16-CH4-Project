@@ -173,14 +173,6 @@ void UEOSVoiceChatSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	InitializeVoiceChat();
 	UpdateVoiceIndicatorFromState();
 
-#if WITH_SLATE_APPLICATION
-	if (FSlateApplication::IsInitialized() && !PTTInputPreProcessor.IsValid())
-	{
-		PTTInputPreProcessor = MakeShared<FPTTInputPreProcessor>(*this);
-		FSlateApplication::Get().RegisterInputPreProcessor(PTTInputPreProcessor);
-	}
-#endif
-
 	if (!MapLoadedHandle.IsValid())
 	{
 		MapLoadedHandle = FCoreUObjectDelegates::PostLoadMapWithWorld.AddLambda([this](UWorld* LoadedWorld)
@@ -235,14 +227,6 @@ void UEOSVoiceChatSubsystem::Deinitialize()
 #if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	UnregisterRtcAudioNotify();
 	LeaveVoiceLobby();
-#endif
-
-#if WITH_SLATE_APPLICATION
-	if (FSlateApplication::IsInitialized() && PTTInputPreProcessor.IsValid())
-	{
-		FSlateApplication::Get().UnregisterInputPreProcessor(PTTInputPreProcessor);
-		PTTInputPreProcessor.Reset();
-	}
 #endif
 
 	if (MapLoadedHandle.IsValid())
@@ -1000,8 +984,12 @@ bool UEOSVoiceChatSubsystem::TryBindInput()
 	CachedPlayerController = PC;
 
 	const bool bEnhancedBound = BindEnhancedInput(PC);
-	const bool bLegacyBound = BindLegacyInput(PC);
-	return bEnhancedBound || bLegacyBound;
+	if (bEnhancedBound)
+	{
+		return true;
+	}
+
+	return BindLegacyInput(PC);
 }
 
 bool UEOSVoiceChatSubsystem::BindEnhancedInput(APlayerController* PC)

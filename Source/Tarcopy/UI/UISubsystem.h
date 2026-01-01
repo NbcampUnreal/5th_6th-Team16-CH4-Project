@@ -15,6 +15,7 @@ class UItemInstance;
 class UUW_ItemCommandMenu;
 class UTCCarActivate;
 class ATCCarBase;
+class UEOSVoiceChatSubsystem;
 
 struct FGuid;
 
@@ -50,6 +51,12 @@ private:
 
 	void ApplyLayoutPreset(UCanvasPanelSlot* Slot, const FUILayoutPreset& Layout);
 
+	void BindVoiceIndicator();
+	void UpdateVoiceIndicatorUI(bool bIsActive);
+
+	UFUNCTION()
+	void HandleVoiceTransmitStateChanged(bool bIsActive);
+
 	UPROPERTY()
 	TObjectPtr<UUW_RootHUD> RootHUD;
 
@@ -67,4 +74,7 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UTCCarActivate> CarActiveCommand;
+
+	UPROPERTY()
+	TObjectPtr<UEOSVoiceChatSubsystem> VoiceSubsystem;
 };
