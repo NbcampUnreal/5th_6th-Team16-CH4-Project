@@ -262,8 +262,6 @@ void ATCCarBase::OnRep_Controller()
 
 	PC->ChangeIMC(PC->IMC_Car);
 
-
-	UE_LOG(LogTemp, Error, TEXT("%.2f %.2f"), ChaosVehicleMovement->GetForwardSpeed() * 0.036f, ChaosVehicleMovement->GetMaxSpeed() * 0.036f);
 }
 
 
