@@ -22,6 +22,8 @@ public:
 
 	virtual void CancelAction() override;
 
+	virtual void BeginDestroy() override;
+
 protected:
 	virtual void OnRep_SetComponent() override;
 

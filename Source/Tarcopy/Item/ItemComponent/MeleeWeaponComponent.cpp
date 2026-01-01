@@ -140,6 +140,16 @@ void UMeleeWeaponComponent::CancelAction()
 	EnableOwnerMovement();
 }
 
+void UMeleeWeaponComponent::BeginDestroy()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearAllTimersForObject(this);
+	}
+
+	Super::BeginDestroy();
+}
+
 void UMeleeWeaponComponent::OnRep_SetComponent()
 {
 	Super::OnRep_SetComponent();
