@@ -644,6 +644,7 @@ void ATCCarBase::Activate(AActor* InInstigator)
 
 void ATCCarBase::MulticastHideCharacter_Implementation(APawn* InPawn)
 {
+	if (!InPawn) return;
 	InPawn->SetActorHiddenInGame(true);
 }
 
