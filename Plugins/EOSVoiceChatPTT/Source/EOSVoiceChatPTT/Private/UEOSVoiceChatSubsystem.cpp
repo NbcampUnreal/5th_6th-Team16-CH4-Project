@@ -1344,6 +1344,12 @@ FString UEOSVoiceChatSubsystem::BuildVoiceLobbyIdOverride() const
 
 FString UEOSVoiceChatSubsystem::GetVoiceServerKey() const
 {
+	const FString SessionId = GetLobbyIdFromSession();
+	if (!SessionId.IsEmpty())
+	{
+		return SessionId;
+	}
+
 	UWorld* World = GetGameInstance() ? GetGameInstance()->GetWorld() : nullptr;
 	if (!World)
 	{
