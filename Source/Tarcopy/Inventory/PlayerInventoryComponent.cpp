@@ -49,26 +49,7 @@ bool UPlayerInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOut
 
 	if (IsValid(PlayerInventoryData))
 	{
-		bWrote |= Channel->ReplicateSubobject(PlayerInventoryData, *Bunch, *RepFlags);
-
-		for (const FInventoryItemEntry& Entry : PlayerInventoryData->GetReplicatedItems().Items)
-		{
-			if (IsValid(Entry.Item))
-			{
-				bWrote |= Channel->ReplicateSubobject(Entry.Item, *Bunch, *RepFlags);
-
-				const auto& ItemComponents = Entry.Item->GetItemComponents();
-				for (const auto& ItemComponent : ItemComponents)
-				{
-					if (IsValid(ItemComponent) == false)
-					{
-						continue;
-					}
-
-					bWrote |= Channel->ReplicateSubobject(ItemComponent, *Bunch, *RepFlags);
-				}
-			}
-		}
+		bWrote |= PlayerInventoryData->ReplicateSubobjects(Channel, Bunch, RepFlags);
 	}
 
 	return bWrote;

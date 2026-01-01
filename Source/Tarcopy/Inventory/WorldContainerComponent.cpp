@@ -125,26 +125,7 @@ bool UWorldContainerComponent::ReplicateSubobjects(UActorChannel* Channel, FOutB
 
     if (IsValid(InventoryData))
     {
-        bWrote |= Channel->ReplicateSubobject(InventoryData, *Bunch, *RepFlags);
-
-        for (const FInventoryItemEntry& Entry : InventoryData->GetReplicatedItems().Items)
-        {
-            if (IsValid(Entry.Item))
-            {
-                bWrote |= Channel->ReplicateSubobject(Entry.Item, *Bunch, *RepFlags);
-
-                const auto& ItemComponents = Entry.Item->GetItemComponents();
-                for (const auto& ItemComponent : ItemComponents)
-                {
-                    if (IsValid(ItemComponent) == false)
-                    {
-                        continue;
-                    }
-
-                    bWrote |= Channel->ReplicateSubobject(ItemComponent, *Bunch, *RepFlags);
-                }
-            }
-        }
+        bWrote |= InventoryData->ReplicateSubobjects(Channel, Bunch, RepFlags);
     }
     return bWrote;
 }
