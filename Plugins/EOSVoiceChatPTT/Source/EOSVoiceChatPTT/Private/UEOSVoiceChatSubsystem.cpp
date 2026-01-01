@@ -163,20 +163,12 @@ void UEOSVoiceChatSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	if (IsRunningDedicatedServer())
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Skipping voice chat on dedicated server."));
 		return;
 	}
 
 	LoadConfig();
 	bPTTEnabled = bEnablePTTByDefault;
 	bAlwaysTransmit = bAlwaysTransmitByDefault;
-
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Mic activity logs %s. Threshold=%d Interval=%.2f AlwaysTransmit=%s"),
-		bEnableMicActivityLogs ? TEXT("enabled") : TEXT("disabled"),
-		MicActivityAmplitudeThreshold,
-		MicActivityLogIntervalSeconds,
-		bAlwaysTransmit ? TEXT("true") : TEXT("false"));
-
 	InitializeVoiceChat();
 
 #if WITH_SLATE_APPLICATION
@@ -184,7 +176,6 @@ void UEOSVoiceChatSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		PTTInputPreProcessor = MakeShared<FPTTInputPreProcessor>(*this);
 		FSlateApplication::Get().RegisterInputPreProcessor(PTTInputPreProcessor);
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("PTT input preprocessor registered."));
 	}
 #endif
 
@@ -199,19 +190,28 @@ void UEOSVoiceChatSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 			const FString MapAssetName = FPackageName::GetShortName(LoadedWorld->GetOutermost()->GetName());
 			const FString MapName = UWorld::RemovePIEPrefix(MapAssetName);
-			UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Map loaded: %s"), *MapName);
 			if (AutoJoinMapName.IsEmpty() || !MapName.Equals(AutoJoinMapName, ESearchCase::IgnoreCase))
 			{
 				if (!AutoJoinMapName.IsEmpty())
 				{
-					UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Auto-join skipped. Expected map: %s"), *AutoJoinMapName);
 				}
+
+				if (ChannelMode == EEOSVoiceChannelMode::LobbyRtc || ChannelMode == EEOSVoiceChannelMode::LobbyRtcSdk)
+				{
+					LeaveChannel();
+				}
+
+				// Reset voice transmission state when leaving the auto-join map.
+				bPTTEnabled = bEnablePTTByDefault;
+				bAlwaysTransmit = bAlwaysTransmitByDefault;
+				bIsPTTActive = false;
+				UpdateRTCSending(false);
+
 				return;
 			}
 
 			bPendingAutoJoin = true;
 			EnsureAutoJoinTicker();
-			UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Auto-join requested on map: %s"), *MapName);
 		});
 	}
 
@@ -239,7 +239,6 @@ void UEOSVoiceChatSubsystem::Deinitialize()
 	{
 		FSlateApplication::Get().UnregisterInputPreProcessor(PTTInputPreProcessor);
 		PTTInputPreProcessor.Reset();
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("PTT input preprocessor unregistered."));
 	}
 #endif
 
@@ -269,7 +268,6 @@ void UEOSVoiceChatSubsystem::Deinitialize()
 			VoiceChatUser->Logout(FOnVoiceChatLogoutCompleteDelegate::CreateLambda(
 				[](const FString& PlayerName, const FVoiceChatResult& Result)
 				{
-					UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice chat logout complete: %s"), *LexToString(Result));
 				}));
 		}
 
@@ -290,7 +288,6 @@ void UEOSVoiceChatSubsystem::Deinitialize()
 			VoiceChat->Disconnect(FOnVoiceChatDisconnectCompleteDelegate::CreateLambda(
 				[](const FVoiceChatResult& Result)
 				{
-					UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice chat disconnect complete: %s"), *LexToString(Result));
 				}));
 		}
 
@@ -299,7 +296,6 @@ void UEOSVoiceChatSubsystem::Deinitialize()
 			VoiceChat->Uninitialize(FOnVoiceChatUninitializeCompleteDelegate::CreateLambda(
 				[](const FVoiceChatResult& Result)
 				{
-					UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice chat uninitialize complete: %s"), *LexToString(Result));
 				}));
 		}
 
@@ -348,8 +344,6 @@ void UEOSVoiceChatSubsystem::SetAlwaysTransmit(bool bEnabled)
 {
 	bAlwaysTransmit = bEnabled;
 	bIsPTTActive = false;
-
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Always transmit %s."), bAlwaysTransmit ? TEXT("enabled") : TEXT("disabled"));
 	UpdateRTCSending(bAlwaysTransmit || bIsPTTActive);
 }
 
@@ -359,10 +353,6 @@ void UEOSVoiceChatSubsystem::JoinChannel(const FString& ChannelName)
 	const FString Sanitized = SanitizeChannelName(Desired);
 
 	EnsureVoiceChatUser();
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("JoinChannel requested. Desired=%s Sanitized=%s LoggedIn=%s"),
-		*Desired,
-		*Sanitized,
-		(VoiceChatUser && VoiceChatUser->IsLoggedIn()) ? TEXT("true") : TEXT("false"));
 	if (!VoiceChatUser || !VoiceChatUser->IsLoggedIn())
 	{
 		UE_LOG(LogEOSVoiceChatSubsystem, Warning, TEXT("Voice chat is not logged in yet."));
@@ -396,7 +386,6 @@ void UEOSVoiceChatSubsystem::JoinChannel(const FString& ChannelName)
 			bPendingAutoJoin = false;
 			return;
 		}
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Lobby RTC not ready yet. LobbyId=%s"), *LobbyId);
 	}
 
 	if (!ManualClientBaseUrl.IsEmpty() && !ManualParticipantToken.IsEmpty())
@@ -411,7 +400,6 @@ void UEOSVoiceChatSubsystem::JoinChannel(const FString& ChannelName)
 
 	if (VoiceChatUser)
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Falling back to EOS Voice Chat channel join: %s"), *Sanitized);
 		ActiveRoomName = Sanitized;
 		ChannelMode = EEOSVoiceChannelMode::VoiceChat;
 		VoiceChatUser->JoinChannel(
@@ -527,8 +515,6 @@ void UEOSVoiceChatSubsystem::HandleVoiceChatInitialized(const FVoiceChatResult& 
 	}
 
 	bVoiceInitialized = true;
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice chat initialized."));
-
 	EnsureVoiceChatUser();
 
 	if (!VoiceChat->IsConnected())
@@ -551,8 +537,6 @@ void UEOSVoiceChatSubsystem::HandleVoiceChatConnected(const FVoiceChatResult& Re
 	}
 
 	bVoiceConnected = true;
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice chat connected."));
-
 	EnsureConnectLogin();
 }
 
@@ -635,7 +619,6 @@ void UEOSVoiceChatSubsystem::StartConnectDeviceIdLogin()
 	CreateOptions.DeviceModel = "UE5";
 
 	EOS_Connect_CreateDeviceId(EOSConnectHandle, &CreateOptions, this, &UEOSVoiceChatSubsystem::OnCreateDeviceIdCompleteStatic);
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Creating Device ID for EOS Connect."));
 #endif
 }
 
@@ -671,7 +654,6 @@ void UEOSVoiceChatSubsystem::HandleCreateDeviceIdComplete(const EOS_Connect_Crea
 	LoginOptions.UserLoginInfo = &LoginInfo;
 
 	EOS_Connect_Login(EOSConnectHandle, &LoginOptions, this, &UEOSVoiceChatSubsystem::OnConnectLoginCompleteStatic);
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("EOS Connect login requested (Device ID)."));
 #endif
 }
 
@@ -703,7 +685,6 @@ void UEOSVoiceChatSubsystem::HandleConnectLoginComplete(const EOS_Connect_LoginC
 		CreateUserOptions.ContinuanceToken = Data->ContinuanceToken;
 
 		EOS_Connect_CreateUser(EOSConnectHandle, &CreateUserOptions, this, &UEOSVoiceChatSubsystem::OnConnectCreateUserCompleteStatic);
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("EOS Connect CreateUser requested."));
 		return;
 	}
 
@@ -837,8 +818,6 @@ void UEOSVoiceChatSubsystem::LoginToVoiceChat(const FString& ProductUserId)
 		ProductUserId,
 		TEXT(""),
 		FOnVoiceChatLoginCompleteDelegate::CreateUObject(this, &UEOSVoiceChatSubsystem::HandleVoiceChatLoginComplete));
-
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice chat login requested for PUID: %s"), *ProductUserId);
 }
 
 void UEOSVoiceChatSubsystem::HandleVoiceChatLoginComplete(const FString& PlayerName, const FVoiceChatResult& Result)
@@ -850,7 +829,6 @@ void UEOSVoiceChatSubsystem::HandleVoiceChatLoginComplete(const FString& PlayerN
 	}
 
 	bVoiceLoggedIn = true;
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice chat login success: %s"), *PlayerName);
 	ApplyDefaultAudioInputDevice();
 	LogCurrentInputDevice(TEXT("LoginComplete"));
 
@@ -870,19 +848,15 @@ void UEOSVoiceChatSubsystem::HandleVoiceChatChannelJoinComplete(const FString& C
 		UE_LOG(LogEOSVoiceChatSubsystem, Error, TEXT("Voice chat join failed: %s"), *LexToString(Result));
 		return;
 	}
-
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice chat joined: %s"), *ChannelName);
 	UpdateRTCSending(false);
 }
 
 void UEOSVoiceChatSubsystem::HandleVoiceChatChannelLeaveComplete(const FString& ChannelName, const FVoiceChatResult& Result)
 {
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice chat left: %s (%s)"), *ChannelName, *LexToString(Result));
 }
 
 void UEOSVoiceChatSubsystem::HandleVoiceChatChannelJoinedLog(const FString& ChannelName)
 {
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice chat join success: %s"), *ChannelName);
 }
 
 void UEOSVoiceChatSubsystem::ApplyDefaultAudioInputDevice()
@@ -890,9 +864,6 @@ void UEOSVoiceChatSubsystem::ApplyDefaultAudioInputDevice()
 #if WITH_EOS_SDK
 	if (!EOSRtcAudioHandle || !LocalProductUserId)
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Verbose, TEXT("Default input device not applied. Handle=%s Puid=%s"),
-			EOSRtcAudioHandle ? TEXT("valid") : TEXT("null"),
-			LocalProductUserId ? TEXT("valid") : TEXT("null"));
 		return;
 	}
 
@@ -903,7 +874,6 @@ void UEOSVoiceChatSubsystem::ApplyDefaultAudioInputDevice()
 	Options.bPlatformAEC = EOS_TRUE;
 
 	EOS_RTCAudio_SetInputDeviceSettings(EOSRtcAudioHandle, &Options, this, &UEOSVoiceChatSubsystem::OnSetInputDeviceSettingsStatic);
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Default input device requested for RTC."));
 #endif
 }
 
@@ -911,17 +881,11 @@ void UEOSVoiceChatSubsystem::LogCurrentInputDevice(const TCHAR* Context)
 {
 	if (!VoiceChatUser)
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Input device query skipped: VoiceChatUser missing. Context=%s"),
-			Context ? Context : TEXT("Unknown"));
 		return;
 	}
 
 	const FVoiceChatDeviceInfo CurrentDevice = VoiceChatUser->GetInputDeviceInfo();
 	const FVoiceChatDeviceInfo DefaultDevice = VoiceChatUser->GetDefaultInputDeviceInfo();
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice input device (%s): Current=%s Default=%s"),
-		Context ? Context : TEXT("Unknown"),
-		*LexToString(CurrentDevice),
-		*LexToString(DefaultDevice));
 }
 
 void UEOSVoiceChatSubsystem::HandleVoiceCaptureLog(const FString& ChannelName, TArrayView<int16> PcmSamples, int SampleRate, int Channels)
@@ -958,7 +922,6 @@ void UEOSVoiceChatSubsystem::HandleVoiceCaptureLog(const FString& ChannelName, T
 	}
 
 	LastMicLogTime = Now;
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice input detected. Channel=%s Samples=%d Rate=%d Channels=%d Peak=%d"), *ChannelName, PcmSamples.Num(), SampleRate, Channels, MaxAbs);
 }
 
 bool UEOSVoiceChatSubsystem::TickBindInput(float DeltaTime)
@@ -1044,7 +1007,6 @@ bool UEOSVoiceChatSubsystem::BindEnhancedInput(APlayerController* PC)
 			UE_LOG(LogEOSVoiceChatSubsystem, Warning, TEXT("Failed to load PTT action asset: %s"), *PTTActionAssetPath.ToString());
 			return false;
 		}
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Loaded PTT action asset: %s"), *ActionToBind->GetPathName());
 	}
 	else
 	{
@@ -1100,8 +1062,6 @@ bool UEOSVoiceChatSubsystem::BindEnhancedInput(APlayerController* PC)
 	EnhancedReleasedBindingHandle = ReleasedBinding.GetHandle();
 	EnhancedCanceledBindingHandle = CanceledBinding.GetHandle();
 	CachedEnhancedInputComponent = EnhancedInputComponent;
-
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("PTT bound via Enhanced Input. Component=%s"), *EnhancedInputComponent->GetPathName());
 	return true;
 }
 
@@ -1124,8 +1084,6 @@ bool UEOSVoiceChatSubsystem::BindLegacyInput(APlayerController* PC)
 
 		PC->PushInputComponent(NewInputComponent);
 		LegacyInputComponent = NewInputComponent;
-
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("PTT bound via legacy input."));
 	}
 
 	return LegacyInputComponent.IsValid();
@@ -1192,13 +1150,11 @@ void UEOSVoiceChatSubsystem::OnPTTPressed()
 {
 	if (bAlwaysTransmit)
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("PTT pressed ignored: always transmit enabled."));
 		return;
 	}
 
 	if (!bPTTEnabled || bMuted)
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("PTT pressed ignored. Enabled=%s Muted=%s"), bPTTEnabled ? TEXT("true") : TEXT("false"), bMuted ? TEXT("true") : TEXT("false"));
 		return;
 	}
 
@@ -1208,7 +1164,6 @@ void UEOSVoiceChatSubsystem::OnPTTPressed()
 	}
 
 	bIsPTTActive = true;
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("PTT pressed."));
 	UpdateRTCSending(true);
 }
 
@@ -1216,7 +1171,6 @@ void UEOSVoiceChatSubsystem::OnPTTReleased()
 {
 	if (bAlwaysTransmit)
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("PTT released ignored: always transmit enabled."));
 		return;
 	}
 
@@ -1226,7 +1180,6 @@ void UEOSVoiceChatSubsystem::OnPTTReleased()
 	}
 
 	bIsPTTActive = false;
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("PTT released."));
 	UpdateRTCSending(false);
 }
 
@@ -1277,7 +1230,6 @@ void UEOSVoiceChatSubsystem::TryAutoJoin()
 
 	if (!VoiceChatUser || !VoiceChatUser->IsLoggedIn())
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Auto-join waiting for voice chat login."));
 		return;
 	}
 
@@ -1322,7 +1274,6 @@ void UEOSVoiceChatSubsystem::EnsureVoiceLobby()
 
 	if (!ResolveEOSHandles() || !EOSLobbyHandle || !LocalProductUserId)
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice lobby waiting for EOS handles or PUID."));
 		return;
 	}
 
@@ -1334,13 +1285,10 @@ void UEOSVoiceChatSubsystem::EnsureVoiceLobby()
 	const FString LobbyIdOverride = BuildVoiceLobbyIdOverride();
 	if (LobbyIdOverride.IsEmpty())
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice lobby waiting for server address."));
 		return;
 	}
 
 	const FString ServerKey = GetVoiceServerKey();
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice lobby id override computed: %s (server=%s)"), *LobbyIdOverride, *ServerKey);
-
 	VoiceLobbyIdOverride = LobbyIdOverride;
 	bVoiceLobbyInFlight = true;
 	StartVoiceLobbyJoinById(LobbyIdOverride);
@@ -1493,8 +1441,6 @@ bool UEOSVoiceChatSubsystem::TryUseLobbyRtc(const FString& LobbyId)
 		ActiveLobbyId = LobbyId;
 		ChannelMode = EEOSVoiceChannelMode::LobbyRtc;
 		UpdateRTCSending(false);
-
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Lobby RTC room added: %s"), *LobbyId);
 		return true;
 	}
 
@@ -1526,7 +1472,6 @@ bool UEOSVoiceChatSubsystem::TryUseLobbyRtc(const FString& LobbyId)
 	ChannelMode = EEOSVoiceChannelMode::LobbyRtcSdk;
 	UpdateRTCSending(false);
 	RegisterRtcAudioNotify();
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Lobby RTC SDK ready. LobbyId=%s Room=%s"), *LobbyId, *RoomName);
 	return true;
 #else
 	return false;
@@ -1581,10 +1526,6 @@ void UEOSVoiceChatSubsystem::UpdateRTCSending(bool bEnable)
 	{
 		if (!VoiceChatUser || !VoiceChatUser->IsLoggedIn() || ActiveRoomName.IsEmpty())
 		{
-			UE_LOG(LogEOSVoiceChatSubsystem, Verbose, TEXT("PTT send skipped. VoiceChatUser=%s LoggedIn=%s Channel=%s"),
-				VoiceChatUser ? TEXT("valid") : TEXT("null"),
-				VoiceChatUser && VoiceChatUser->IsLoggedIn() ? TEXT("true") : TEXT("false"),
-				ActiveRoomName.IsEmpty() ? TEXT("empty") : TEXT("set"));
 			return;
 		}
 
@@ -1604,7 +1545,6 @@ void UEOSVoiceChatSubsystem::UpdateRTCSending(bool bEnable)
 	{
 		if (!VoiceChatUser || !VoiceChatUser->IsLoggedIn())
 		{
-			UE_LOG(LogEOSVoiceChatSubsystem, Verbose, TEXT("PTT send skipped. LobbyRtc not ready."));
 			return;
 		}
 
@@ -1672,8 +1612,6 @@ void EOS_CALL UEOSVoiceChatSubsystem::OnRTCSendUpdateStatic(const EOS_RTCAudio_U
 	{
 		return;
 	}
-
-	UE_LOG(LogEOSVoiceChatSubsystem, Verbose, TEXT("RTC UpdateSending: %s"), EosResultToString(Data->ResultCode));
 }
 
 void EOS_CALL UEOSVoiceChatSubsystem::OnRTCJoinRoomStatic(const EOS_RTC_JoinRoomCallbackInfo* Data)
@@ -1686,7 +1624,6 @@ void EOS_CALL UEOSVoiceChatSubsystem::OnRTCJoinRoomStatic(const EOS_RTC_JoinRoom
 	const FString RoomName = Data->RoomName ? UTF8_TO_TCHAR(Data->RoomName) : TEXT("");
 	if (Data->ResultCode == EOS_EResult::EOS_Success)
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("RTC join success. Room=%s"), *RoomName);
 		if (Data->ClientData)
 		{
 			static_cast<UEOSVoiceChatSubsystem*>(Data->ClientData)->ApplyDefaultAudioInputDevice();
@@ -1694,7 +1631,6 @@ void EOS_CALL UEOSVoiceChatSubsystem::OnRTCJoinRoomStatic(const EOS_RTC_JoinRoom
 	}
 	else
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("RTC JoinRoom: %s Room=%s"), EosResultToString(Data->ResultCode), *RoomName);
 	}
 }
 
@@ -1704,8 +1640,6 @@ void EOS_CALL UEOSVoiceChatSubsystem::OnRTCLeaveRoomStatic(const EOS_RTC_LeaveRo
 	{
 		return;
 	}
-
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("RTC LeaveRoom: %s"), EosResultToString(Data->ResultCode));
 }
 
 void EOS_CALL UEOSVoiceChatSubsystem::OnRTCAudioBeforeSendStatic(const EOS_RTCAudio_AudioBeforeSendCallbackInfo* Data)
@@ -1765,8 +1699,6 @@ void UEOSVoiceChatSubsystem::StartVoiceLobbyJoinById(const FString& LobbyIdOverr
 	Options.LocalRTCOptions = nullptr;
 	Options.bCrossplayOptOut = EOS_FALSE;
 	Options.RTCRoomJoinActionType = EOS_ELobbyRTCRoomJoinActionType::EOS_LRRJAT_AutomaticJoin;
-
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice lobby join by id requested: %s"), *LobbyIdOverride);
 	EOS_Lobby_JoinLobbyById(EOSLobbyHandle, &Options, this, &UEOSVoiceChatSubsystem::OnLobbyJoinByIdCompleteStatic);
 }
 
@@ -1799,8 +1731,6 @@ void UEOSVoiceChatSubsystem::StartVoiceLobbyCreate(const FString& LobbyIdOverrid
 	Options.AllowedPlatformIdsCount = 0;
 	Options.bCrossplayOptOut = EOS_FALSE;
 	Options.RTCRoomJoinActionType = EOS_ELobbyRTCRoomJoinActionType::EOS_LRRJAT_AutomaticJoin;
-
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice lobby create requested: %s"), *LobbyIdOverride);
 	EOS_Lobby_CreateLobby(EOSLobbyHandle, &Options, this, &UEOSVoiceChatSubsystem::OnLobbyCreateCompleteStatic);
 }
 
@@ -1821,7 +1751,6 @@ void UEOSVoiceChatSubsystem::HandleVoiceLobbyJoinByIdComplete(const EOS_Lobby_Jo
 
 	if (Data->ResultCode == EOS_EResult::EOS_NotFound)
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice lobby not found. Creating: %s"), *VoiceLobbyIdOverride);
 		StartVoiceLobbyCreate(VoiceLobbyIdOverride);
 		return;
 	}
@@ -1857,9 +1786,6 @@ void UEOSVoiceChatSubsystem::HandleVoiceLobbyReady(const FString& LobbyId)
 {
 	bVoiceLobbyInFlight = false;
 	ActiveLobbyId = LobbyId;
-
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice lobby ready: %s"), *LobbyId);
-
 	if (TryUseLobbyRtc(ActiveLobbyId))
 	{
 		bPendingAutoJoin = false;
@@ -1886,7 +1812,6 @@ void UEOSVoiceChatSubsystem::LeaveVoiceLobby()
 	Options.LobbyId = LobbyIdUtf8.Get();
 
 	EOS_Lobby_LeaveLobby(EOSLobbyHandle, &Options, nullptr, nullptr);
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice lobby leave requested: %s"), *ActiveLobbyId);
 	ActiveLobbyId.Reset();
 	VoiceLobbyIdOverride.Reset();
 	bVoiceLobbyInFlight = false;
@@ -1896,16 +1821,11 @@ void UEOSVoiceChatSubsystem::RegisterRtcAudioNotify()
 {
 	if (!bEnableMicActivityLogs)
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Verbose, TEXT("RTC AudioBeforeSend notify skipped: mic activity logs disabled."));
 		return;
 	}
 
 	if (!EOSRtcAudioHandle || !LocalProductUserId || ActiveRoomName.IsEmpty())
 	{
-		UE_LOG(LogEOSVoiceChatSubsystem, Verbose, TEXT("RTC AudioBeforeSend notify skipped. Handle=%s Puid=%s Room=%s"),
-			EOSRtcAudioHandle ? TEXT("valid") : TEXT("null"),
-			LocalProductUserId ? TEXT("valid") : TEXT("null"),
-			ActiveRoomName.IsEmpty() ? TEXT("empty") : TEXT("set"));
 		return;
 	}
 
@@ -1923,8 +1843,6 @@ void UEOSVoiceChatSubsystem::RegisterRtcAudioNotify()
 
 	RtcBeforeSendNotifyId = EOS_RTCAudio_AddNotifyAudioBeforeSend(EOSRtcAudioHandle, &Options, this, &UEOSVoiceChatSubsystem::OnRTCAudioBeforeSendStatic);
 	RtcBeforeSendRoomName = ActiveRoomName;
-
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("RTC AudioBeforeSend notify registered. Room=%s"), *ActiveRoomName);
 }
 
 void UEOSVoiceChatSubsystem::UnregisterRtcAudioNotify()
@@ -1978,12 +1896,6 @@ void UEOSVoiceChatSubsystem::HandleRtcAudioBeforeSend(const EOS_RTCAudio_AudioBe
 	LastMicLogTime = Now;
 
 	const FString RoomName = Data->RoomName ? UTF8_TO_TCHAR(Data->RoomName) : TEXT("");
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Voice input detected. Room=%s Frames=%u Rate=%u Channels=%u Peak=%d"),
-		*RoomName,
-		Buffer->FramesCount,
-		Buffer->SampleRate,
-		Buffer->Channels,
-		MaxAbs);
 }
 
 void UEOSVoiceChatSubsystem::HandleSetInputDeviceSettings(const EOS_RTCAudio_OnSetInputDeviceSettingsCallbackInfo* Data)
@@ -1992,8 +1904,6 @@ void UEOSVoiceChatSubsystem::HandleSetInputDeviceSettings(const EOS_RTCAudio_OnS
 	{
 		return;
 	}
-
-	UE_LOG(LogEOSVoiceChatSubsystem, Log, TEXT("Default input device applied: %s"), EosResultToString(Data->ResultCode));
 	LogCurrentInputDevice(TEXT("RtcSetInputDevice"));
 }
 
