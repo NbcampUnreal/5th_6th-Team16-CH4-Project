@@ -9,3 +9,8 @@ void UUW_ItemInfoEntry::BindItem(UItemInstance* InItem)
 {
 	return;
 }
+
+void UUW_ItemInfoEntry::HandleUpdated()
+{
+	return;
+}

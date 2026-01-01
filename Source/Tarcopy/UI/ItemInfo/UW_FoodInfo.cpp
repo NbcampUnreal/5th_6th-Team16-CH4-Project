@@ -11,6 +11,7 @@
 void UUW_FoodInfo::BindItem(UItemInstance* InItem)
 {
 	CachedComponent = InItem->GetItemComponent<UFoodComponent>();
+	CachedComponent->OnUpdatedItemComponent.AddUObject(this, &ThisClass::HandleUpdated);
 	auto Data = CachedComponent->GetData();
 
 
@@ -18,5 +19,10 @@ void UUW_FoodInfo::BindItem(UItemInstance* InItem)
 
 	ThirstTxt->SetText(FText::FromString(FString::Printf(TEXT("%.1f"), Data->Thirst)));
 
+	RemainAmountTxt->SetText(FText::FromString(FString::Printf(TEXT("%.0f%%"), CachedComponent->GetRemainAmount() * 100.0f)));
+}
+
+void UUW_FoodInfo::HandleUpdated()
+{
 	RemainAmountTxt->SetText(FText::FromString(FString::Printf(TEXT("%.0f%%"), CachedComponent->GetRemainAmount() * 100.0f)));
 }

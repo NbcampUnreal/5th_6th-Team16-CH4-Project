@@ -19,6 +19,7 @@ class TARCOPY_API UUW_DurabilityInfo : public UUW_ItemInfoEntry
 
 public:
 	virtual void BindItem(UItemInstance* InItem) override;
+	virtual void HandleUpdated() override;
 	
 private:
 	UPROPERTY(meta = (BindWidget))

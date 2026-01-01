@@ -19,6 +19,7 @@ class TARCOPY_API UUW_FoodInfo : public UUW_ItemInfoEntry
 
 public:
 	virtual void BindItem(UItemInstance* InItem) override;
+	virtual void HandleUpdated() override;
 	
 private:
 	UPROPERTY(meta = (BindWidget))
