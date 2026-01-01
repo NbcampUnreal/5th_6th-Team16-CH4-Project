@@ -216,7 +216,6 @@ void AMyCharacter::MoveAction(const FInputActionValue& Value)
 {
 	if (!IsValid(Controller))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Controller is Invalid."));
 		return;
 	}
 	if (bIsHit)
@@ -351,7 +350,6 @@ void AMyCharacter::CanceledRightClick(const FInputActionValue& Value)
 	if (GetWorld()->LineTraceSingleByChannel(
 		Hit, Start, End, ECC_Visibility, Params) == false)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Line Trace Error"));
 		return;
 	}
 
@@ -474,7 +472,6 @@ void AMyCharacter::TurnToMouse()
 	if (GetWorld()->LineTraceSingleByChannel(
 		Hit, Start, End, ECC_Visibility, Params) == false)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Line Trace Error"));
 		return;
 	}
 	FVector TargetPoint = Hit.ImpactPoint;
@@ -660,8 +657,6 @@ void AMyCharacter::OpenTitleLevel()
 
 void AMyCharacter::MultiRPC_HandleDeath_Implementation()
 {
-	//UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Dead"), true, true, FColor::Red, 5.f);
-
 	if (IsLocallyControlled())
 	{
 		ClientHandleDeath();
