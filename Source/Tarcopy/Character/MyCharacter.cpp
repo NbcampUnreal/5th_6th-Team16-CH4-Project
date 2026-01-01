@@ -53,6 +53,7 @@ AMyCharacter::AMyCharacter() :
 	BaseWalkSpeed(400.f),
 	SprintSpeedMultiplier(1.5f),
 	CrouchSpeedMultiplier(0.8f),
+	AimSpeedMultiplier(0.6f),
 	bIsAttackMode(false)
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -389,7 +390,7 @@ void AMyCharacter::TriggeredRightClick(const FInputActionValue& Value)
 
 	bIsAttackMode = true;
 	ServerRPC_SetAiming(true);
-	ServerRPC_SetSpeed(BaseWalkSpeed * CrouchSpeedMultiplier);
+	ServerRPC_SetSpeed(BaseWalkSpeed * AimSpeedMultiplier);
 }
 
 void AMyCharacter::CompletedRightClick(const FInputActionValue& Value)
@@ -573,6 +574,7 @@ void AMyCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	DOREPLIFETIME(ThisClass, BaseWalkSpeed);
 	DOREPLIFETIME(ThisClass, SprintSpeedMultiplier);
 	DOREPLIFETIME(ThisClass, CrouchSpeedMultiplier);
+	DOREPLIFETIME(ThisClass, AimSpeedMultiplier);
 	DOREPLIFETIME(ThisClass, CurrentSpeed);
 	DOREPLIFETIME(ThisClass, bIsAttackMode);
 }
