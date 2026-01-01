@@ -17,7 +17,7 @@ class IOnlineSubsystem;
 class APlayerController;
 class IInputProcessor;
 
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 #include "eos_common.h"
 #include "eos_connect.h"
 #include "eos_lobby.h"
@@ -34,6 +34,8 @@ enum class EEOSVoiceChannelMode : uint8
 	LobbyRtcSdk,
 	ManualRtc
 };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVoiceTransmitStateChanged, bool, bIsTransmitting);
 
 UCLASS(Config=Engine)
 class EOSVOICECHATPTT_API UEOSVoiceChatSubsystem : public UGameInstanceSubsystem
@@ -61,6 +63,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category="EOS Voice Chat")
 	void LeaveChannel();
 
+	UFUNCTION(BlueprintCallable, Category="EOS Voice Chat")
+	bool IsVoiceIndicatorActive() const;
+
+	UPROPERTY(BlueprintAssignable, Category="EOS Voice Chat")
+	FOnVoiceTransmitStateChanged OnVoiceTransmitStateChanged;
+
 private:
 	void InitializeVoiceChat();
 	void HandleVoiceChatInitialized(const FVoiceChatResult& Result);
@@ -81,6 +89,7 @@ private:
 	FString GetVoiceServerKey() const;
 
 	void EnsureConnectLogin();
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	bool TryUseExistingPuid();
 	void StartConnectDeviceIdLogin();
 	void HandleCreateDeviceIdComplete(const EOS_Connect_CreateDeviceIdCallbackInfo* Data);
@@ -88,6 +97,7 @@ private:
 	void HandleConnectCreateUserComplete(const EOS_Connect_CreateUserCallbackInfo* Data);
 	FString ProductUserIdToString(EOS_ProductUserId UserId) const;
 	void LoginToVoiceChat(const FString& ProductUserId);
+#endif
 
 	bool TickBindInput(float DeltaTime);
 	bool TryBindInput();
@@ -106,8 +116,9 @@ private:
 	bool TryJoinManualRtc(const FString& ChannelName);
 
 	void UpdateRTCSending(bool bEnable);
+	void UpdateVoiceIndicatorFromState();
 
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	static void EOS_CALL OnRTCSendUpdateStatic(const EOS_RTCAudio_UpdateSendingCallbackInfo* Data);
 	static void EOS_CALL OnRTCJoinRoomStatic(const EOS_RTC_JoinRoomCallbackInfo* Data);
 	static void EOS_CALL OnRTCLeaveRoomStatic(const EOS_RTC_LeaveRoomCallbackInfo* Data);
@@ -200,6 +211,7 @@ private:
 	bool bAlwaysTransmit;
 	bool bMuted;
 	bool bIsPTTActive;
+	bool bVoiceIndicatorActive;
 	bool bPendingAutoJoin;
 	bool bVoiceLobbyInFlight;
 
@@ -231,7 +243,7 @@ private:
 	FDelegateHandle VoiceCaptureLogHandle;
 	FDelegateHandle ChannelJoinedLogHandle;
 
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	TSharedPtr<class IEOSPlatformHandle, ESPMode::ThreadSafe> EOSPlatformHandle;
 	EOS_HConnect EOSConnectHandle;
 	EOS_HLobby EOSLobbyHandle;

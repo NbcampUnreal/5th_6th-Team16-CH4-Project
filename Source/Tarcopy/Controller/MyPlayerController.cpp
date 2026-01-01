@@ -90,6 +90,10 @@ void AMyPlayerController::BeginPlay()
 				HealthUI = Cast<UUW_MoodleIcon>(Widget);
 				HealthUI->SetRatio(1.0f);
 			}
+			if (auto* Widget = UIS->ShowUI(EUIType::VoiceIndicator))
+			{
+			}
+			
 		}
 	}
 }

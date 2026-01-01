@@ -19,6 +19,7 @@ enum class EUIType : uint8
     Inventory,
     InventoryBorder,
     Player,
+    VoiceIndicator,
     Nearby,
     ItemCommandMenu,
     Car,
