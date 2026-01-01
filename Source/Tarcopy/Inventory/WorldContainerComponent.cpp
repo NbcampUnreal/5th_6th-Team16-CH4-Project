@@ -160,6 +160,10 @@ void UWorldContainerComponent::OnRep_InventoryData()
     {
         InventoryData->FixupAfterReplication();
     }
+    if (!SenseBox)
+    {
+        return;
+    }
     SenseBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     SenseBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
     SenseBox->UpdateOverlaps();
