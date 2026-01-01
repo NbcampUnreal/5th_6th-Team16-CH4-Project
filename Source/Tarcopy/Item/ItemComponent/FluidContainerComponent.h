@@ -27,7 +27,7 @@ public:
 	void OnRep_PrintFluid();
 
 	const FFluidContainerData* GetData();
-	FORCEINLINE const float GetAmount() { return Amount; }
+	FORCEINLINE float GetAmount() const { return Amount; }
 
 private:
 	void SetData();

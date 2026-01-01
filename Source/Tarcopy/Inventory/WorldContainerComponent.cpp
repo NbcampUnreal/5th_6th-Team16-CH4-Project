@@ -101,7 +101,7 @@ void UWorldContainerComponent::BeginPlay()
         {
             for (int32 X = 0; X < GridSize.X && !bPlaced; ++X)
             {
-                if (InventoryData->TryAddItem(NewItem, FIntPoint(X, Y), false, false))
+                if (InventoryData->TryAddItem(NewItem, FIntPoint(X, Y), false))
                 {
                     bPlaced = true;
                 }

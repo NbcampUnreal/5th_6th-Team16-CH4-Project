@@ -1,5 +1,4 @@
 ﻿#include "Common/HealthComponent.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Common/BodyDamageModifierSetting.h"
 #include "Item/EquipComponent.h"
@@ -81,8 +80,6 @@ void UHealthComponent::RestoreHP(float InHP)
 
 void UHealthComponent::OnRep_PrintHP()
 {
-	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%.2f/%.2f"), CurrentHP, MaxHP));
-
 	ACharacter* Owner = Cast<ACharacter>(GetOwner());
 	AMyPlayerController* PC = IsValid(Owner) == true ? Owner->GetController<AMyPlayerController>() : nullptr;
 	if (IsValid(PC) == false)

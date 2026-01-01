@@ -6,7 +6,6 @@
 #include "Item/DataTableSubsystem.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Item/ItemWrapperActor/ItemWrapperActor.h"
 #include "Character/MyCharacter.h"
 #include "Inventory/InventoryData.h"
@@ -117,7 +116,6 @@ void UEquipComponent::EquipItem(EBodyLocation BodyLocation, UItemInstance* Item,
 	Item->SetOwnerObject(this);
 	Item->SetOwnerCharacter(OwnerCharacter);
 
-	UKismetSystemLibrary::PrintString(GetWorld(), *ItemData->ItemId.ToString());
 	for (auto& EquippedItemInfo : EquippedItemInfos)
 	{
 		if (Exclusive(EquippedItemInfo.Location, BodyLocation) == true)

@@ -2,7 +2,6 @@
 #include "Character/MyCharacter.h"
 #include "Item/Data/ItemData.h"
 #include "Item/ItemEnums.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 void UHoldableComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

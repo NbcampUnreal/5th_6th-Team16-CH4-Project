@@ -3,7 +3,6 @@
 #include "Item/Data/FoodData.h"
 #include "Item/ItemInstance.h"
 #include "Item/Data/ItemData.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Item/ItemCommand/ItemNetworkCommand.h"
 #include "Net/UnrealNetwork.h"
 #include "Character/MyCharacter.h"
@@ -107,7 +106,6 @@ void UFoodComponent::Ingest(AActor* InInstigator, int32 ConsumeAmount)
 
 void UFoodComponent::OnRep_PrintAmount()
 {
-	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%d left"), Amount));
 	if (OnUpdatedItemComponent.IsBound())
 	{
 		OnUpdatedItemComponent.Broadcast();

@@ -7,7 +7,6 @@
 #include "Item/ItemComponent/DefaultItemComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/Character.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Item/ItemComponent/HoldableComponent.h"
 #include "Engine/ActorChannel.h"
 #include "Inventory/InventoryData.h"
@@ -205,16 +204,16 @@ void UItemInstance::CancelAllComponentActions()
 
 bool UItemInstance::RemoveFromSource()
 {
-	if (AItemWrapperActor* ItemActor = GetTypedOuter<AItemWrapperActor>())
-	{
-		ItemActor->Destroy();
-		return true;
-	}
-
 	UInventoryData* Inventory = GetOwnerInventory();
 	if (IsValid(Inventory) == true)
 	{
 		return Inventory->RemoveItem(this);
+	}
+
+	if (AItemWrapperActor* ItemActor = GetTypedOuter<AItemWrapperActor>())
+	{
+		ItemActor->Destroy();
+		return true;
 	}
 
 	if (OwnerCharacter.IsValid() == true)
