@@ -77,7 +77,16 @@ void UItemInstance::SetItemId(const FName& InItemId)
 	InitComponents();
 }
 
-void UItemInstance::OnRep_SetData()
+const FItemData* UItemInstance::GetData() const
+{
+	if (Data == nullptr)
+	{
+		const_cast<UItemInstance*>(this)->SetData();
+	}
+	return Data;
+}
+
+void UItemInstance::SetData()
 {
 	UDataTableSubsystem* DataTableSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDataTableSubsystem>();
 	if (IsValid(DataTableSubsystem) == false)
@@ -88,7 +97,11 @@ void UItemInstance::OnRep_SetData()
 		return;
 
 	Data = ItemTable->FindRow<FItemData>(ItemId, FString(""));
+}
 
+void UItemInstance::OnRep_SetData()
+{
+	SetData();
 	OnRep_ItemUpdated();
 }
 

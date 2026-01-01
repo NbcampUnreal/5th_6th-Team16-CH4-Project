@@ -32,8 +32,13 @@ protected:
 public:
 	void SetItemId(const FName& InItemId);
 	FORCEINLINE const FName& GetItemId() const { return ItemId; }
-	const FItemData* GetData() const { return Data; }
 
+	const FItemData* GetData() const;
+
+private:
+	void SetData();
+
+public:
 	template <typename T>
 	T* GetItemComponent() const
 	{
