@@ -21,7 +21,7 @@
 
 // Sets default values
 AMyAICharacter::AMyAICharacter() :
-	AttackDamage(25),
+	AttackDamage(10),
 	bIsAttack(false),
 	bIsHit(false)
 {
@@ -34,7 +34,7 @@ AMyAICharacter::AMyAICharacter() :
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	Movement->bOrientRotationToMovement = true;
 	Movement->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
-	Movement->MaxWalkSpeed = 300.f;
+	Movement->MaxWalkSpeed = 280.f;
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
@@ -248,7 +248,7 @@ void AMyAICharacter::Attack(AMyAICharacter* ContextActor, AActor* DamagedActor)
 		{
 			PlayEnemySound(EnemyBiteSound);
 			UGameplayStatics::ApplyPointDamage(HitActor,
-				AttackDamage + FMath::FRandRange(-10.f, 10.f),
+				AttackDamage + FMath::FRandRange(-5.f, 5.f),
 				EndLocation - StartLocation,
 				Hit,
 				GetController(),

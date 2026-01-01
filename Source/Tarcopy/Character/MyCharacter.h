@@ -144,6 +144,8 @@ protected:
 	float SprintSpeedMultiplier;
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
 	float CrouchSpeedMultiplier;
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Speed", meta = (AllowPrivateAccess = "true"))
+	float AimSpeedMultiplier;
 
 	UPROPERTY(Replicated, ReplicatedUsing = OnRep_SetSpeed)
 	float CurrentSpeed;
