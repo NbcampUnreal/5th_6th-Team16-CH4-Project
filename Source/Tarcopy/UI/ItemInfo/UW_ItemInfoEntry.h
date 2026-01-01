@@ -18,4 +18,5 @@ class TARCOPY_API UUW_ItemInfoEntry : public UUserWidget
 	
 public:
 	virtual void BindItem(UItemInstance* InItem);
+	virtual void HandleUpdated();
 };
