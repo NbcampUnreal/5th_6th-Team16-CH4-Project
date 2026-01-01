@@ -146,8 +146,6 @@ void UTCCarCombatComponent::DestroyMain(UPrimitiveComponent* DestroyComponent)
 	{
 		if (USkeletalMeshComponent* VehicleMesh = Vehicle->GetMesh())
 		{
-			VehicleMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-			VehicleMesh->SetNotifyRigidBodyCollision(true);
 			if (GetOwner()->HasAuthority())
 			{
 				VehicleMesh->OnComponentHit.RemoveDynamic(this, &UTCCarCombatComponent::OnVehicleHit);
