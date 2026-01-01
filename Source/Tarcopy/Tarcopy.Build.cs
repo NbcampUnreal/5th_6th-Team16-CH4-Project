@@ -38,7 +38,8 @@ public class Tarcopy : ModuleRules
             "UMG",
             "Slate",
             "SlateCore",
-            "NetCore"
+            "NetCore",
+            "EOSVoiceChatPTT"
         });
 
         // Uncomment if you are using Slate UI

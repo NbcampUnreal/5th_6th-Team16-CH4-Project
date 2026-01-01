@@ -35,7 +35,7 @@ void UUISubsystem::PlayerControllerChanged(APlayerController* NewPlayerControlle
 
     ResetAllUI();
     InitRootHUD();
-}
+ }
 
 UUserWidget* UUISubsystem::ShowUI(EUIType Type)
 {

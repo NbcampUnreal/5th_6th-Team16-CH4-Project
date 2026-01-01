@@ -34,7 +34,7 @@
 #include "IEOSSDKManager.h"
 #include "EOSVoiceChatUser.h"
 
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 #include "eos_sdk.h"
 #include "eos_connect.h"
 #include "eos_lobby.h"
@@ -100,7 +100,7 @@ private:
 };
 #endif
 
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 static const TCHAR* EosResultToString(EOS_EResult Result)
 {
 	return UTF8_TO_TCHAR(EOS_EResult_ToString(Result));
@@ -117,6 +117,7 @@ UEOSVoiceChatSubsystem::UEOSVoiceChatSubsystem()
 	, bAlwaysTransmit(false)
 	, bMuted(false)
 	, bIsPTTActive(false)
+	, bVoiceIndicatorActive(false)
 	, bPendingAutoJoin(false)
 	, bVoiceLobbyInFlight(false)
 	, LastAutoJoinAttemptTime(0.0)
@@ -126,7 +127,7 @@ UEOSVoiceChatSubsystem::UEOSVoiceChatSubsystem()
 	, EnhancedPressedBindingHandle(0)
 	, EnhancedReleasedBindingHandle(0)
 	, EnhancedCanceledBindingHandle(0)
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	, EOSConnectHandle(nullptr)
 	, EOSLobbyHandle(nullptr)
 	, EOSRtcHandle(nullptr)
@@ -170,6 +171,7 @@ void UEOSVoiceChatSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	bPTTEnabled = bEnablePTTByDefault;
 	bAlwaysTransmit = bAlwaysTransmitByDefault;
 	InitializeVoiceChat();
+	UpdateVoiceIndicatorFromState();
 
 #if WITH_SLATE_APPLICATION
 	if (FSlateApplication::IsInitialized() && !PTTInputPreProcessor.IsValid())
@@ -206,6 +208,7 @@ void UEOSVoiceChatSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 				bAlwaysTransmit = bAlwaysTransmitByDefault;
 				bIsPTTActive = false;
 				UpdateRTCSending(false);
+				UpdateVoiceIndicatorFromState();
 
 				return;
 			}
@@ -229,7 +232,7 @@ void UEOSVoiceChatSubsystem::Deinitialize()
 
 	UpdateRTCSending(false);
 
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	UnregisterRtcAudioNotify();
 	LeaveVoiceLobby();
 #endif
@@ -248,7 +251,7 @@ void UEOSVoiceChatSubsystem::Deinitialize()
 		MapLoadedHandle.Reset();
 	}
 
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (ChannelMode == EEOSVoiceChannelMode::ManualRtc && EOSRtcHandle && LocalProductUserId && !ActiveRoomName.IsEmpty())
 	{
 		const FTCHARToUTF8 RoomNameUtf8(*ActiveRoomName);
@@ -319,6 +322,7 @@ void UEOSVoiceChatSubsystem::ToggleMute(bool bMute)
 {
 	bMuted = bMute;
 	UpdateRTCSending(false);
+	UpdateVoiceIndicatorFromState();
 
 	if (VoiceChatUser && VoiceChatUser->IsLoggedIn())
 	{
@@ -338,13 +342,30 @@ void UEOSVoiceChatSubsystem::SetPTTEnabled(bool bEnabled)
 	{
 		UpdateRTCSending(false);
 	}
+	UpdateVoiceIndicatorFromState();
 }
 
 void UEOSVoiceChatSubsystem::SetAlwaysTransmit(bool bEnabled)
 {
 	bAlwaysTransmit = bEnabled;
 	bIsPTTActive = false;
-	UpdateRTCSending(bAlwaysTransmit || bIsPTTActive);
+	UpdateRTCSending(bAlwaysTransmit);
+	UpdateVoiceIndicatorFromState();
+}
+
+bool UEOSVoiceChatSubsystem::IsVoiceIndicatorActive() const
+{
+	if (bAlwaysTransmit)
+	{
+		return !bMuted;
+	}
+
+	if (!bPTTEnabled)
+	{
+		return false;
+	}
+
+	return bIsPTTActive && !bMuted;
 }
 
 void UEOSVoiceChatSubsystem::JoinChannel(const FString& ChannelName)
@@ -457,7 +478,7 @@ void UEOSVoiceChatSubsystem::LeaveChannel()
 
 	if (ChannelMode == EEOSVoiceChannelMode::LobbyRtcSdk)
 	{
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 		LeaveVoiceLobby();
 #endif
 		ChannelMode = EEOSVoiceChannelMode::None;
@@ -467,7 +488,7 @@ void UEOSVoiceChatSubsystem::LeaveChannel()
 		return;
 	}
 
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (ChannelMode == EEOSVoiceChannelMode::ManualRtc && EOSRtcHandle && LocalProductUserId && !ActiveRoomName.IsEmpty())
 	{
 		const FTCHARToUTF8 RoomNameUtf8(*ActiveRoomName);
@@ -553,17 +574,20 @@ void UEOSVoiceChatSubsystem::EnsureConnectLogin()
 		return;
 	}
 
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (TryUseExistingPuid())
 	{
 		return;
 	}
 
 	StartConnectDeviceIdLogin();
+#endif
 }
 
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 bool UEOSVoiceChatSubsystem::TryUseExistingPuid()
 {
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (!ResolveEOSHandles())
 	{
 		return false;
@@ -600,7 +624,7 @@ bool UEOSVoiceChatSubsystem::TryUseExistingPuid()
 
 void UEOSVoiceChatSubsystem::StartConnectDeviceIdLogin()
 {
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (bConnectLoginInFlight)
 	{
 		return;
@@ -624,7 +648,7 @@ void UEOSVoiceChatSubsystem::StartConnectDeviceIdLogin()
 
 void UEOSVoiceChatSubsystem::HandleCreateDeviceIdComplete(const EOS_Connect_CreateDeviceIdCallbackInfo* Data)
 {
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (!Data)
 	{
 		bConnectLoginInFlight = false;
@@ -659,7 +683,7 @@ void UEOSVoiceChatSubsystem::HandleCreateDeviceIdComplete(const EOS_Connect_Crea
 
 void UEOSVoiceChatSubsystem::HandleConnectLoginComplete(const EOS_Connect_LoginCallbackInfo* Data)
 {
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (!Data)
 	{
 		bConnectLoginInFlight = false;
@@ -695,7 +719,7 @@ void UEOSVoiceChatSubsystem::HandleConnectLoginComplete(const EOS_Connect_LoginC
 
 void UEOSVoiceChatSubsystem::HandleConnectCreateUserComplete(const EOS_Connect_CreateUserCallbackInfo* Data)
 {
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (!Data)
 	{
 		bConnectLoginInFlight = false;
@@ -721,7 +745,7 @@ void UEOSVoiceChatSubsystem::HandleConnectCreateUserComplete(const EOS_Connect_C
 
 FString UEOSVoiceChatSubsystem::ProductUserIdToString(EOS_ProductUserId UserId) const
 {
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (!UserId)
 	{
 		return FString();
@@ -742,7 +766,7 @@ FString UEOSVoiceChatSubsystem::ProductUserIdToString(EOS_ProductUserId UserId) 
 #endif
 }
 
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 void EOS_CALL UEOSVoiceChatSubsystem::OnCreateDeviceIdCompleteStatic(const EOS_Connect_CreateDeviceIdCallbackInfo* Data)
 {
 	if (!Data)
@@ -785,7 +809,7 @@ void EOS_CALL UEOSVoiceChatSubsystem::OnConnectCreateUserCompleteStatic(const EO
 
 void UEOSVoiceChatSubsystem::LoginToVoiceChat(const FString& ProductUserId)
 {
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (ResolveEOSHandles())
 	{
 		LocalProductUserId = EOS_ProductUserId_FromString(TCHAR_TO_UTF8(*ProductUserId));
@@ -819,6 +843,8 @@ void UEOSVoiceChatSubsystem::LoginToVoiceChat(const FString& ProductUserId)
 		TEXT(""),
 		FOnVoiceChatLoginCompleteDelegate::CreateUObject(this, &UEOSVoiceChatSubsystem::HandleVoiceChatLoginComplete));
 }
+
+#endif
 
 void UEOSVoiceChatSubsystem::HandleVoiceChatLoginComplete(const FString& PlayerName, const FVoiceChatResult& Result)
 {
@@ -861,7 +887,7 @@ void UEOSVoiceChatSubsystem::HandleVoiceChatChannelJoinedLog(const FString& Chan
 
 void UEOSVoiceChatSubsystem::ApplyDefaultAudioInputDevice()
 {
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (!EOSRtcAudioHandle || !LocalProductUserId)
 	{
 		return;
@@ -1158,29 +1184,25 @@ void UEOSVoiceChatSubsystem::OnPTTPressed()
 		return;
 	}
 
-	if (bIsPTTActive)
-	{
-		return;
-	}
-
-	bIsPTTActive = true;
-	UpdateRTCSending(true);
+	bIsPTTActive = !bIsPTTActive;
+	UpdateRTCSending(bIsPTTActive);
+	UpdateVoiceIndicatorFromState();
 }
 
 void UEOSVoiceChatSubsystem::OnPTTReleased()
 {
-	if (bAlwaysTransmit)
+}
+
+void UEOSVoiceChatSubsystem::UpdateVoiceIndicatorFromState()
+{
+	const bool bActive = IsVoiceIndicatorActive();
+	if (bVoiceIndicatorActive == bActive)
 	{
 		return;
 	}
 
-	if (!bIsPTTActive)
-	{
-		return;
-	}
-
-	bIsPTTActive = false;
-	UpdateRTCSending(false);
+	bVoiceIndicatorActive = bActive;
+	OnVoiceTransmitStateChanged.Broadcast(bVoiceIndicatorActive);
 }
 
 void UEOSVoiceChatSubsystem::EnsureVoiceChatUser()
@@ -1261,7 +1283,7 @@ void UEOSVoiceChatSubsystem::TryAutoJoin()
 
 void UEOSVoiceChatSubsystem::EnsureVoiceLobby()
 {
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (!bEnableVoiceLobby)
 	{
 		return;
@@ -1446,7 +1468,7 @@ bool UEOSVoiceChatSubsystem::TryUseLobbyRtc(const FString& LobbyId)
 
 #endif
 
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (!EOSLobbyHandle || !LocalProductUserId)
 	{
 		return false;
@@ -1480,7 +1502,7 @@ bool UEOSVoiceChatSubsystem::TryUseLobbyRtc(const FString& LobbyId)
 
 bool UEOSVoiceChatSubsystem::TryJoinManualRtc(const FString& ChannelName)
 {
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (!EOSRtcHandle || !LocalProductUserId)
 	{
 		return false;
@@ -1560,7 +1582,7 @@ void UEOSVoiceChatSubsystem::UpdateRTCSending(bool bEnable)
 
 	if (ChannelMode == EEOSVoiceChannelMode::LobbyRtcSdk)
 	{
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 		if (!EOSRtcAudioHandle || !LocalProductUserId || ActiveRoomName.IsEmpty())
 		{
 			return;
@@ -1587,7 +1609,7 @@ void UEOSVoiceChatSubsystem::UpdateRTCSending(bool bEnable)
 		return;
 	}
 
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 	if (!EOSRtcAudioHandle || !LocalProductUserId || ActiveRoomName.IsEmpty())
 	{
 		return;
@@ -1605,7 +1627,7 @@ void UEOSVoiceChatSubsystem::UpdateRTCSending(bool bEnable)
 #endif
 }
 
-#if WITH_EOS_SDK
+#if defined(WITH_EOS_SDK) && WITH_EOS_SDK
 void EOS_CALL UEOSVoiceChatSubsystem::OnRTCSendUpdateStatic(const EOS_RTCAudio_UpdateSendingCallbackInfo* Data)
 {
 	if (!Data)
